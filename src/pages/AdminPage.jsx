@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import users from "../data/users.json"; // Static JSON "DB"
+import axios from "axios";
 
 const AdminPage = () => {
   const navigate = useNavigate();
@@ -10,17 +10,28 @@ const AdminPage = () => {
   const [error, setError] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const user = users.find((u) => u.email === email && u.password === password);
+    setError("");
 
-    if (user) {
-      setLoggedIn(true);
-      setError("");
-    } else {
-      setError("Invalid email or password");
+    try {
+      const res = await axios.post("http://localhost:5000/api/auth/login", {
+        email,
+        password,
+      });
+
+      if (res.data.success) {
+        setLoggedIn(true);
+      }
+    } catch (err) {
+      if (err.response) {
+        setError(err.response.data.message);
+      } else {
+        setError("Network error");
+      }
     }
   };
+
 
   if (loggedIn) {
     return <Navigate to="/dashboard" state={{ email }} replace />;

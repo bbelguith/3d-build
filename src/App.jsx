@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -6,6 +6,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
+import axios from "axios";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -23,40 +24,10 @@ import AdminPage from "./pages/AdminPage";
 import Dashboard from "./pages/Dashboard";
 import VideoPlayer from "./components/VideoPlayer";
 import Loader from "./components/Loader";
-import { videos } from "./components/videosList";
 import HouseCommentForm from "./pages/HouseCommentForm";
 import ChatBot from "./components/ChatBot";
 import { ChatProvider } from "./context/ChatContext";
 import NotFound from "./pages/NotFound";
-
-/* --- Global simple sound helper (no extra deps) --- */
-function GlobalSounds() {
-  const okRef = useRef(null);
-  const errRef = useRef(null);
-
-  useEffect(() => {
-    // Expose a simple global sound API
-    window.playUiSound = (type = "ok") => {
-      const el = type === "error" ? errRef.current : okRef.current;
-      if (!el) return;
-      try {
-        el.currentTime = 0;
-        el.play();
-      } catch { }
-    };
-    return () => {
-      if (window.playUiSound) delete window.playUiSound;
-    };
-  }, []);
-
-  return (
-    <>
-      {/* Put your mp3 files in public/sounds/ or adjust paths */}
-      <audio ref={okRef} preload="auto" src="/sounds/success.mp3" />
-      <audio ref={errRef} preload="auto" src="/sounds/error.mp3" />
-    </>
-  );
-}
 
 function AppContent() {
   const location = useLocation();
@@ -65,10 +36,22 @@ function AppContent() {
 
   const [isReady, setIsReady] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [videos, setVideos] = useState([]);
 
-  // Loader logic only for main page
+
+  // Fetch videos from backend
   useEffect(() => {
-    if (hideLayout) return; // skip loader for admin
+    if (hideLayout) return;
+
+    axios
+      .get("http://localhost:5000/api/videos")
+      .then((res) => setVideos(res.data))
+      .catch((err) => console.error("Failed to fetch videos:", err));
+  }, [hideLayout]);
+
+  // Loader logic
+  useEffect(() => {
+    if (hideLayout || videos.length === 0) return;
 
     const initialVideos = videos.slice(0, 3);
     let loadedCount = 0;
@@ -88,6 +71,7 @@ function AppContent() {
 
     Promise.all(initialVideos.map(preloadVideo)).then(() => {
       setTimeout(() => setIsReady(true), 300);
+      // Preload remaining videos in background
       videos.slice(3).forEach((video) => {
         const bgVid = document.createElement("video");
         bgVid.src = video.src;
@@ -95,7 +79,7 @@ function AppContent() {
         bgVid.load();
       });
     });
-  }, [hideLayout]);
+  }, [videos, hideLayout]);
 
   if (!isReady && !hideLayout) return <Loader progress={progress} />;
 
@@ -109,7 +93,6 @@ function AppContent() {
     >
       {!hideLayout && <Navbar />}
 
-      {/* Toasts available on every route */}
       <ToastContainer
         position="top-center"
         autoClose={2800}
@@ -122,16 +105,13 @@ function AppContent() {
         theme="light"
       />
 
-      {/* Global sounds  */}
-      <GlobalSounds />
-
       <main className="flex-grow w-full">
         <Routes>
           <Route
             path="/"
             element={
               <>
-                <VideoPlayer />
+                <VideoPlayer videos={videos} />
                 <Location />
                 <Technology />
                 <Contact />
@@ -156,6 +136,7 @@ function AppContent() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+
       {!hideLayout && <Footer />}
       {!hideLayout && <ChatBot />}
     </div>

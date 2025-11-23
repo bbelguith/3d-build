@@ -1,43 +1,71 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import commentsData from "../data/comments.json";
-import { houseImages } from "../data/houseImages";
-
-let comments = [...commentsData];
+import axios from "axios";
 
 const HouseCommentForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // Form State
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [request, setRequest] = useState("call");
   const [message, setMessage] = useState("");
+
+  // UI State
   const [success, setSuccess] = useState(false);
   const [showImg, setShowImg] = useState(false);
+  const [currentHouseImage, setCurrentHouseImage] = useState(null);
 
-  const handleSubmit = (e) => {
+  // 1. Fetch the House Image from DB on mount
+  useEffect(() => {
+    const fetchHouseImage = async () => {
+      try {
+        // We fetch all images and filter, or you could create a specific endpoint
+        const res = await axios.get("http://localhost:5000/api/house-images");
+
+        // Find the image where houseId matches the URL param ID
+        const img = res.data.find((h) => h.houseId === parseInt(id));
+        if (img) {
+          setCurrentHouseImage(img.src);
+        }
+      } catch (error) {
+        console.error("Error fetching house image:", error);
+      }
+    };
+
+    fetchHouseImage();
+  }, [id]);
+
+  // 2. Handle Form Submit -> Save to DB
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const newComment = {
-      id: comments.length + 1,
       houseId: parseInt(id),
       name,
       phone,
       request,
       text: message,
+      // 'date' will be handled by 'createdAt' or we can send it manually if your DB requires 'date' column
       date: new Date().toISOString(),
+      seen: false
     };
 
-    comments.push(newComment);
-    setSuccess(true);
+    try {
+      // Post to the new endpoint we created in server.js (you might need to create this route if not exists)
+      await axios.post("http://localhost:5000/api/comments", newComment);
 
-    setTimeout(() => {
-      navigate("/");
-    }, 2000);
+      setSuccess(true);
+
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
+    } catch (error) {
+      console.error("Error saving comment:", error);
+      alert("Failed to send request. Please try again.");
+    }
   };
-
-  const currentHouseImage = houseImages.find((h) => h.id === parseInt(id))?.src;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex items-center justify-center px-4 py-8">
@@ -50,16 +78,13 @@ const HouseCommentForm = () => {
           <span className="mt-4 mb-6 block h-[3px] w-24 bg-black mx-auto rounded-full" />
         </div>
 
-        {/* House Image Banner */}
-        {currentHouseImage && (
+        {/* House Image Banner (From DB) */}
+        {currentHouseImage ? (
           <div className="px-6 sm:px-10">
             <div
               className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden border border-gray-200 shadow-md group cursor-zoom-in"
               onClick={() => setShowImg(true)}
               title="Click to view"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => (e.key === "Enter" ? setShowImg(true) : null)}
             >
               <img
                 src={currentHouseImage}
@@ -71,6 +96,11 @@ const HouseCommentForm = () => {
                 VIEW
               </span>
             </div>
+          </div>
+        ) : (
+          // Optional: Show loading or placeholder if image isn't found yet
+          <div className="px-6 sm:px-10 h-48 flex items-center justify-center bg-gray-100 text-gray-400 rounded-2xl mx-6 sm:mx-10">
+            Loading Image...
           </div>
         )}
 

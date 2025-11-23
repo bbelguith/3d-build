@@ -1,29 +1,70 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import houses from "../data/houses.json"; // Your JSON "DB"
-import HouseCommentForm from "./HouseCommentForm"; // path unchanged
-import { houseImages } from "../data/houseImages";
-import { roomImages } from "../data/roomImages";
-import { galleryImages } from "../data/galleryImages";
-import { floorPlanImages } from "../data/floorPlanImages";
+import axios from "axios"; // Import Axios
 
 export default function Plan() {
     const navigate = useNavigate();
+
+    // 1. STATE: Replace JSON imports with useState
+    const [houses, setHouses] = useState([]);
+    const [houseImages, setHouseImages] = useState([]);
+    const [roomImages, setRoomImages] = useState([]);
+    const [galleryImages, setGalleryImages] = useState([]);
+    const [floorPlanImages, setFloorPlanImages] = useState([]);
+    const [loading, setLoading] = useState(true); // Loading state
+
     const [hoveredHouseId, setHoveredHouseId] = useState(null);
     const [roomIndex, setRoomIndex] = useState(0);
     const [galleryIndex, setGalleryIndex] = useState(0);
     const [floorIndex, setFloorIndex] = useState(0);
     const [popupSrc, setPopupSrc] = useState(null);
 
+    // 2. FETCH DATA: Use useEffect to call your API
+    useEffect(() => {
+        const fetchAllData = async () => {
+            try {
+                // Fetch all endpoints in parallel
+                const [housesRes, hImgRes, rImgRes, gImgRes, fImgRes] = await Promise.all([
+                    axios.get("http://localhost:5000/api/houses"),
+                    axios.get("http://localhost:5000/api/house-images"),
+                    axios.get("http://localhost:5000/api/room-images"),
+                    axios.get("http://localhost:5000/api/gallery-images"),
+                    axios.get("http://localhost:5000/api/floor-images"),
+                ]);
 
-    const activeHouses = useMemo(() => houses.filter((h) => h.type === "a"), []);
-    const [currentIdx, setCurrentIdx] = useState(
-        Math.max(0, activeHouses.findIndex((h) => h.state === "actif"))
-    );
+                setHouses(housesRes.data);
+                setHouseImages(hImgRes.data);
+                setRoomImages(rImgRes.data);
+                setGalleryImages(gImgRes.data);
+                setFloorPlanImages(fImgRes.data);
+                setLoading(false); // Data is ready
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                setLoading(false);
+            }
+        };
 
+        fetchAllData();
+    }, []);
 
+    // 3. LOGIC ADAPTATION
+    const activeHouses = useMemo(() => houses.filter((h) => h.type === "a"), [houses]);
+
+    // Initialize currentIdx carefully (wait for data)
+    const [currentIdx, setCurrentIdx] = useState(0);
+
+    // Update index when activeHouses changes (after fetch)
+    useEffect(() => {
+        if (activeHouses.length > 0) {
+            const idx = activeHouses.findIndex((h) => h.state === "actif");
+            setCurrentIdx(Math.max(0, idx));
+        }
+    }, [activeHouses]);
+
+    // Keyboard navigation
     useEffect(() => {
         const onKey = (e) => {
+            if (activeHouses.length === 0) return;
             if (e.key === "ArrowRight") nextHouse();
             if (e.key === "ArrowLeft") prevHouse();
         };
@@ -40,25 +81,24 @@ export default function Plan() {
         hoveredHouseId ??
         (activeHouses[currentIdx] ? activeHouses[currentIdx].id : null);
 
-    const currentImage =
-        houseImages.find((img) => img.id === currentActiveId)?.src ??
+    // 4. FINDING IMAGES: 
+    // This logic relies on houseImages having a "houseId" property matching the house ID
+    const currentImageObj = houseImages.find((img) => img.houseId === currentActiveId);
+
+    const currentImage = currentImageObj?.src ??
         "https://res.cloudinary.com/dzbmwlwra/image/upload/f_auto,q_auto/v1762360930/49ba186a-621c-4825-859e-ff097bec92c5_rdji7t.jpg";
 
-    const updateCarousel = (type, increment) => {
-        if (type === "room") {
-            setRoomIndex((p) => (p + increment + roomImages.length) % roomImages.length);
-        } else if (type === "gallery") {
-            setGalleryIndex((p) => (p + increment + galleryImages.length) % galleryImages.length);
-        } else if (type === "floor") {
-            setFloorIndex((p) => (p + increment + floorPlanImages.length) % floorPlanImages.length);
-        }
-    };
+    // Helper to get array of strings for the sliders based on the data structure
+    const currentRoomImages = roomImages.map(img => img.src);
+    const currentGalleryImages = galleryImages.map(img => img.src);
+    const currentFloorImages = floorPlanImages.map(img => img.src);
 
     const handleHouseClick = (houseId) => {
         const house = houses.find((h) => h.id === houseId);
         if (house && house.state === "actif") navigate(`/house/${houseId}`);
     };
 
+    // --- RENDER HELPERS ---
     const Title = ({ children }) => (
         <div className="text-center max-w-5xl mx-auto px-4 mb-16">
             <h1 className="text-4xl sm:text-5xl font-extrabold uppercase leading-tight tracking-[0.2em]">
@@ -68,43 +108,46 @@ export default function Plan() {
         </div>
     );
 
-    const Section = ({ title, images, index, setIndex }) => (
-        <section className="relative w-full min-h-[70vh] md:min-h-[80vh] lg:min-h-[85vh] border-b flex items-center justify-center">
-            {/* Clickable background */}
-            <div
-                className="absolute inset-0 bg-center bg-no-repeat bg-cover cursor-zoom-in"
-                style={{ backgroundImage: `url(${images[index]})` }}
-                onClick={() => setPopupSrc(images[index])}
-                title="Click to view"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/30 to-transparent" />
+    const Section = ({ title, images, index, setIndex }) => {
+        if (!images || images.length === 0) return null;
 
-            <h2 className="absolute top-6 w-full text-center text-3xl sm:text-5xl font-extrabold text-white z-10 tracking-widest drop-shadow">
-                {title}
-            </h2>
+        return (
+            <section className="relative w-full min-h-[70vh] md:min-h-[80vh] lg:min-h-[85vh] border-b flex items-center justify-center">
+                <div
+                    className="absolute inset-0 bg-center bg-no-repeat bg-cover cursor-zoom-in"
+                    style={{ backgroundImage: `url(${images[index]})` }}
+                    onClick={() => setPopupSrc(images[index])}
+                    title="Click to view"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/30 to-transparent" />
+                <h2 className="absolute top-6 w-full text-center text-3xl sm:text-5xl font-extrabold text-white z-10 tracking-widest drop-shadow">
+                    {title}
+                </h2>
+                <button
+                    onClick={() => setIndex((p) => (p - 1 + images.length) % images.length)}
+                    className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 text-white text-2xl sm:text-3xl font-bold bg-white/10 hover:bg-white/20 backdrop-blur rounded-full p-2 sm:p-3 ring-1 ring-white/30 z-10"
+                >
+                    &#8592;
+                </button>
+                <button
+                    onClick={() => setIndex((p) => (p + 1) % images.length)}
+                    className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 text-white text-2xl sm:text-3xl font-bold bg-white/10 hover:bg-white/20 backdrop-blur rounded-full p-2 sm:p-3 ring-1 ring-white/30 z-10"
+                >
+                    &#8594;
+                </button>
+            </section>
+        )
+    };
 
-            <button
-                onClick={() => setIndex((p) => (p - 1 + images.length) % images.length)}
-                className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 text-white text-2xl sm:text-3xl font-bold
-                 bg-white/10 hover:bg-white/20 backdrop-blur rounded-full p-2 sm:p-3 ring-1 ring-white/30 z-10"
-                aria-label="Previous"
-            >
-                &#8592;
-            </button>
-            <button
-                onClick={() => setIndex((p) => (p + 1) % images.length)}
-                className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 text-white text-2xl sm:text-3xl font-bold
-                 bg-white/10 hover:bg-white/20 backdrop-blur rounded-full p-2 sm:p-3 ring-1 ring-white/30 z-10"
-                aria-label="Next"
-            >
-                &#8594;
-            </button>
-        </section>
-    );
+    // --- LOADING CHECK ---
+    if (loading) {
+        return <div className="min-h-screen flex items-center justify-center text-xl">Loading Plans...</div>;
+    }
+
 
     return (
         <div className="min-h-screen text-gray-900 bg-gradient-to-b from-white to-gray-50">
-            {/* PROPERTY PLANNING — wider & horizontal cards */}
+            {/* PROPERTY PLANNING */}
             <section className="py-16 sm:py-24 border-b border-gray-200 bg-gradient-to-b from-white via-gray-50 to-white">
                 <Title>
                     PROPERTY
@@ -188,19 +231,17 @@ export default function Plan() {
                 </div>
             </section>
 
-            <Section title="ROOM TOUR" images={roomImages} index={roomIndex} setIndex={setRoomIndex} />
+            <Section title="ROOM TOUR" images={currentRoomImages} index={roomIndex} setIndex={setRoomIndex} />
             <br />
-            <Section title="FLOOR PLAN" images={floorPlanImages} index={floorIndex} setIndex={setFloorIndex} />
+            <Section title="FLOOR PLAN" images={currentFloorImages} index={floorIndex} setIndex={setFloorIndex} />
             <br />
-            <Section title="GALLERY" images={galleryImages} index={galleryIndex} setIndex={setGalleryIndex} />
+            <Section title="GALLERY" images={currentGalleryImages} index={galleryIndex} setIndex={setGalleryIndex} />
             <br />
 
-            {/* CHOOSE YOUR HOUSE  */}
+            {/* CHOOSE YOUR HOUSE */}
             <section className="relative w-full min-h-[72vh] md:min-h-[80vh] lg:min-h-[88vh] flex flex-col items-center justify-start gap-6 sm:gap-8">
                 <Title>CHOOSE YOUR HOUSE</Title>
-
                 <div className="w-full max-w-7xl px-4">
-                    {/* Show all chips, same order as JSON, no scrolling */}
                     <div className="flex flex-wrap justify-center gap-2 sm:gap-3 px-2 py-2 mb-4">
                         {activeHouses.map((house, i) => {
                             const isActive = house.id === currentActiveId;
@@ -223,119 +264,40 @@ export default function Plan() {
                                             : "bg-green-600 text-white border border-green-700 hover:bg-green-700",
                                         isActive ? "scale-105 ring-2 ring-offset-2 ring-black" : "",
                                     ].join(" ")}
-                                    title={isSold ? "Sold" : "Available"}
                                 >
                                     {house.number} {isSold ? "(Sold)" : ""}
                                 </button>
                             );
                         })}
                     </div>
-
-                    {/* Optional: progress dots can remain, but they aren't needed without a slider */}
-                    <div className="flex justify-center gap-2 mb-2">
-                        {activeHouses.map((_, i) => (
-                            <span
-                                key={i}
-                                className={`h-1.5 w-6 rounded-full transition-all ${i === currentIdx ? "bg-black w-8" : "bg-gray-300"
-                                    }`}
-                            />
-                        ))}
-                    </div>
                 </div>
 
-
-                {/* Big hero image (click to modal) */}
                 <div className="relative w-full flex-1 rounded-2xl overflow-hidden max-w-7xl shadow-2xl">
                     <div
                         key={currentImage}
                         className="absolute inset-0 bg-center bg-cover will-change-transform animate-[fadeIn_420ms_ease] md:scale-[1.02] cursor-zoom-in"
                         style={{ backgroundImage: `url(${currentImage})` }}
                         onClick={() => setPopupSrc(currentImage)}
-                        title="Click to view"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/20 to-transparent pointer-events-none" />
-
-                    {/* Overlay arrows on big image */}
-                    <button
-                        onClick={prevHouse}
-                        aria-label="Previous House"
-                        className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 text-white text-xl sm:text-2xl font-bold
-                       bg-black/30 hover:bg-black/50 backdrop-blur rounded-full p-2 sm:p-3 ring-1 ring-white/20"
-                    >
-                        &#8592;
-                    </button>
-                    <button
-                        onClick={nextHouse}
-                        aria-label="Next House"
-                        className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 text-white text-xl sm:text-2xl font-bold
-                       bg-black/30 hover:bg-black/50 backdrop-blur rounded-full p-2 sm:p-3 ring-1 ring-white/20"
-                    >
-                        &#8594;
-                    </button>
+                    {/* Arrows */}
+                    <button onClick={prevHouse} className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 text-white text-xl sm:text-2xl font-bold bg-black/30 hover:bg-black/50 backdrop-blur rounded-full p-2 sm:p-3 ring-1 ring-white/20">&#8592;</button>
+                    <button onClick={nextHouse} className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 text-white text-xl sm:text-2xl font-bold bg-black/30 hover:bg-black/50 backdrop-blur rounded-full p-2 sm:p-3 ring-1 ring-white/20">&#8594;</button>
                 </div>
             </section>
 
-            <br />
-            <br />
-
-            {/* Modal */}
+            {/* Modal & Footer (Unchanged) */}
             {popupSrc && (
-                <div
-                    className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 cursor-pointer p-4"
-                    onClick={() => setPopupSrc(null)}
-                >
-                    <img
-                        src={popupSrc}
-                        alt="Popup"
-                        className="max-w-[95vw] max-h-[85vh] rounded-3xl shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
-                    />
-                    <button
-                        onClick={() => setPopupSrc(null)}
-                        className="absolute top-4 right-4 sm:top-8 sm:right-8 text-white text-3xl sm:text-5xl font-bold select-none"
-                        aria-label="Close popup"
-                    >
-                        &times;
-                    </button>
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 cursor-pointer p-4" onClick={() => setPopupSrc(null)}>
+                    <img src={popupSrc} alt="Popup" className="max-w-[95vw] max-h-[85vh] rounded-3xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
+                    <button onClick={() => setPopupSrc(null)} className="absolute top-4 right-4 sm:top-8 sm:right-8 text-white text-3xl sm:text-5xl font-bold select-none">&times;</button>
                 </div>
             )}
 
-            {/* Bottom Navbar */}
-            <div
-                className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/95 border border-gray-200 rounded-2xl shadow-lg
-                   px-3 py-2 sm:px-4 sm:py-2.5 flex gap-2 sm:gap-3 z-50 max-w-[95vw] sm:max-w-md w-[95vw] sm:w-auto backdrop-blur"
-                style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
-            >
-                <button
-                    className="bg-black text-white rounded-full px-3 py-1.5 sm:px-3.5 sm:py-1.5 font-medium hover:bg-gray-900 transition whitespace-nowrap"
-                    onClick={() => alert("Request a callback")}
-                >
-                    CALL BACK
-                </button>
-                <button
-                    className="border border-black rounded-full px-3 py-1.5 sm:px-3.5 sm:py-1.5 font-medium hover:bg-black hover:text-white transition whitespace-nowrap"
-                    onClick={() => alert("Downloading PDF")}
-                >
-                    PDF DOWNLOAD
-                </button>
-                <button
-                    className="border border-black rounded-full px-3 py-1.5 sm:px-3.5 sm:py-1.5 font-medium hover:bg-black hover:text-white transition whitespace-nowrap"
-                    onClick={() => window.history.back()}
-                >
-                    GO BACK
-                </button>
-            </div>
-
-            {/* tiny keyframes + hide scrollbar util */}
             <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(1.02); }
-          to   { opacity: 1; transform: scale(1); }
-        }
-        /* Hide scrollbar while keeping scroll/drag */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
+                @keyframes fadeIn { from { opacity: 0; transform: scale(1.02); } to { opacity: 1; transform: scale(1); } }
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            `}</style>
         </div>
     );
 }

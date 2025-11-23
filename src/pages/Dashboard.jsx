@@ -1,41 +1,97 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import housesData from "../data/houses.json";
-import commentsData from "../data/comments.json";
-
-
-let houses = [...housesData];
-let comments = [...commentsData];
+import axios from "axios";
 
 const Dashboard = ({ email }) => {
   const navigate = useNavigate();
-  const [houseList, setHouseList] = useState(houses);
+
+  // 1. STATE: Store data from DB here
+  const [houseList, setHouseList] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Modal State
   const [selectedHouseComments, setSelectedHouseComments] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [activeHouseId, setActiveHouseId] = useState(null);
 
+  // 2. FETCH DATA ON MOUNT
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch Houses and Comments in parallel
+        const [housesRes, commentsRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/houses"),
+          axios.get("http://localhost:5000/api/comments")
+        ]);
+
+        setHouseList(housesRes.data);
+        setComments(commentsRes.data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const handleLogout = () => {
+    localStorage.removeItem("adminToken"); // Clear token if used
     navigate("/admin", { replace: true });
   };
 
-  const handleShowComments = (houseId) => {
+  // 3. HANDLE SHOW COMMENTS (AND MARK AS SEEN IN DB)
+  const handleShowComments = async (houseId) => {
     const houseComments = comments.filter((c) => c.houseId === houseId);
     setSelectedHouseComments(houseComments);
     setShowModal(true);
     setActiveHouseId(houseId);
 
-    // mark seen
-    comments = comments.map((c) =>
+    // Optimistic Update: Update UI immediately
+    const updatedComments = comments.map((c) =>
       c.houseId === houseId ? { ...c, seen: true } : c
     );
+    setComments(updatedComments);
+
+    // Send Update to DB
+    try {
+      // Ensure you have this route in your backend or create it
+      await axios.put(`http://localhost:5000/api/comments/mark-seen/${houseId}`);
+    } catch (err) {
+      console.error("Failed to mark comments as seen:", err);
+    }
   };
 
-  const toggleHouseState = (houseId) => {
-    const updated = houseList.map((h) =>
-      h.id === houseId ? { ...h, state: h.state === "actif" ? "inactif" : "actif" } : h
+  // 4. TOGGLE HOUSE STATE (ACTIF/INACTIF) IN DB
+  const toggleHouseState = async (houseId, currentState) => {
+    const newState = currentState === "actif" ? "inactif" : "actif";
+
+    // Optimistic Update: Update UI immediately
+    const updatedHouses = houseList.map((h) =>
+      h.id === houseId ? { ...h, state: newState } : h
     );
-    setHouseList(updated);
+    setHouseList(updatedHouses);
+
+    // Send Update to DB
+    try {
+      await axios.put(`http://localhost:5000/api/houses/${houseId}`, {
+        state: newState,
+      });
+    } catch (err) {
+      console.error("Failed to update house state:", err);
+      // Optional: Revert state if it fails
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl font-semibold">
+        Loading Dashboard...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
@@ -78,7 +134,9 @@ const Dashboard = ({ email }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {houseList.map((house) => {
+            // Filter comments for this house
             const houseComments = comments.filter((c) => c.houseId === house.id);
+            // Count unseen comments
             const newCommentsCount = houseComments.filter((c) => !c.seen).length;
 
             return (
@@ -99,13 +157,13 @@ const Dashboard = ({ email }) => {
                         className={`h-2 w-2 rounded-full ${house.state === "actif" ? "bg-green-600" : "bg-red-600"
                           }`}
                       />
-                      {house.state.toUpperCase()}
+                      {house.state ? house.state.toUpperCase() : "UNKNOWN"}
                     </span>
                   </div>
 
-                  {/* Toggle */}
+                  {/* Toggle Button */}
                   <button
-                    onClick={() => toggleHouseState(house.id)}
+                    onClick={() => toggleHouseState(house.id, house.state)}
                     className={`relative inline-flex items-center h-9 w-18 rounded-full p-1 transition-colors
                     ${house.state === "actif" ? "bg-green-500" : "bg-gray-400"}`}
                     aria-label="Toggle house state"
@@ -195,7 +253,8 @@ const Dashboard = ({ email }) => {
                         <p>
                           Date:{" "}
                           <span className="font-mono">
-                            {new Date(comment.date).toLocaleString()}
+                            {/* Handles both explicit 'date' column and 'createdAt' fallback */}
+                            {new Date(comment.date || comment.createdAt).toLocaleString()}
                           </span>
                         </p>
                       </div>

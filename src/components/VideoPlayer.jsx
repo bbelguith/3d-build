@@ -1,69 +1,86 @@
-import React from "react";
-import Navbar from "./Navbar";
-import { videos } from "./videosList";
+import React, { useEffect, useState, useRef } from "react";
+import {
+    ChevronLeft,
+    ChevronRight,
+    RotateCcw,
+    Home,
+    ArrowLeft
+} from "lucide-react";
 
-export default function FullscreenVideoPlayer() {
-    const [current, setCurrent] = React.useState(0);
-    const [activeLayer, setActiveLayer] = React.useState(0);
-    const [isReversed, setIsReversed] = React.useState(false);
-    const [isInterior, setIsInterior] = React.useState(false);
+export default function VideoPlayer({ videos = [] }) {
+    // --- ORIGINAL STATE & REFS ---
+    const [current, setCurrent] = useState(0);
+    const [activeLayer, setActiveLayer] = useState(0);
+    const [isReversed, setIsReversed] = useState(false);
+    const [isInterior, setIsInterior] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
 
-    const v0 = React.useRef(null);
-    const v1 = React.useRef(null);
+    const v0 = useRef(null);
+    const v1 = useRef(null);
 
     const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
 
-    React.useEffect(() => {
-        const el = v0.current;
-        if (el) {
-            el.src = videos[0].src;
-            el.play().catch(() => { });
+    // --- 1. INITIALIZE PLAYER (Optimized for props) ---
+    useEffect(() => {
+        if (videos.length > 0 && v0.current && !isInitialized) {
+            v0.current.src = videos[0].src;
+            // Attempt play, handle browser autoplay policies silently
+            v0.current.play().catch(() => {
+                if (v0.current) {
+                    v0.current.muted = true;
+                    v0.current.play();
+                }
+            });
+            setIsInitialized(true);
         }
-    }, []);
+    }, [videos, isInitialized]);
 
-    // 🎥 Core video logic
+    // --- 2. ORIGINAL VIDEO LOGIC (The one you liked) ---
     const playVideo = (url, index, reversed = false, isInteriorVideo = false) => {
         const nextLayer = activeLayer === 0 ? 1 : 0;
         const showEl = nextLayer === 0 ? v0.current : v1.current;
         const hideEl = activeLayer === 0 ? v0.current : v1.current;
 
         if (showEl) {
-            showEl.oncanplay = () => {
+            showEl.src = url;
+            showEl.load();
+
+            const onCanPlay = () => {
                 showEl.currentTime = 0;
                 showEl.play().catch(() => { });
-                hideEl?.classList.add("opacity-0");
+
+                // Direct DOM manipulation for transitions (Your original logic)
+                if (hideEl) hideEl.classList.add("opacity-0");
                 showEl.classList.remove("opacity-0");
 
                 showEl.classList.add("transition-opacity", "duration-700");
-                hideEl?.classList.add("transition-opacity", "duration-700");
+                if (hideEl) hideEl.classList.add("transition-opacity", "duration-700");
 
                 setActiveLayer(nextLayer);
                 setCurrent(index);
                 setIsReversed(reversed);
                 setIsInterior(isInteriorVideo);
-                showEl.oncanplay = null;
+
+                showEl.removeEventListener("canplay", onCanPlay);
             };
 
-            // 🎬 When video ends
+            showEl.addEventListener("canplay", onCanPlay);
+
             showEl.onended = () => {
                 if (isInteriorVideo) {
-                    // 🏠 When interior finishes, go back to last exterior
                     const lastIndex = videos.length - 1;
                     setIsInterior(false);
                     playVideo(videos[lastIndex].src, lastIndex, false, false);
                 } else if (index === videos.length - 1) {
-                    // ⏸ Pause on final frame of exterior
                     showEl.pause();
-                    showEl.currentTime = showEl.duration - 0.05;
+                    // Hold last frame slightly before end
+                    if (showEl.duration) showEl.currentTime = showEl.duration - 0.05;
                 }
             };
-
-            showEl.src = url;
-            showEl.load();
         }
     };
 
-    // ▶️ Controls
+    // --- 3. HANDLERS (Mapped to your original logic) ---
     const handleNext = () => {
         if (isReversed) {
             playVideo(videos[current].src, current, false);
@@ -73,8 +90,9 @@ export default function FullscreenVideoPlayer() {
         }
     };
 
-    const handleReversePrev = () => {
-        if (!isReversed && videos[current].reverse) {
+    const handlePrev = () => {
+        // If current video has a 'reverse' property (from your data), use it
+        if (!isReversed && videos[current]?.reverse) {
             playVideo(videos[current].reverse, current, true);
         } else {
             const prevIndex = (current - 1 + videos.length) % videos.length;
@@ -94,14 +112,22 @@ export default function FullscreenVideoPlayer() {
 
     const handleBackToExterior = () => {
         setIsInterior(false);
-        playVideo(videos[0].src, 0, false);
+        playVideo(videos[current].src, current, false);
     };
 
-    return (
-        <div className="relative w-full h-screen bg-black overflow-hidden">
-            <Navbar playVideo={playVideo} />
+    if (videos.length === 0) {
+        return (
+            <div className="w-full h-screen bg-neutral-900 flex items-center justify-center text-white/50 font-light tracking-widest animate-pulse">
+                LOADING...
+            </div>
+        );
+    }
 
-            {/* --- Video Layers --- */}
+    const isLastVideo = current === videos.length - 1;
+
+    return (
+        <div className="relative w-full h-screen bg-black overflow-hidden select-none">
+            {/* --- VIDEO LAYERS (Original Structure) --- */}
             <div className="absolute inset-0">
                 <video
                     ref={v0}
@@ -121,67 +147,87 @@ export default function FullscreenVideoPlayer() {
                 />
             </div>
 
+            {/* --- NEW MODERN CONTROLS (The design you wanted) --- */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 transform translate-y-0 opacity-100">
+                <div className="flex items-center gap-1 p-1.5 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl ring-1 ring-black/5">
 
-            {/* --- Controls --- */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4 z-30">
-                {!isInterior ? (
-                    <>
-                        {/* Previous */}
-                        <button
-                            disabled={true}
-                            onClick={handleReversePrev}
-                            aria-label="Previous"
-                            className="w-12 h-12 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/30 transition"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M15 18l-6-6 6-6" />
-                            </svg>
-                        </button>
-
-                        {/* Next or Final Options */}
-                        {current < videos.length - 1 ? (
+                    {!isInterior ? (
+                        <>
+                            {/* Previous Button */}
                             <button
-                                onClick={handleNext}
-                                aria-label="Next"
-                                className="w-12 h-12 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/30 transition"
+                                onClick={handlePrev}
+                                // Only disable if at start AND not reversed
+                                disabled={current === 0 && !isReversed}
+                                className={`p-3 rounded-full transition-all duration-200 group/btn ${current === 0 && !isReversed
+                                        ? "text-white/20 cursor-not-allowed"
+                                        : "text-white hover:bg-white/20 hover:scale-105 active:scale-95"
+                                    }`}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M9 18l6-6-6-6" />
-                                </svg>
+                                <ChevronLeft className="w-6 h-6" strokeWidth={2.5} />
                             </button>
-                        ) : (
-                            <>
-                                {/* Restart */}
-                                <button
-                                    onClick={handleRestart}
-                                    aria-label="Restart"
-                                    className="px-5 py-2 rounded-full bg-white/20 backdrop-blur-md text-white text-sm font-medium hover:bg-white/30 transition"
-                                >
-                                    🔁 Restart
-                                </button>
 
-                                {/* Go to Interior */}
+                            {/* Step Indicator */}
+                            <div className="px-4 flex flex-col items-center justify-center min-w-[80px]">
+                                <span className="text-[10px] uppercase tracking-[0.2em] text-white/50 font-bold">
+                                    Step
+                                </span>
+                                <span className="text-sm font-bold text-white font-mono">
+                                    {current + 1} <span className="text-white/30">/</span> {videos.length}
+                                </span>
+                            </div>
+
+                            {/* Next / Action Buttons */}
+                            {isLastVideo ? (
+                                <div className="flex items-center gap-1 pr-1">
+                                    <button
+                                        onClick={handleRestart}
+                                        className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all hover:scale-105"
+                                    >
+                                        <RotateCcw className="w-4 h-4" />
+                                        Replay
+                                    </button>
+                                    <button
+                                        onClick={handleGoToInterior}
+                                        className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider hover:bg-gray-200 transition-all hover:scale-105 shadow-lg"
+                                    >
+                                        <Home className="w-4 h-4" />
+                                        Inside
+                                    </button>
+                                </div>
+                            ) : (
                                 <button
-                                    onClick={handleGoToInterior}
-                                    aria-label="Go to Interior"
-                                    className="px-5 py-2 rounded-full bg-green-500/80 backdrop-blur-md text-white text-sm font-medium hover:bg-green-600 transition"
+                                    onClick={handleNext}
+                                    className="p-3 rounded-full text-white hover:bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
                                 >
-                                    🏠 Go to Interior
+                                    <ChevronRight className="w-6 h-6" strokeWidth={2.5} />
                                 </button>
-                            </>
-                        )}
-                    </>
-                ) : (
-                    // 🏠 Interior mode — show only Back button
-                    <button
-                        onClick={handleBackToExterior}
-                        aria-label="Back"
-                        className="px-5 py-2 rounded-full bg-white/20 backdrop-blur-md text-white text-sm font-medium hover:bg-white/30 transition"
-                    >
-                        ⬅️ Back to Exterior
-                    </button>
-                )}
+                            )}
+                        </>
+                    ) : (
+                        /* Interior Controls */
+                        <button
+                            onClick={handleBackToExterior}
+                            className="flex items-center gap-3 px-6 py-3 rounded-full bg-white/10 text-white text-sm font-bold uppercase tracking-wider hover:bg-white/20 transition-all hover:scale-105 group"
+                        >
+                            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+                            Back to Exterior
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {/* Step Dots */}
+            {!isInterior && (
+                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2 z-40">
+                    {videos.map((_, idx) => (
+                        <div
+                            key={idx}
+                            className={`h-1 rounded-full transition-all duration-500 ${idx === current ? "w-8 bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]" : "w-1 bg-white/20"
+                                }`}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

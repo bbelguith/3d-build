@@ -1,6 +1,9 @@
 export default (sequelize, DataTypes) => {
     return sequelize.define("GalleryImage", {
-        houseId: { type: DataTypes.INTEGER, allowNull: false },
-        src: { type: DataTypes.STRING, allowNull: false },
+        src: { type: DataTypes.STRING },
+        // houseId: { type: DataTypes.INTEGER }, // Commented out to prevent crash
+    }, {
+        tableName: 'galleryimages',
+        timestamps: true
     });
 };
