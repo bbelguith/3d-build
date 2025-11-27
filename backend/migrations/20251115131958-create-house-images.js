@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 
-export async function up(queryInterface) {
-  await queryInterface.createTable('HouseImages', {
+export async function up(queryInterface, Sequelize) {
+  await queryInterface.createTable('houseimages', {
     id: {
       allowNull: false,
       autoIncrement: true,
@@ -11,6 +11,16 @@ export async function up(queryInterface) {
     src: {
       type: DataTypes.STRING,
       allowNull: false
+    },
+    houseId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'houses', // Matches the table name 'houses'
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL'
     },
     createdAt: {
       allowNull: false,
@@ -26,5 +36,5 @@ export async function up(queryInterface) {
 }
 
 export async function down(queryInterface) {
-  await queryInterface.dropTable('HouseImages');
+  await queryInterface.dropTable('houseimages');
 }

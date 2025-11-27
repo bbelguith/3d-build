@@ -1,270 +1,352 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import {
+  LogOut,
+  Home,
+  MessageSquare,
+  CheckCircle2,
+  XCircle,
+  LayoutDashboard,
+  Search,
+  ArrowLeft
+} from "lucide-react";
+import { toast } from "react-toastify";
+
+// --- TOGGLE SWITCH COMPONENT ---
+const ToggleSwitch = ({ checked, onChange, disabled }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    disabled={disabled}
+    onClick={onChange}
+    className={`
+      relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+      transition-colors duration-200 ease-in-out focus:outline-none 
+      ${checked ? 'bg-emerald-500' : 'bg-gray-200'}
+      ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+    `}
+  >
+    <span
+      className={`
+        pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 
+        transition duration-200 ease-in-out
+        ${checked ? 'translate-x-5' : 'translate-x-0'}
+      `}
+    />
+  </button>
+);
 
 const Dashboard = ({ email }) => {
   const navigate = useNavigate();
 
-  // 1. STATE: Store data from DB here
+  // 1. DATA STATE
   const [houseList, setHouseList] = useState([]);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal State
+  // 2. UI STATE
+  const [filter, setFilter] = useState("all"); // 'all', 'actif', 'inactif'
+  const [search, setSearch] = useState("");
+
+  // 3. MODAL STATE
   const [selectedHouseComments, setSelectedHouseComments] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [activeHouseId, setActiveHouseId] = useState(null);
 
-  // 2. FETCH DATA ON MOUNT
+  // --- FETCH DATA ---
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch Houses and Comments in parallel
         const [housesRes, commentsRes] = await Promise.all([
           axios.get("http://localhost:5000/api/houses"),
           axios.get("http://localhost:5000/api/comments")
         ]);
-
         setHouseList(housesRes.data);
         setComments(commentsRes.data);
-        setLoading(false);
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load dashboard data");
+      } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
+  // --- ACTIONS ---
   const handleLogout = () => {
-    localStorage.removeItem("adminToken"); // Clear token if used
+    localStorage.removeItem("adminToken");
     navigate("/admin", { replace: true });
+    toast.info("Logged out successfully");
   };
 
-  // 3. HANDLE SHOW COMMENTS (AND MARK AS SEEN IN DB)
   const handleShowComments = async (houseId) => {
     const houseComments = comments.filter((c) => c.houseId === houseId);
     setSelectedHouseComments(houseComments);
     setShowModal(true);
     setActiveHouseId(houseId);
 
-    // Optimistic Update: Update UI immediately
-    const updatedComments = comments.map((c) =>
-      c.houseId === houseId ? { ...c, seen: true } : c
-    );
-    setComments(updatedComments);
+    // Optimistic Update for "Seen" status
+    const hasUnseen = houseComments.some(c => !c.seen);
+    if (hasUnseen) {
+      const updatedComments = comments.map((c) =>
+        c.houseId === houseId ? { ...c, seen: true } : c
+      );
+      setComments(updatedComments);
 
-    // Send Update to DB
-    try {
-      // Ensure you have this route in your backend or create it
-      await axios.put(`http://localhost:5000/api/comments/mark-seen/${houseId}`);
-    } catch (err) {
-      console.error("Failed to mark comments as seen:", err);
+      try {
+        await axios.put(`http://localhost:5000/api/comments/mark-seen/${houseId}`);
+      } catch (err) {
+        console.error("Failed to sync 'seen' status", err);
+      }
     }
   };
 
-  // 4. TOGGLE HOUSE STATE (ACTIF/INACTIF) IN DB
   const toggleHouseState = async (houseId, currentState) => {
     const newState = currentState === "actif" ? "inactif" : "actif";
 
-    // Optimistic Update: Update UI immediately
+    // Optimistic Update
     const updatedHouses = houseList.map((h) =>
       h.id === houseId ? { ...h, state: newState } : h
     );
     setHouseList(updatedHouses);
 
-    // Send Update to DB
     try {
-      await axios.put(`http://localhost:5000/api/houses/${houseId}`, {
-        state: newState,
-      });
+      await axios.put(`http://localhost:5000/api/houses/${houseId}`, { state: newState });
+      toast.success(`Unit ${houseId} updated to ${newState === "actif" ? "Active" : "Sold"}`);
     } catch (err) {
-      console.error("Failed to update house state:", err);
-      // Optional: Revert state if it fails
+      console.error("Failed to update house state", err);
+      toast.error("Failed to update status");
+      // Revert if needed (omitted for brevity)
     }
+  };
+
+  // --- FILTERING LOGIC ---
+  const filteredHouses = useMemo(() => {
+    const searchLower = search.toLowerCase();
+
+    return houseList.filter(house => {
+      // 1. Status Filter
+      const matchesStatus = filter === "all" || house.state === filter;
+
+      // 2. Search Filter (House Number OR Comment Name)
+      // Find if ANY comment for this house has a name matching the search
+      const houseComments = comments.filter(c => c.houseId === house.id);
+      const hasMatchingComment = houseComments.some(c =>
+        c.name.toLowerCase().includes(searchLower)
+      );
+
+      const matchesSearch =
+        house.number.toLowerCase().includes(searchLower) || // Match Unit Number (e.g. "1R")
+        hasMatchingComment; // Match Commenter Name (e.g. "John")
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [houseList, comments, filter, search]);
+
+  const stats = {
+    total: houseList.length,
+    active: houseList.filter(h => h.state === "actif").length,
+    sold: houseList.filter(h => h.state !== "actif").length,
+    newRequests: comments.filter(c => !c.seen).length
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-xl font-semibold">
-        Loading Dashboard...
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
+        <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin" />
+        <p className="text-gray-500 font-medium">Loading Dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="w-full border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/")}
-              className="rounded-full border border-black px-4 py-2 font-semibold hover:bg-black hover:text-white transition"
-              aria-label="Go back to site"
-            >
-              ← Back
+    <div className="min-h-screen bg-[#f8f9fa] text-gray-800 font-sans">
+
+      {/* --- HEADER --- */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate("/")} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
+              <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold uppercase tracking-[0.2em]">
-                Dashboard
+              <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <LayoutDashboard className="text-emerald-600" size={20} />
+                Admin Dashboard
               </h1>
-              <p className="text-gray-600 text-sm mt-1">Welcome, {email}</p>
+              <p className="text-xs text-gray-500 font-medium hidden sm:block">Logged in as {email}</p>
             </div>
           </div>
-
           <button
             onClick={handleLogout}
-            className="rounded-full border border-black px-4 py-2 font-semibold hover:bg-black hover:text-white transition"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
-            Logout
+            <LogOut size={16} /> Logout
           </button>
         </div>
       </header>
 
-      {/* Content */}
-      <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg sm:text-xl font-extrabold uppercase tracking-widest">
-            Houses
-          </h2>
-          <span className="block h-[3px] w-24 bg-black rounded-full" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
+        {/* --- STATS OVERVIEW --- */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><Home size={24} /></div>
+            <div><p className="text-2xl font-bold">{stats.total}</p><p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Units</p></div>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><CheckCircle2 size={24} /></div>
+            <div><p className="text-2xl font-bold">{stats.active}</p><p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Active</p></div>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-red-50 text-red-600 rounded-lg"><XCircle size={24} /></div>
+            <div><p className="text-2xl font-bold">{stats.sold}</p><p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Sold</p></div>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-yellow-50 text-yellow-600 rounded-lg"><MessageSquare size={24} /></div>
+            <div><p className="text-2xl font-bold">{stats.newRequests}</p><p className="text-xs text-gray-500 uppercase font-bold tracking-wider">New Msgs</p></div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {houseList.map((house) => {
-            // Filter comments for this house
+        {/* --- FILTERS & CONTROLS --- */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+          <div className="flex bg-gray-200 p-1 rounded-lg">
+            {['all', 'actif', 'inactif'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${filter === f ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                {f === 'all' ? 'All' : f === 'actif' ? 'Active' : 'Sold'}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search Unit # or Client Name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* --- HOUSE GRID --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredHouses.map((house) => {
             const houseComments = comments.filter((c) => c.houseId === house.id);
-            // Count unseen comments
-            const newCommentsCount = houseComments.filter((c) => !c.seen).length;
+            const unseenCount = houseComments.filter(c => !c.seen).length;
+            const isActif = house.state === "actif";
 
             return (
-              <div
-                key={house.id}
-                className="group bg-white/95 border border-gray-200 rounded-3xl shadow-sm hover:shadow-xl transition-shadow p-6 flex flex-col justify-between"
-              >
-                <div className="flex items-start justify-between gap-3">
+              <div key={house.id} className={`bg-white border rounded-2xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-lg transition-all duration-300 group ${isActif ? 'border-gray-200' : 'border-red-100 bg-red-50/30'}`}>
+
+                {/* Card Header */}
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-bold">
-                      House <span className="tracking-wider">#{house.number}</span>
-                    </h3>
-                    <span
-                      className={`inline-flex items-center gap-2 mt-2 px-3 py-1 rounded-full text-xs font-semibold
-                      ${house.state === "actif" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-                    >
-                      <span
-                        className={`h-2 w-2 rounded-full ${house.state === "actif" ? "bg-green-600" : "bg-red-600"
-                          }`}
-                      />
-                      {house.state ? house.state.toUpperCase() : "UNKNOWN"}
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-gray-900">Unit {house.number}</h3>
+                      {!isActif && <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded uppercase">Sold</span>}
+                    </div>
+                    <p className="text-xs text-gray-400 font-mono mt-1">ID: #{house.id}</p>
+                  </div>
+
+                  {/* TOGGLE SWITCH */}
+                  <div className="flex flex-col items-end gap-1">
+                    <ToggleSwitch
+                      checked={isActif}
+                      onChange={() => toggleHouseState(house.id, house.state)}
+                    />
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isActif ? 'text-emerald-600' : 'text-gray-400'}`}>
+                      {isActif ? 'Active' : 'Inactive'}
                     </span>
                   </div>
-
-                  {/* Toggle Button */}
-                  <button
-                    onClick={() => toggleHouseState(house.id, house.state)}
-                    className={`relative inline-flex items-center h-9 w-18 rounded-full p-1 transition-colors
-                    ${house.state === "actif" ? "bg-green-500" : "bg-gray-400"}`}
-                    aria-label="Toggle house state"
-                  >
-                    <span
-                      className={`inline-block h-7 w-7 rounded-full bg-white shadow-md transform transition-transform
-                      ${house.state === "actif" ? "translate-x-9" : "translate-x-0"}`}
-                    />
-                  </button>
                 </div>
 
-                <div className="my-5 h-px bg-gray-200" />
-
-                <div className="flex items-center justify-between">
+                {/* Card Actions */}
+                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
                   <button
                     onClick={() => handleShowComments(house.id)}
-                    className="relative rounded-full border border-black px-5 py-2 font-semibold hover:bg-black hover:text-white transition"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gray-900 text-white hover:bg-black transition-colors text-sm font-medium relative"
                   >
-                    Comments
-                    {houseComments.length > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-black text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                        {houseComments.length}
-                      </span>
-                    )}
-                    {newCommentsCount > 0 && (
-                      <span className="absolute -top-1 -left-1 bg-yellow-400 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                        NEW
+                    <MessageSquare size={16} />
+                    View Inquiries
+                    {unseenCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+                        {unseenCount}
                       </span>
                     )}
                   </button>
-
-                  <div className="text-sm text-gray-500">
-                    ID: <span className="font-mono">{house.id}</span>
-                  </div>
                 </div>
               </div>
             );
           })}
         </div>
+
+        {/* Empty State */}
+        {filteredHouses.length === 0 && (
+          <div className="text-center py-20 text-gray-400">
+            <Search size={48} className="mx-auto mb-4 opacity-20" />
+            <p className="text-lg font-medium">No units found matching "{search}"</p>
+          </div>
+        )}
       </main>
 
-      {/* Comments Modal */}
+      {/* --- COMMENTS MODAL --- */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowModal(false)}
-          />
-          <div className="relative bg-white/95 backdrop-blur border border-gray-200 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[80vh] overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-xl sm:text-2xl font-extrabold uppercase tracking-widest">
-                House #{activeHouseId} Requests
-              </h3>
-              <button
-                className="rounded-full border border-black w-9 h-9 flex items-center justify-center text-lg font-bold hover:bg-black hover:text-white transition"
-                onClick={() => setShowModal(false)}
-                aria-label="Close"
-              >
-                ×
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setShowModal(false)} />
+
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col animate-[fadeIn_0.2s_ease-out]">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold">
+                  #{activeHouseId}
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Unit Inquiries</h3>
+                  <p className="text-xs text-gray-500">{selectedHouseComments.length} messages found</p>
+                </div>
+              </div>
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
+                <XCircle size={24} />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
-              {selectedHouseComments.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedHouseComments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className="border border-gray-200 bg-gray-50 rounded-2xl p-4 shadow-sm"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="font-semibold">
-                          {comment.name}{" "}
-                          <span className="text-gray-500">({comment.request})</span>
-                        </p>
-                        {!comment.seen && (
-                          <span className="px-2 py-0.5 text-xs bg-yellow-400 text-black rounded-full font-bold">
-                            NEW
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-2">{comment.text}</p>
-                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-500">
-                        <p>
-                          Phone: <span className="font-mono">{comment.phone}</span>
-                        </p>
-                        <p>
-                          Date:{" "}
-                          <span className="font-mono">
-                            {/* Handles both explicit 'date' column and 'createdAt' fallback */}
-                            {new Date(comment.date || comment.createdAt).toLocaleString()}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
+              {selectedHouseComments.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <MessageSquare size={48} className="mx-auto mb-3 opacity-20" />
+                  <p>No messages for this unit yet.</p>
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-10">
-                  No requests for this house yet.
-                </p>
+                selectedHouseComments.map((comment) => (
+                  <div key={comment.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-bold text-gray-900">{comment.name}</p>
+                        <p className="text-xs text-gray-500">{new Date(comment.date || comment.createdAt).toLocaleString()}</p>
+                      </div>
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded uppercase tracking-wider">
+                        {comment.request}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100 mb-3">
+                      "{comment.text}"
+                    </p>
+                    <div className="flex items-center gap-2 text-xs font-mono text-gray-500">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      {comment.phone}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>

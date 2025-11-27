@@ -1,25 +1,21 @@
 import React, { useRef, useState, useEffect } from "react";
 import emailjs from "emailjs-com";
-import { Mail, Globe, Phone, MapPin, Copy } from "lucide-react";
+import { Mail, Phone, MapPin, ArrowRight, Copy, Check } from "lucide-react";
 import { Toaster, toast } from "sonner";
 
 export default function Contact() {
     const formRef = useRef();
     const [isSending, setIsSending] = useState(false);
+    const [copiedField, setCopiedField] = useState(null);
 
-    // Simple email format check
-    const validateEmail = (email) =>
-        /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(email?.trim());
-
-    // Premium, subtle sounds (public CDNs)
+    // --- Audio Logic (Preserved) ---
     const successAudio = useRef(new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_3d1f2e7d2f.mp3?filename=success-1-6297.mp3"));
     const errorAudio = useRef(new Audio("https://cdn.pixabay.com/download/audio/2022/03/10/audio_3b1b3f87c7.mp3?filename=error-126627.mp3"));
     const copyAudio = useRef(new Audio("https://cdn.pixabay.com/download/audio/2021/08/04/audio_4f7b1b32f7.mp3?filename=button-click-131479.mp3"));
 
     useEffect(() => {
-        // Ensure they can play on all browsers/CDNs
         [successAudio, errorAudio, copyAudio].forEach((ref) => {
-            ref.current.volume = 0.35;
+            ref.current.volume = 0.2; // Lowered slightly for subtle elegance
             ref.current.preload = "auto";
             ref.current.crossOrigin = "anonymous";
         });
@@ -31,10 +27,12 @@ export default function Contact() {
             const snd = map[type];
             if (!snd) return;
             snd.currentTime = 0;
-            // Tiny delay smooths the start and avoids occasional first-play hiccups
-            setTimeout(() => snd.play().catch(() => { }), 60);
+            setTimeout(() => snd.play().catch(() => { }), 50);
         } catch { }
     };
+
+    // --- Form Logic ---
+    const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(email?.trim());
 
     const sendEmail = (e) => {
         e.preventDefault();
@@ -43,13 +41,13 @@ export default function Contact() {
 
         if (!name.value.trim() || !message.value.trim()) {
             playSound("error");
-            toast.error("Please fill in all fields.");
+            toast.error("Please complete all fields.");
             return;
         }
 
         if (!validateEmail(email.value)) {
             playSound("error");
-            toast.error("Please enter a valid email!");
+            toast.error("Invalid email address.");
             return;
         }
 
@@ -69,177 +67,251 @@ export default function Contact() {
             .then(
                 () => {
                     playSound("success");
-                    toast.success("Message sent successfully!");
+                    toast.success("Inquiry received. We will be in touch shortly.");
                     setIsSending(false);
                     form.reset();
                 },
                 () => {
                     playSound("error");
-                    toast.error("Error sending message. Try again!");
+                    toast.error("Transmission failed. Please try again.");
                     setIsSending(false);
                 }
             );
     };
 
-    const copyToClipboard = async (text) => {
-        // Play sound immediately on user click (gesture) before async clipboard
+    const copyToClipboard = async (text, fieldId) => {
         playSound("copy");
         try {
             await navigator.clipboard.writeText(text);
-            toast("Copied: " + text);
+            setCopiedField(fieldId);
+            toast.success("Copied to clipboard");
+            setTimeout(() => setCopiedField(null), 2000);
         } catch {
             playSound("error");
-            toast.error("Copy failed.");
         }
     };
 
     return (
-        <section
-            id="contact"
-            className="py-20 bg-white text-black transition-colors duration-500 hover:bg-black hover:text-white"
-        >
+        <section id="contact" className="relative py-24 bg-white overflow-hidden">
+
+            {/* --- Embedded Styles --- */}
+            <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+          --accent-bronze: #b49b85;
+        }
+
+        .font-premium { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .text-bronze { color: var(--accent-bronze); }
+        .bg-bronze { background-color: var(--accent-bronze); }
+        .border-bronze { border-color: var(--accent-bronze); }
+        
+        /* Custom Input Underline Animation */
+        .input-underline {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          height: 1px;
+          width: 0;
+          background-color: var(--accent-bronze);
+          transition: width 0.4s ease;
+        }
+        .group:focus-within .input-underline {
+          width: 100%;
+        }
+      `}</style>
+
+            {/* Modern Toaster */}
             <Toaster
                 position="top-right"
-                richColors
                 toastOptions={{
-                    duration: 3500,
                     style: {
-                        background: "#111",
-                        color: "#f0f0f0",
-                        border: "1px solid #8b5cf6",
-                        borderRadius: "16px",
-                        padding: "14px 18px",
-                        boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
-                        fontWeight: 600,
-                        letterSpacing: ".01em",
-                    },
+                        background: '#1a1a1a',
+                        color: '#fff',
+                        border: '1px solid #333',
+                        fontFamily: 'Plus Jakarta Sans, sans-serif',
+                        fontSize: '13px'
+                    }
                 }}
             />
 
-            <div className="max-w-7xl mx-auto px-6 md:px-10">
-                <h2 className="text-4xl font-extrabold tracking-wide uppercase text-center mb-16 flex items-center justify-center gap-3">
-                    Contact <Mail className="w-8 h-8" />
-                </h2>
+            <div className="max-w-7xl mx-auto px-6 md:px-10 font-premium">
 
-                <div className="flex flex-col md:flex-row gap-16 items-start">
-                    {/* Left: Contact Form */}
-                    <div className="flex-1 max-w-xl space-y-8">
-                        <form ref={formRef} onSubmit={sendEmail} className="space-y-8" noValidate>
-                            {/* Name */}
-                            <div className="group relative">
-                                <label className="block text-xl font-semibold mb-3">Name</label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    required
-                                    placeholder="John Doe"
-                                    autoComplete="name"
-                                    className="peer block w-full border-b border-gray-600 bg-transparent placeholder-gray-600 focus:outline-none focus:border-indigo-600 transition-colors duration-300 text-lg px-1 py-2"
-                                />
-                                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 peer-focus:w-full" />
+                {/* --- Header --- */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
+                    <div className="space-y-4">
+                        <span className="text-bronze text-sm font-bold tracking-[0.2em] uppercase">
+                            04 — Inquiries
+                        </span>
+                        <h2 className="text-4xl md:text-5xl font-light text-gray-900 tracking-tight leading-tight">
+                            Get in <span className="font-bold">Touch</span>
+                        </h2>
+                    </div>
+                    <div className="hidden md:block h-px w-full max-w-xs bg-gray-200 mb-2"></div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24">
+
+                    {/* --- Left: Architectural Form --- */}
+                    <div className="lg:col-span-7">
+                        <form ref={formRef} onSubmit={sendEmail} className="space-y-12" noValidate>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                {/* Name Input */}
+                                <div className="group relative">
+                                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 group-focus-within:text-bronze transition-colors">
+                                        Full Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        required
+                                        placeholder="e.g. John Doe"
+                                        className="w-full bg-transparent border-b border-gray-200 py-3 text-lg text-gray-900 placeholder-gray-300 focus:outline-none focus:border-transparent transition-all"
+                                    />
+                                    <div className="input-underline"></div>
+                                </div>
+
+                                {/* Email Input */}
+                                <div className="group relative">
+                                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 group-focus-within:text-bronze transition-colors">
+                                        Email Address
+                                    </label>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        required
+                                        placeholder="e.g. john@example.com"
+                                        className="w-full bg-transparent border-b border-gray-200 py-3 text-lg text-gray-900 placeholder-gray-300 focus:outline-none focus:border-transparent transition-all"
+                                    />
+                                    <div className="input-underline"></div>
+                                </div>
                             </div>
 
-                            {/* Email */}
+                            {/* Message Input */}
                             <div className="group relative">
-                                <label className="block text-xl font-semibold mb-3">Email</label>
-                                <input
-                                    type="text"
-                                    name="email"
-                                    required
-                                    placeholder="you@example.com"
-                                    autoComplete="email"
-                                    className="peer block w-full border-b border-gray-600 bg-transparent placeholder-gray-600 focus:outline-none focus:border-indigo-600 transition-colors duration-300 text-lg px-1 py-2"
-                                />
-                                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 peer-focus:w-full" />
-                            </div>
-
-                            {/* Message */}
-                            <div className="group relative">
-                                <label className="block text-xl font-semibold mb-3">Message</label>
+                                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 group-focus-within:text-bronze transition-colors">
+                                    Your Message
+                                </label>
                                 <textarea
                                     name="message"
-                                    rows="5"
+                                    rows="3"
                                     required
-                                    placeholder="Write your message..."
-                                    className="peer block w-full border-b border-gray-600 bg-transparent placeholder-gray-600 resize-none focus:outline-none focus:border-indigo-600 transition-colors duration-300 text-lg px-1 py-2"
+                                    placeholder="Tell us about your requirements..."
+                                    className="w-full bg-transparent border-b border-gray-200 py-3 text-lg text-gray-900 placeholder-gray-300 focus:outline-none focus:border-transparent transition-all resize-none"
                                 />
-                                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 peer-focus:w-full" />
+                                <div className="input-underline"></div>
                             </div>
 
-                            {/* Submit */}
-                            <button
-                                type="submit"
-                                disabled={isSending}
-                                className="flex items-center justify-center gap-2 rounded-full bg-indigo-700 px-10 py-3 font-semibold text-white hover:bg-indigo-800 active:scale-95 transition-transform duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            >
-                                {isSending && (
-                                    <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                )}
-                                {isSending ? "Sending..." : "Send Message"}
-                            </button>
+                            {/* Submit Button */}
+                            <div className="pt-4">
+                                <button
+                                    type="submit"
+                                    disabled={isSending}
+                                    className="group relative inline-flex items-center gap-4 bg-black text-white px-8 py-4 text-sm font-bold uppercase tracking-widest hover:bg-bronze transition-colors duration-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSending ? "Processing..." : "Send Message"}
+                                    <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-2" />
+                                </button>
+                            </div>
+
                         </form>
                     </div>
 
-                    {/* Right: Contact Details */}
-                    <div className="flex-1 max-w-md rounded-xl border border-gray-300 shadow-lg p-8 transition-colors duration-500 group-hover:border-gray-600">
-                        <h3 className="text-3xl font-semibold mb-8">Get in Touch</h3>
-                        <p className="text-lg mb-12 text-gray-700 transition-colors duration-500 group-hover:text-gray-300">
-                            Whether you have a question, a project idea, or just want to say hi, our inbox is always open. We typically reply within 24 hours.
-                        </p>
-                        <div className="space-y-8 text-gray-700 transition-colors duration-500 group-hover:text-gray-300">
-                            {[
-                                {
-                                    icon: <Mail className="w-6 h-6 text-indigo-600" />,
-                                    text: "Eaglevision@gmail.com",
-                                    copy: "Eaglevision@gmail.com",
-                                },
-                                {
-                                    icon: <Phone className="w-6 h-6 text-indigo-600" />,
-                                    text: "+216 12 345 678",
-                                    copy: "+21612345678",
-                                },
-                                {
-                                    icon: <Globe className="w-6 h-6 text-indigo-600" />,
-                                    text: "www.example.com",
-                                    href: "https://www.Eaglevision.com",
-                                },
-                                {
-                                    icon: <MapPin className="w-6 h-6 text-indigo-600" />,
-                                    text: "Tunis, Tunisia",
-                                },
-                            ].map(({ icon, text, copy, href }, i) => (
-                                <div key={i} className="flex items-center gap-4">
-                                    {icon}
-                                    {href ? (
+                    {/* --- Right: Contact Info (Spec Sheet Style) --- */}
+                    <div className="lg:col-span-5 space-y-12">
+
+                        <div className="bg-gray-50 p-8 md:p-10 border border-gray-100">
+                            <h3 className="text-xl font-light text-gray-900 mb-8">
+                                Direct <span className="font-bold">Contact</span>
+                            </h3>
+
+                            <div className="space-y-8">
+                                {/* Email Item */}
+                                <ContactItem
+                                    icon={<Mail className="w-5 h-5" />}
+                                    label="General Inquiries"
+                                    value="ambassadeur-prestige@gmail.com"
+                                    copyValue="ambassadeur-prestige@gmail.com"
+                                    onCopy={copyToClipboard}
+                                    isCopied={copiedField === 'email'}
+                                    fieldId="email"
+                                />
+
+                                <div className="w-full h-px bg-gray-200"></div>
+
+                                {/* Phone Item */}
+                                <ContactItem
+                                    icon={<Phone className="w-5 h-5" />}
+                                    label="Sales Office"
+                                    value="+216 12 345 678"
+                                    copyValue="+21612345678"
+                                    onCopy={copyToClipboard}
+                                    isCopied={copiedField === 'phone'}
+                                    fieldId="phone"
+                                />
+
+                                <div className="w-full h-px bg-gray-200"></div>
+
+                                {/* Address Item (No Copy) */}
+                                <div className="flex items-start gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 shrink-0">
+                                        <MapPin className="w-5 h-5" strokeWidth={1.5} />
+                                    </div>
+                                    <div>
+                                        <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">
+                                            Showroom
+                                        </span>
+                                        <span className="block text-lg text-gray-900 leading-tight">
+                                            Les Berges du Lac II,<br />Tunis, Tunisia
+                                        </span>
                                         <a
-                                            href={href}
+                                            href="https://goo.gl/maps/placeholder"
                                             target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-lg font-medium hover:underline"
+                                            rel="noreferrer"
+                                            className="inline-block mt-3 text-xs font-bold text-bronze uppercase tracking-wider border-b border-bronze pb-0.5 hover:text-black hover:border-black transition-colors"
                                         >
-                                            {text}
+                                            Get Directions
                                         </a>
-                                    ) : (
-                                        <div className="text-lg font-medium flex items-center gap-2">
-                                            {text}
-                                            {copy && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => copyToClipboard(copy)}
-                                                    className="inline-flex items-center"
-                                                    title="Copy"
-                                                >
-                                                    <Copy className="w-4 h-4 text-gray-500 hover:text-indigo-600" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
-                            ))}
+
+                            </div>
                         </div>
+
                     </div>
+
                 </div>
             </div>
         </section>
+    );
+}
+
+// Sub-component for individual contact rows
+function ContactItem({ icon, label, value, copyValue, onCopy, isCopied, fieldId }) {
+    return (
+        <div className="flex items-start gap-4 group">
+            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 group-hover:text-bronze group-hover:border-bronze/30 transition-colors shrink-0">
+                {icon}
+            </div>
+            <div className="flex-1">
+                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">
+                    {label}
+                </span>
+                <div className="flex items-center gap-3">
+                    <span className="block text-lg text-gray-900 break-all sm:break-normal">
+                        {value}
+                    </span>
+                    <button
+                        onClick={() => onCopy(copyValue, fieldId)}
+                        className="text-gray-300 hover:text-bronze transition-colors p-1"
+                        title="Copy to clipboard"
+                    >
+                        {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 }

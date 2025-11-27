@@ -1,148 +1,96 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const ChatContext = createContext();
 
-export const useChatContext = () => {
-  const context = useContext(ChatContext);
-  if (!context) {
-    throw new Error('useChatContext must be used within ChatProvider');
-  }
-  return context;
-};
+export const useChatContext = () => useContext(ChatContext);
 
 export const ChatProvider = ({ children }) => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      type: 'bot',
+      content: "Hello! I'm Ambassadeur Prestige Bot. I can help you with available properties and contact info. How can I help you today?"
+    }
+  ]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-  const [quickReplies, setQuickReplies] = useState([]);
 
-  // Load quick replies on mount
-  useEffect(() => {
-    fetch('http://localhost:3001/api/quick-replies')
-      .then(res => res.json())
-      .then(data => setQuickReplies(data))
-      .catch(err => console.error('Failed to load quick replies:', err));
-  }, []);
+  // Quick replies configuration
+  const quickReplies = [
+    { id: 'available', text: 'Show available properties' },
+    { id: 'contact', text: 'Contact Info' },
+  ];
 
-  // Initial greeting message
-  useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([{
-        id: 'welcome',
-        type: 'bot',
-        content: "Hi there! 👋 I'm Aria, your friendly real estate assistant! I'm here to help you find your perfect home. What can I help you with today?",
-        timestamp: new Date().toISOString(),
-        animated: true
-      }]);
-    }
-  }, [messages.length]);
+  const toggleChat = () => setIsOpen(!isOpen);
+  const clearConversation = () => setMessages([messages[0]]);
 
-  const sendMessage = useCallback(async (content, type = 'user') => {
-    if (!content.trim()) return;
-
-    // Add user message
-    const userMessage = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type: 'user',
-      content: content.trim(),
-      timestamp: new Date().toISOString()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+  // THE IMPORTANT PART: Connecting to your Backend
+  const sendMessage = async (text) => {
+    // 1. Add User Message immediately
+    const userMsg = { id: Date.now(), type: 'user', content: text };
+    setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
     try {
-      // Send to backend
-      const response = await fetch('http://localhost:3001/api/chat', {
+      // 2. Call your specific Backend API (Port 5000)
+      const response = await fetch('http://localhost:5000/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: content.trim(),
-          sessionId: sessionId
-        })
+          message: text,
+          sessionId: 'session-' + Date.now() // Simple session ID
+        }),
       });
 
+      // --- SAFETY CHECK 1: Did the server crash (500) or fail (404)? ---
       if (!response.ok) {
-        throw new Error('Failed to get response');
+        throw new Error(`Server returned status: ${response.status}`);
       }
 
       const data = await response.json();
 
-      // Add bot response
-      const botMessage = {
-        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      // --- SAFETY CHECK 2: Is the response valid? ---
+      // If data.response is missing, use a fallback string to prevent "split undefined" crash
+      const safeContent = data.response || "I'm sorry, I couldn't generate a response at this moment. Please try again.";
+
+      // 3. Add Bot Response + The Property Cards
+      const botMsg = {
+        id: Date.now() + 1,
         type: 'bot',
-        content: data.response,
-        timestamp: data.timestamp,
-        suggestedHouses: data.suggestedHouses,
-        animated: true
+        content: safeContent,
+        suggestedHouses: data.suggestedHouses || [] // Ensure this is always an array
       };
 
-      setMessages(prev => [...prev, botMessage]);
+      setMessages(prev => [...prev, botMsg]);
 
     } catch (error) {
-      console.error('Error sending message:', error);
-      
-      // Add error message
-      const errorMessage = {
-        id: `msg_${Date.now()}_error`,
+      console.error("Error connecting to backend:", error);
+
+      const errorMsg = {
+        id: Date.now() + 1,
         type: 'bot',
-        content: "Oops! 😅 I'm having trouble connecting right now. Please make sure the chatbot server is running and try again!",
-        timestamp: new Date().toISOString(),
-        isError: true
+        content: "Sorry, I'm having trouble connecting to the server. Please check if the backend is running on port 5000."
       };
 
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId]);
-
-  const clearConversation = useCallback(async () => {
-    try {
-      await fetch('http://localhost:3001/api/reset-conversation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sessionId })
-      });
-    } catch (error) {
-      console.error('Error resetting conversation:', error);
-    }
-
-    setMessages([{
-      id: 'welcome',
-      type: 'bot',
-      content: "Hi there! 👋 I'm Aria, your friendly real estate assistant! I'm here to help you find your perfect home. What can I help you with today?",
-      timestamp: new Date().toISOString(),
-      animated: true
-    }]);
-  }, [sessionId]);
-
-  const toggleChat = useCallback(() => {
-    setIsOpen(prev => !prev);
-  }, []);
+  };
 
   return (
-    <ChatContext.Provider
-      value={{
-        messages,
-        isOpen,
-        isLoading,
-        quickReplies,
-        sendMessage,
-        clearConversation,
-        toggleChat,
-        sessionId
-      }}
-    >
+    <ChatContext.Provider value={{
+      messages,
+      isOpen,
+      isLoading,
+      quickReplies,
+      sendMessage,
+      clearConversation,
+      toggleChat
+    }}>
       {children}
     </ChatContext.Provider>
   );
 };
-
-

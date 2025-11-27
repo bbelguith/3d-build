@@ -1,46 +1,112 @@
 import React from "react";
-import { Facebook, Instagram, Linkedin, Mail } from "lucide-react";
+import { Facebook, Instagram, Linkedin, Mail, ArrowUp } from "lucide-react";
 
 export default function Footer() {
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
     return (
-        <footer className="bg-black text-gray-400 border-t border-gray-800">
-            <div className="max-w-7xl mx-auto px-6 py-10 grid md:grid-cols-2 gap-8 items-center">
+        <footer className="relative bg-[#050505] text-white border-t border-white/10 overflow-hidden">
 
-                {/* Left: Brand & Copyright */}
-                <div>
-                    <h2 className="text-white text-lg font-semibold tracking-wide">
-                        Eagle Vision Estate
-                    </h2>
-                    <p className="text-sm mt-2">
-                        &copy; {new Date().getFullYear()} Eagle Vision Estate. All rights reserved.
-                    </p>
-                </div>
+            {/* --- Embedded Styles --- */}
+            <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+          --accent-bronze: #b49b85;
+        }
 
-                {/* Right: Links & Socials */}
-                <div className="flex flex-col md:items-end gap-4">
-                    {/* Quick Links */}
-                    <div className="flex gap-6 text-sm">
-                        <a href="#about" className="hover:text-white transition-colors">About</a>
-                        <a href="#projects" className="hover:text-white transition-colors">Projects</a>
-                        <a href="#contact" className="hover:text-white transition-colors">Contact</a>
+        .font-premium { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .text-bronze { color: var(--accent-bronze); }
+        .hover-text-bronze:hover { color: var(--accent-bronze); }
+        .border-bronze { border-color: var(--accent-bronze); }
+      `}</style>
+
+            <div className="max-w-7xl mx-auto px-6 md:px-10 py-16 md:py-24 font-premium">
+
+                {/* --- Top Section: Brand & Nav Grid --- */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8 mb-20">
+
+                    {/* Brand Column */}
+                    <div className="md:col-span-5 space-y-6">
+                        <h2 className="text-2xl font-bold tracking-tight text-white">
+                            Ambassadeur Prestige
+                        </h2>
+                        <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+                            Redefining luxury living in Tunis. A master-planned community designed for those who seek exclusivity, privacy, and architectural excellence.
+                        </p>
+
+                        {/* Socials */}
+                        <div className="flex gap-4 pt-4">
+                            {[
+                                { icon: <Instagram className="w-5 h-5" />, href: "#" },
+                                { icon: <Facebook className="w-5 h-5" />, href: "#" },
+                                { icon: <Linkedin className="w-5 h-5" />, href: "#" },
+                                { icon: <Mail className="w-5 h-5" />, href: "mailto:contact@ambassadeur.com" },
+                            ].map((social, idx) => (
+                                <a
+                                    key={idx}
+                                    href={social.href}
+                                    className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-bronze hover:border-bronze transition-all duration-300"
+                                >
+                                    {social.icon}
+                                </a>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* Social Icons */}
-                    <div className="flex gap-5">
-                        <a href="#" className="hover:text-white transition-transform hover:scale-110">
-                            <Facebook className="w-5 h-5" />
-                        </a>
-                        <a href="#" className="hover:text-white transition-transform hover:scale-110">
-                            <Instagram className="w-5 h-5" />
-                        </a>
-                        <a href="#" className="hover:text-white transition-transform hover:scale-110">
-                            <Linkedin className="w-5 h-5" />
-                        </a>
-                        <a href="mailto:example@example.com" className="hover:text-white transition-transform hover:scale-110">
-                            <Mail className="w-5 h-5" />
-                        </a>
+                    {/* Spacer */}
+                    <div className="hidden md:block md:col-span-1"></div>
+
+                    {/* Links Column 1: Navigation */}
+                    <div className="md:col-span-3 space-y-6">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                            Explore
+                        </h3>
+                        <ul className="space-y-4 text-sm text-gray-300">
+                            <li><a href="/" className="hover-text-bronze transition-colors">Master Plan</a></li>
+                            <li><a href="/plan" className="hover-text-bronze transition-colors">Floor Plans</a></li>
+                            <li><a href="#location" className="hover-text-bronze transition-colors">Location</a></li>
+                            <li><a href="#technology" className="hover-text-bronze transition-colors">Smart Living</a></li>
+                        </ul>
                     </div>
+
+                    {/* Links Column 2: Legal/Contact */}
+                    <div className="md:col-span-3 space-y-6">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                            Information
+                        </h3>
+                        <ul className="space-y-4 text-sm text-gray-300">
+                            <li><a href="#contact" className="hover-text-bronze transition-colors">Book a Viewing</a></li>
+                        </ul>
+                    </div>
+
                 </div>
+
+                {/* --- Divider --- */}
+                <div className="w-full h-px bg-white/10 mb-8"></div>
+
+                {/* --- Bottom Section: Copyright & Back to Top --- */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+
+                    <div className="text-xs text-gray-500 font-medium tracking-wide">
+                        &copy; {new Date().getFullYear()} Ambassadeur Prestige.
+                        <span className="hidden sm:inline"> All rights reserved.</span>
+                    </div>
+
+                    {/* Back to Top Button */}
+                    <button
+                        onClick={scrollToTop}
+                        className="group flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors"
+                    >
+                        Back to Top
+                        <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center group-hover:border-bronze group-hover:bg-bronze group-hover:text-black transition-all duration-300">
+                            <ArrowUp className="w-4 h-4" />
+                        </div>
+                    </button>
+                </div>
+
             </div>
         </footer>
     );
