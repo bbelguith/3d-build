@@ -7,27 +7,34 @@ import {
   Navigate,
 } from "react-router-dom";
 import axios from "axios";
+import { AnimatePresence } from "framer-motion";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// Components
 import Navbar from "./components/Navbar";
 import Location from "./components/Location";
 import Technology from "./components/Technology";
 import Contact from "./components/Contact";
 import Projects from "./components/Projects";
 import Footer from "./components/Footer";
-import Plan from "./pages/Plan";
-import Planb from "./pages/Planb";
-
-import AdminPage from "./pages/AdminPage";
-import Dashboard from "./pages/Dashboard";
 import VideoPlayer from "./components/VideoPlayer";
 import Loader from "./components/Loader";
-import HouseCommentForm from "./pages/HouseCommentForm";
 import ChatBot from "./components/ChatBot";
-import { ChatProvider } from "./context/ChatContext";
+import CustomCursor from "./components/CustomCursor";
+import PageTransition from "./components/PageTransition";
+import ScrollProgress from "./components/ScrollProgress";
+import ScrollToTop from "./components/ScrollToTop";
+
+// Pages
+import Plan from "./pages/Plan";
+import Planb from "./pages/Planb";
+import AdminPage from "./pages/AdminPage";
+import Dashboard from "./pages/Dashboard";
+import HouseCommentForm from "./pages/HouseCommentForm";
 import NotFound from "./pages/NotFound";
+import { ChatProvider } from "./context/ChatContext";
 
 function AppContent() {
   const location = useLocation();
@@ -38,6 +45,12 @@ function AppContent() {
   const [progress, setProgress] = useState(0);
   const [videos, setVideos] = useState([]);
 
+  // --- NEW: SCROLL RESTORATION LOGIC ---
+  // This ensures the page starts at the top whenever the route changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+  // -------------------------------------
 
   // Fetch videos from backend
   useEffect(() => {
@@ -88,9 +101,17 @@ function AppContent() {
       className={
         hideLayout
           ? "min-h-screen bg-white flex flex-col items-center justify-center"
-          : "bg-gray-100 min-h-screen flex flex-col"
+          : "bg-gray-100 min-h-screen flex flex-col cursor-none"
       }
     >
+      {/* 1. Cinematic Grain Overlay (Global Texture) */}
+      <div className="noise-overlay" />
+
+      {/* 2. Scroll Progress Bar (Top) */}
+      {!hideLayout && <ScrollProgress />}
+
+      {!hideLayout && <CustomCursor />}
+
       {!hideLayout && <Navbar />}
 
       <ToastContainer
@@ -106,39 +127,83 @@ function AppContent() {
       />
 
       <main className="flex-grow w-full">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <>
-                <VideoPlayer videos={videos} />
-                <Location />
-                <Technology />
-                <Contact />
-                <Projects />
-              </>
-            }
-          />
-          <Route path="/plan" element={<Plan />} />
-          <Route path="/planb" element={<Planb />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route
-            path="/dashboard"
-            element={
-              location.state?.email ? (
-                <Dashboard email={location.state.email} />
-              ) : (
-                <Navigate to="/admin" replace />
-              )
-            }
-          />
-          <Route path="/house/:id" element={<HouseCommentForm />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            {/* HOME PAGE */}
+            <Route
+              path="/"
+              element={
+                <PageTransition>
+                  <VideoPlayer videos={videos} />
+                  <Location />
+                  <Technology />
+                  <Contact />
+                  <Projects />
+                </PageTransition>
+              }
+            />
+
+            {/* PLAN PAGE A */}
+            <Route
+              path="/plan"
+              element={
+                <PageTransition>
+                  <Plan />
+                </PageTransition>
+              }
+            />
+
+            {/* PLAN PAGE B */}
+            <Route
+              path="/planb"
+              element={
+                <PageTransition>
+                  <Planb />
+                </PageTransition>
+              }
+            />
+
+            {/* ADMIN ROUTES */}
+            <Route path="/admin" element={<AdminPage />} />
+            <Route
+              path="/dashboard"
+              element={
+                location.state?.email ? (
+                  <Dashboard email={location.state.email} />
+                ) : (
+                  <Navigate to="/admin" replace />
+                )
+              }
+            />
+
+            {/* HOUSE DETAIL */}
+            <Route
+              path="/house/:id"
+              element={
+                <PageTransition>
+                  <HouseCommentForm />
+                </PageTransition>
+              }
+            />
+
+            {/* 404 PAGE */}
+            <Route
+              path="*"
+              element={
+                <PageTransition>
+                  <NotFound />
+                </PageTransition>
+              }
+            />
+          </Routes>
+        </AnimatePresence>
       </main>
 
       {!hideLayout && <Footer />}
       {!hideLayout && <ChatBot />}
+
+      {/* 3. Scroll To Top Button (Bottom) */}
+      {!hideLayout && <ScrollToTop />}
     </div>
   );
 }

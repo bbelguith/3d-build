@@ -1,71 +1,162 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Home, Construction } from "lucide-react";
+import { ArrowLeft, Home, Ruler, Compass } from "lucide-react";
+import { motion } from "framer-motion";
 
 const NotFound = () => {
     const navigate = useNavigate();
 
+    // Animation variants
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1, duration: 0.8 }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { y: 20, opacity: 0 },
+        visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 50 } }
+    };
+
+    const drawDraw = {
+        hidden: { pathLength: 0, opacity: 0 },
+        visible: {
+            pathLength: 1,
+            opacity: 1,
+            transition: {
+                pathLength: { delay: 0.5, type: "spring", duration: 2, bounce: 0 },
+                opacity: { delay: 0.5, duration: 0.01 }
+            }
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 relative overflow-hidden font-sans text-gray-800">
+        <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center p-4 relative overflow-hidden font-sans text-gray-800">
 
-            {/* --- Architectural Background --- */}
-            <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }}
-            />
-            <div className="absolute inset-0 bg-radial-gradient from-transparent to-gray-100/80 pointer-events-none" />
-
-            <div className="relative z-10 max-w-2xl w-full text-center animate-[fadeIn_0.6s_ease-out]">
-
-                {/* --- 404 Visual --- */}
-                <div className="relative mb-8">
-                    <h1 className="text-[12rem] md:text-[16rem] font-bold leading-none text-gray-100 select-none tracking-tighter">
-                        404
-                    </h1>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 rotate-12">
-                            <Construction size={64} className="text-emerald-500" />
-                        </div>
-                    </div>
-                </div>
-
-                {/* --- Message --- */}
-                <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
-                    Structure Not Found
-                </h2>
-                <p className="text-lg text-gray-500 mb-10 max-w-md mx-auto leading-relaxed">
-                    The page you are looking for has been moved, demolished, or never existed in our blueprints.
-                </p>
-
-                {/* --- Actions --- */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="flex items-center gap-2 px-8 py-3.5 rounded-full border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 shadow-sm w-full sm:w-auto justify-center"
-                    >
-                        <ArrowLeft size={18} />
-                        Go Back
-                    </button>
-
-                    <button
-                        onClick={() => navigate("/")}
-                        className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gray-900 text-white font-semibold hover:bg-black hover:scale-105 transition-all duration-300 shadow-lg shadow-gray-200 w-full sm:w-auto justify-center"
-                    >
-                        <Home size={18} />
-                        Return Home
-                    </button>
-                </div>
-
-                {/* --- Footer --- */}
-                <div className="mt-16 pt-8 border-t border-gray-200/60 w-full flex justify-center">
-                    <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">
-                        &copy; 2025 Building & Architecture
-                    </p>
-                </div>
+            {/* --- 1. Dynamic Architectural Grid Background --- */}
+            <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+                <div
+                    className="absolute inset-0"
+                    style={{
+                        backgroundImage: 'linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)',
+                        backgroundSize: '40px 40px'
+                    }}
+                />
+                <div
+                    className="absolute inset-0"
+                    style={{
+                        backgroundImage: 'linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px)',
+                        backgroundSize: '200px 200px'
+                    }}
+                />
+                <div className="absolute inset-0 bg-radial-gradient from-transparent via-[#f0f2f5]/50 to-[#f0f2f5]" />
             </div>
 
-            <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
+            {/* --- Decorative Floating Elements --- */}
+            <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
+                className="absolute top-10 left-10 text-gray-200 opacity-50"
+            >
+                <Compass size={120} strokeWidth={1} />
+            </motion.div>
+            <motion.div
+                animate={{ y: [0, 20, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute bottom-10 right-10 text-gray-200 opacity-50"
+            >
+                <Ruler size={120} strokeWidth={1} />
+            </motion.div>
+
+            {/* --- Main Content Card --- */}
+            <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="relative z-10 max-w-3xl w-full text-center"
+            >
+                <div className="bg-white/60 backdrop-blur-xl border border-white/50 shadow-2xl rounded-[3rem] p-12 md:p-16 relative overflow-hidden">
+
+                    {/* Subtle Noise Texture Overlay */}
+                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
+
+                    {/* --- The "Drafted" 404 Animation --- */}
+                    <div className="relative mb-6 flex justify-center">
+                        <svg width="300" height="150" viewBox="0 0 300 150" className="w-full max-w-[300px] h-auto">
+                            <motion.text
+                                x="50%"
+                                y="50%"
+                                dominantBaseline="middle"
+                                textAnchor="middle"
+                                fontSize="120"
+                                fontWeight="800"
+                                fill="none"
+                                stroke="#1f2937"
+                                strokeWidth="2"
+                                variants={drawDraw}
+                                className="font-serif tracking-tighter"
+                            >
+                                404
+                            </motion.text>
+                        </svg>
+
+                        {/* Floating Tag */}
+                        <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 1.5, type: "spring" }}
+                            className="absolute -top-2 right-[20%] bg-red-50 text-red-500 text-xs font-bold px-3 py-1 rounded-full border border-red-100 shadow-sm rotate-12"
+                        >
+                            MISSING PLAN
+                        </motion.div>
+                    </div>
+
+                    {/* --- Text Content --- */}
+                    <motion.div variants={itemVariants}>
+                        <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4 tracking-wide">
+                            Structure Not Found
+                        </h2>
+                        <p className="text-gray-500 mb-10 max-w-lg mx-auto leading-relaxed text-lg">
+                            We've searched our blueprints, but the floor you are looking for hasn't been built yet or has been demolished.
+                        </p>
+                    </motion.div>
+
+                    {/* --- Interactive Actions --- */}
+                    <motion.div
+                        variants={itemVariants}
+                        className="flex flex-col sm:flex-row items-center justify-center gap-4"
+                    >
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="group flex items-center gap-3 px-8 py-4 rounded-2xl border border-gray-200 bg-white text-gray-600 font-semibold hover:border-gray-400 hover:text-gray-900 transition-all duration-300 shadow-sm hover:shadow-md w-full sm:w-auto justify-center"
+                        >
+                            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+                            <span>Go Back</span>
+                        </button>
+
+                        <button
+                            onClick={() => navigate("/")}
+                            className="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-[#1f2937] text-white font-semibold hover:bg-black transition-all duration-300 shadow-lg shadow-gray-300/50 hover:shadow-gray-400/50 hover:-translate-y-1 w-full sm:w-auto justify-center"
+                        >
+                            <Home size={18} />
+                            <span>Return Home</span>
+                        </button>
+                    </motion.div>
+
+                    {/* --- Technical Footer --- */}
+                    <motion.div variants={itemVariants} className="mt-12 pt-6 border-t border-gray-200/50 flex flex-col items-center gap-2">
+                        <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-medium">
+                            Error Code: 0x404_NOT_FOUND
+                        </p>
+                        <p className="text-[10px] text-gray-300 font-mono">
+                            System: Ambassadeur Prestige v2.0
+                        </p>
+                    </motion.div>
+
+                </div>
+            </motion.div>
         </div>
     );
 };

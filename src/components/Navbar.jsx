@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Phone, MapPin, ChevronDown, Check } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom"; // 1. Added useNavigate
+import InquireModal from "./InquireModal";
 
 export default function Navbar({ playVideo }) {
   const location = useLocation();
+  const navigate = useNavigate(); // 2. Initialize navigation
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const navItems = [
@@ -22,6 +25,30 @@ export default function Navbar({ playVideo }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // 3. Smart Location Handler
+  const handleLocationClick = () => {
+    const targetId = "location";
+
+    if (location.pathname === "/") {
+      // SCENARIO A: Already on Home Page -> Just Scroll
+      const element = document.getElementById(targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    } else {
+      // SCENARIO B: On another page -> Navigate first, then Scroll
+      navigate("/");
+
+      // Wait for the PageTransition (approx 800ms) to finish before scrolling
+      setTimeout(() => {
+        const element = document.getElementById(targetId);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 1000); // 1 second delay ensures page is fully loaded
+    }
+  };
+
   const isItemActive = (item) => {
     if (item.path === "/") return location.pathname === "/";
     if (item.path === "/plan") return location.pathname.startsWith("/plan");
@@ -35,7 +62,6 @@ export default function Navbar({ playVideo }) {
     }
   };
 
-  // Define the thin stroke width for that technical architectural look
   const thinStroke = 1.5;
 
   return (
@@ -44,12 +70,11 @@ export default function Navbar({ playVideo }) {
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
         
         :root {
-          --accent-bronze: #b49b85; /* The luxury architectural accent color */
+          --accent-bronze: #b49b85; 
         }
 
         .font-premium { font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        /* The "Frosted Crystal" Effect - deeper blur, sharper edges */
         .crystal-panel {
           background: rgba(255, 255, 255, 0.75);
           backdrop-filter: blur(24px) saturate(160%);
@@ -63,12 +88,10 @@ export default function Navbar({ playVideo }) {
           border-color: rgba(255, 255, 255, 0.7);
         }
 
-        /* Subtle transition for all interactive elements */
         .smooth-transition {
           transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
-        /* Text utility for the bronze accent */
         .text-bronze { color: var(--accent-bronze); }
         .bg-bronze { background-color: var(--accent-bronze); }
         .hover-text-bronze:hover { color: var(--accent-bronze); }
@@ -80,7 +103,7 @@ export default function Navbar({ playVideo }) {
         {/* --- LEFT SECTION --- */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pointer-events-auto">
 
-          {/* Brand Plaque - Architectural Lettering */}
+          {/* Brand Plaque */}
           <div className="crystal-panel rounded-[14px] px-4 py-2.5 smooth-transition hover:scale-[1.01]">
             <a
               href="/"
@@ -110,7 +133,6 @@ export default function Navbar({ playVideo }) {
                         }
                       `}
                     >
-                      {/* Active indicator dot - subtle bronze */}
                       {isActive && <div className="w-1.5 h-1.5 rounded-full bg-bronze mr-0.5"></div>}
 
                       {item.label}
@@ -157,7 +179,6 @@ export default function Navbar({ playVideo }) {
                     )}
                   </div>
 
-                  {/* Technical Separator - very subtle */}
                   {index < navItems.length - 1 && (
                     <div className="w-px h-3 bg-gray-400/20 mx-1"></div>
                   )}
@@ -170,30 +191,29 @@ export default function Navbar({ playVideo }) {
         {/* --- RIGHT SECTION: Utility Links --- */}
         <div className="hidden sm:flex items-center gap-1 crystal-panel rounded-[14px] p-1.5 pointer-events-auto smooth-transition">
 
-          {/* Action Button - Monochrome with Bronze Hover */}
-          <a
-            href="https://wa.me/21612345678"
-            target="_blank"
-            rel="noopener noreferrer"
+          {/* Inquire Button */}
+          <button
+            onClick={() => setIsModalOpen(true)}
             className="group flex items-center gap-2 bg-transparent hover:bg-white text-gray-500 hover-text-bronze px-3 py-1.5 rounded-[10px] text-[12px] font-semibold tracking-wider smooth-transition"
           >
             <Phone strokeWidth={thinStroke} className="w-3.5 h-3.5 smooth-transition group-hover:text-bronze" />
             <span className="hidden md:inline">INQUIRE</span>
-          </a>
+          </button>
 
-          {/* Technical Separator */}
           <div className="w-px h-3 bg-gray-400/20 mx-1"></div>
 
-          {/* Action Button */}
-          <a
-            href="#location"
+          {/* 4. Location Button (Uses updated click handler) */}
+          <button
+            onClick={handleLocationClick}
             className="group flex items-center gap-2 bg-transparent hover:bg-white text-gray-500 hover-text-bronze px-3 py-1.5 rounded-[10px] text-[12px] font-semibold tracking-wider smooth-transition"
           >
             <MapPin strokeWidth={thinStroke} className="w-3.5 h-3.5 smooth-transition group-hover:text-bronze" />
             <span className="hidden md:inline">LOCATION</span>
-          </a>
+          </button>
         </div>
       </div>
+
+      <InquireModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </>
   );
 }
@@ -214,11 +234,9 @@ function DropdownItem({ to, label, subLabel, currentPath, close, thinStroke }) {
       `}
     >
       <div className="flex flex-col">
-        {/* Main Label - Architectural font style */}
         <span className={`text-[13px] font-bold tracking-wide ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>
           {label}
         </span>
-        {/* Sub Label - Technical specs style */}
         {subLabel && (
           <span className="text-[10px] uppercase tracking-widest text-gray-400 font-medium mt-0.5 smooth-transition group-hover:text-bronze">
             {subLabel}
@@ -226,7 +244,6 @@ function DropdownItem({ to, label, subLabel, currentPath, close, thinStroke }) {
         )}
       </div>
 
-      {/* Active Indicator - Bronze checkmark */}
       {isActive && (
         <div className="mt-0.5">
           <Check className="w-3.5 h-3.5 text-bronze" strokeWidth={thinStroke + 0.5} />

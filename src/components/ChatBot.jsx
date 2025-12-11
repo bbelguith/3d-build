@@ -2,29 +2,39 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChatContext } from "../context/ChatContext";
-import { MessageCircle, X, Send, RotateCcw, Image as ImageIcon, Sparkles, Minimize2 } from "lucide-react";
+import { MessageCircle, X, Send, RotateCcw, Image as ImageIcon, Sparkles, Minimize2, Eye, ChevronRight } from "lucide-react";
 
 // --- 1. Helper: Parse Markdown & Create Interactive Chips ---
 const formatMessage = (content, suggestedHouses = [], navigate, onImageClick) => {
   if (!content) return null;
 
+  // 1. Build a robust Map of House Keys
   const houseMap = {};
   if (suggestedHouses && suggestedHouses.length > 0) {
     suggestedHouses.forEach(h => {
-      houseMap[`Unit ${h.number}`] = h;
+      // Normalize: "Unit 3R" -> "unit 3r" | "Unit 3" -> "unit 3"
+      const num = String(h.number).trim().toLowerCase();
+      houseMap[`unit ${num}`] = h;
     });
   }
 
-  const housePattern = Object.keys(houseMap).length > 0
-    ? new RegExp(`(${Object.keys(houseMap).join('|')})`, 'gi')
+  // 2. Sort keys by length (descending) to prevent "Unit 1" matching inside "Unit 10"
+  const houseKeys = Object.keys(houseMap).sort((a, b) => b.length - a.length);
+
+  // 3. Create Regex (Global + Case Insensitive)
+  const patternSource = houseKeys
+    .map(key => key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'))
+    .join('|');
+
+  const housePattern = houseKeys.length > 0
+    ? new RegExp(`(${patternSource})`, 'gi')
     : null;
 
   const lines = content.split("\n");
 
   return lines.map((line, lineIdx) => {
-    if (!housePattern || !housePattern.test(line)) {
+    if (!housePattern) {
       return (
-        // FIXED: Removed 'text-gray-100' so it inherits correct color (Black for user, White for bot)
         <p key={lineIdx} className="my-1.5 text-[15px] leading-relaxed">
           {parseInlineMarkdown(line)}
         </p>
@@ -33,10 +43,20 @@ const formatMessage = (content, suggestedHouses = [], navigate, onImageClick) =>
 
     const parts = line.split(housePattern);
 
+    if (parts.length === 1) {
+      return (
+        <p key={lineIdx} className="my-1.5 text-[15px] leading-relaxed">
+          {parseInlineMarkdown(line)}
+        </p>
+      );
+    }
+
     return (
       <div key={lineIdx} className="my-3 flex flex-wrap items-center gap-2 text-[15px] leading-relaxed">
         {parts.map((part, partIdx) => {
-          const matchedHouse = houseMap[part.charAt(0).toUpperCase() + part.slice(1)];
+          // Normalize the found text part to check against our map
+          const lookupKey = part.replace(/\s+/g, ' ').trim().toLowerCase();
+          const matchedHouse = houseMap[lookupKey];
 
           if (matchedHouse) {
             return (
@@ -44,29 +64,37 @@ const formatMessage = (content, suggestedHouses = [], navigate, onImageClick) =>
                 key={partIdx}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-br from-[#1f1f1f] to-[#252525] border border-white/10 hover:border-emerald-500/50 hover:shadow-[0_0_15px_rgba(16,185,129,0.1)] transition-all cursor-pointer group select-none"
-                onClick={() => navigate(`/house/${matchedHouse.id}`)}
+                // NEW STYLE: A "Dual Action" Pill Container
+                className="inline-flex items-stretch mx-1 align-middle bg-[#111] border border-white/20 rounded-lg overflow-hidden select-none group shadow-lg"
               >
-                {/* Image Icon Trigger */}
+                {/* --- ACTION 1: IMAGE PREVIEW (Left Side) --- */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onImageClick(matchedHouse);
                   }}
-                  className="p-1 rounded-md bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center"
+                  className="flex items-center justify-center px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/30 text-blue-400 border-r border-white/10 transition-colors group/btn"
                   title="Preview Image"
                 >
-                  <ImageIcon size={14} className="text-blue-400 group-hover:text-blue-300 transition-colors" />
+                  <Eye size={16} strokeWidth={2.5} className="mr-1.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">View</span>
                 </button>
 
-                {/* Text Link */}
-                <span className="font-bold text-emerald-400 text-sm tracking-wide group-hover:text-emerald-300">
-                  {part}
-                </span>
+                {/* --- ACTION 2: NAVIGATE (Right Side) --- */}
+                <button
+                  onClick={() => navigate(`/house/${matchedHouse.id}`)}
+                  className="flex items-center px-3 py-1.5 cursor-pointer hover:bg-white/10 bg-white/5 transition-colors"
+                  title="Go to Details"
+                >
+                  <span className="font-bold text-emerald-400 text-xs tracking-wider uppercase">
+                    {part}
+                  </span>
+                  <ChevronRight size={14} className="ml-1 text-white/30" />
+                </button>
               </motion.span>
             );
           }
-          // FIXED: Removed 'text-gray-100' here as well
+
           return <span key={partIdx}>{parseInlineMarkdown(part)}</span>;
         })}
       </div>
@@ -85,7 +113,6 @@ const parseInlineMarkdown = (text) => {
     if (match.index > currentIndex) {
       parts.push(text.slice(currentIndex, match.index));
     }
-    // FIXED: Removed hardcoded colors (text-white/text-gray-300) so formatting works on white background too
     if (match[1] && match[2]) parts.push(<strong key={keyCounter++} className="font-bold">{match[2]}</strong>);
     else if (match[3] && match[4]) parts.push(<em key={keyCounter++} className="italic opacity-80">{match[4]}</em>);
     currentIndex = match.index + match[0].length;
@@ -133,7 +160,6 @@ export default function ChatBot() {
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      // Small timeout to ensure animation allows focus
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
@@ -178,9 +204,7 @@ export default function ChatBot() {
             transition={{ type: "spring", damping: 30, stiffness: 350 }}
             className={`
                 fixed z-50 flex flex-col overflow-hidden bg-[#0a0a0a] border border-white/10 shadow-2xl backdrop-blur-3xl
-                /* Mobile Styles: Full Screen */
                 inset-0 w-full h-[100dvh] rounded-none
-                /* Desktop Styles: Floating Card */
                 sm:inset-auto sm:right-6 sm:bottom-6 sm:w-[400px] sm:h-[650px] sm:max-h-[80vh] sm:rounded-3xl
             `}
           >
@@ -212,7 +236,6 @@ export default function ChatBot() {
                   onClick={toggleChat}
                   className="p-2 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-95"
                 >
-                  {/* Show Minimize on Mobile, X on Desktop */}
                   <span className="sm:hidden"><Minimize2 size={20} /></span>
                   <span className="hidden sm:block"><X size={20} /></span>
                 </button>
@@ -229,7 +252,8 @@ export default function ChatBot() {
                     index={index}
                     onPreviewImage={(house) => {
                       const matchedImg = houseImages.find(img => img.houseId === house.id);
-                      const imgSrc = matchedImg ? matchedImg.src : "https://res.cloudinary.com/dzbmwlwra/image/upload/f_auto,q_auto/v1762360930/49ba186a-621c-4825-859e-ff097bec92c5_rdji7t.jpg";
+                      // Use house.image from the message payload as fallback
+                      const imgSrc = matchedImg ? matchedImg.src : (house.image || "https://via.placeholder.com/300x200?text=No+Preview");
                       setPreviewImage(imgSrc);
                     }}
                   />
@@ -262,7 +286,6 @@ export default function ChatBot() {
 
             {/* --- Footer Area --- */}
             <div className="bg-gradient-to-t from-black via-black/90 to-transparent pt-2 pb-4 sm:pb-5 px-4 sm:px-5">
-              {/* Quick Replies (Horizontal Scroll) */}
               <AnimatePresence>
                 {quickReplies.length > 0 && messages.length <= 1 && (
                   <motion.div
@@ -284,7 +307,6 @@ export default function ChatBot() {
                 )}
               </AnimatePresence>
 
-              {/* Input Field */}
               <form
                 onSubmit={handleSend}
                 className="relative flex items-center gap-2 p-1.5 bg-[#161616] border border-white/10 rounded-[20px] focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/10 transition-all shadow-lg"
@@ -326,7 +348,6 @@ export default function ChatBot() {
               className="relative max-w-5xl max-h-[85vh] w-full bg-[#111] rounded-2xl overflow-hidden shadow-2xl border border-white/10 flex flex-col"
               onClick={e => e.stopPropagation()}
             >
-              {/* Modal Header */}
               <div className="absolute top-0 inset-x-0 p-4 flex justify-end z-20 bg-gradient-to-b from-black/80 to-transparent">
                 <button
                   onClick={() => setPreviewImage(null)}
@@ -336,12 +357,10 @@ export default function ChatBot() {
                 </button>
               </div>
 
-              {/* Image Container */}
               <div className="flex-1 overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
                 <img src={previewImage} alt="House Preview" className="w-full h-full object-contain" />
               </div>
 
-              {/* Modal Footer */}
               <div className="p-4 bg-[#111] border-t border-white/10 text-center">
                 <p className="text-sm font-medium tracking-widest text-white/60 uppercase">Property Preview</p>
               </div>
@@ -375,11 +394,9 @@ const Message = ({ message, index, onPreviewImage }) => {
         `}
       >
         <div className="text-sm sm:text-[15px] leading-relaxed break-words">
-          {/* Formatted Content with Interactive Chips */}
           {formatMessage(message.content, message.suggestedHouses, navigate, onPreviewImage)}
         </div>
 
-        {/* Tiny Timestamp or Role Indicator (Optional) */}
         <div className={`text-[10px] mt-1 opacity-40 uppercase tracking-wider font-bold ${isBot ? 'text-left' : 'text-right'}`}>
           {isBot ? 'AI Assistant' : 'You'}
         </div>

@@ -4,11 +4,13 @@ import {
     ChevronRight,
     RotateCcw,
     Home,
-    ArrowLeft
+    Map,
+    Play,
+    CheckCircle2
 } from "lucide-react";
 
 export default function VideoPlayer({ videos = [] }) {
-    // --- ORIGINAL STATE & REFS ---
+    // --- STATE & REFS ---
     const [current, setCurrent] = useState(0);
     const [activeLayer, setActiveLayer] = useState(0);
     const [isReversed, setIsReversed] = useState(false);
@@ -20,11 +22,10 @@ export default function VideoPlayer({ videos = [] }) {
 
     const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
 
-    // --- 1. INITIALIZE PLAYER (Optimized for props) ---
+    // --- 1. INITIALIZE PLAYER ---
     useEffect(() => {
         if (videos.length > 0 && v0.current && !isInitialized) {
             v0.current.src = videos[0].src;
-            // Attempt play, handle browser autoplay policies silently
             v0.current.play().catch(() => {
                 if (v0.current) {
                     v0.current.muted = true;
@@ -35,7 +36,7 @@ export default function VideoPlayer({ videos = [] }) {
         }
     }, [videos, isInitialized]);
 
-    // --- 2. ORIGINAL VIDEO LOGIC (The one you liked) ---
+    // --- 2. VIDEO LOGIC ---
     const playVideo = (url, index, reversed = false, isInteriorVideo = false) => {
         const nextLayer = activeLayer === 0 ? 1 : 0;
         const showEl = nextLayer === 0 ? v0.current : v1.current;
@@ -49,10 +50,8 @@ export default function VideoPlayer({ videos = [] }) {
                 showEl.currentTime = 0;
                 showEl.play().catch(() => { });
 
-                // Direct DOM manipulation for transitions (Your original logic)
                 if (hideEl) hideEl.classList.add("opacity-0");
                 showEl.classList.remove("opacity-0");
-
                 showEl.classList.add("transition-opacity", "duration-700");
                 if (hideEl) hideEl.classList.add("transition-opacity", "duration-700");
 
@@ -73,14 +72,13 @@ export default function VideoPlayer({ videos = [] }) {
                     playVideo(videos[lastIndex].src, lastIndex, false, false);
                 } else if (index === videos.length - 1) {
                     showEl.pause();
-                    // Hold last frame slightly before end
                     if (showEl.duration) showEl.currentTime = showEl.duration - 0.05;
                 }
             };
         }
     };
 
-    // --- 3. HANDLERS (Mapped to your original logic) ---
+    // --- 3. HANDLERS ---
     const handleNext = () => {
         if (isReversed) {
             playVideo(videos[current].src, current, false);
@@ -91,7 +89,6 @@ export default function VideoPlayer({ videos = [] }) {
     };
 
     const handlePrev = () => {
-        // If current video has a 'reverse' property (from your data), use it
         if (!isReversed && videos[current]?.reverse) {
             playVideo(videos[current].reverse, current, true);
         } else {
@@ -115,119 +112,119 @@ export default function VideoPlayer({ videos = [] }) {
         playVideo(videos[current].src, current, false);
     };
 
-    if (videos.length === 0) {
-        return (
-            <div className="w-full h-screen bg-neutral-900 flex items-center justify-center text-white/50 font-light tracking-widest animate-pulse">
-                LOADING...
-            </div>
-        );
-    }
+    if (videos.length === 0) return null;
 
     const isLastVideo = current === videos.length - 1;
 
+    // --- STYLES (Matching Navbar) ---
+    // The "Glass" container
+    const glassContainer = "bg-[#4a6fa5]/60 backdrop-blur-md border border-[#fcd34d]/60 shadow-lg flex items-center h-10";
+
+    // Buttons
+    const btnBase = "h-full px-4 text-xs font-bold tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap";
+    const btnActive = "bg-white text-slate-900";
+    const btnInactive = "text-white hover:bg-white/10 hover:text-[#fcd34d]";
+    const btnDisabled = "text-white/30 cursor-not-allowed";
+
+    // Dividers
+    const separator = "w-[1px] h-5 bg-[#fcd34d]/40";
+
     return (
-        <div className="relative w-full h-screen bg-black overflow-hidden select-none">
-            {/* --- VIDEO LAYERS (Original Structure) --- */}
+        <div className="relative w-full h-screen bg-black overflow-hidden select-none font-sans">
+            {/* --- VIDEO LAYERS --- */}
             <div className="absolute inset-0">
-                <video
-                    ref={v0}
-                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-100"
-                    playsInline
-                    muted={!isInterior}
-                    autoPlay
-                    preload="auto"
-                />
-                <video
-                    ref={v1}
-                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-0"
-                    playsInline
-                    muted={!isInterior}
-                    autoPlay
-                    preload="auto"
-                />
+                <video ref={v0} className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-100" playsInline muted={!isInterior} autoPlay preload="auto" />
+                <video ref={v1} className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-0" playsInline muted={!isInterior} autoPlay preload="auto" />
             </div>
 
-            {/* --- NEW MODERN CONTROLS (The design you wanted) --- */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 transform translate-y-0 opacity-100">
-                <div className="flex items-center gap-1 p-1.5 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl ring-1 ring-black/5">
+            {/* --- CONTROLS --- */}
+            <div className="absolute bottom-8 left-0 right-0 z-50 flex justify-center px-4">
+                <div className="flex flex-wrap items-center justify-center gap-3">
 
-                    {!isInterior ? (
-                        <>
-                            {/* Previous Button */}
-                            <button
-                                onClick={handlePrev}
-                                // Only disable if at start AND not reversed
-                                disabled={current === 0 && !isReversed}
-                                className={`p-3 rounded-full transition-all duration-200 group/btn ${current === 0 && !isReversed
-                                        ? "text-white/20 cursor-not-allowed"
-                                        : "text-white hover:bg-white/20 hover:scale-105 active:scale-95"
-                                    }`}
-                            >
-                                <ChevronLeft className="w-6 h-6" strokeWidth={2.5} />
-                            </button>
-
-                            {/* Step Indicator */}
-                            <div className="px-4 flex flex-col items-center justify-center min-w-[80px]">
-                                <span className="text-[10px] uppercase tracking-[0.2em] text-white/50 font-bold">
-                                    Step
-                                </span>
-                                <span className="text-sm font-bold text-white font-mono">
-                                    {current + 1} <span className="text-white/30">/</span> {videos.length}
-                                </span>
-                            </div>
-
-                            {/* Next / Action Buttons */}
-                            {isLastVideo ? (
-                                <div className="flex items-center gap-1 pr-1">
-                                    <button
-                                        onClick={handleRestart}
-                                        className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all hover:scale-105"
-                                    >
-                                        <RotateCcw className="w-4 h-4" />
-                                        Replay
-                                    </button>
-                                    <button
-                                        onClick={handleGoToInterior}
-                                        className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider hover:bg-gray-200 transition-all hover:scale-105 shadow-lg"
-                                    >
-                                        <Home className="w-4 h-4" />
-                                        Inside
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={handleNext}
-                                    className="p-3 rounded-full text-white hover:bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
-                                >
-                                    <ChevronRight className="w-6 h-6" strokeWidth={2.5} />
-                                </button>
-                            )}
-                        </>
-                    ) : (
-                        /* Interior Controls */
+                    {/* GROUP 1: CONTEXT SWITCHER (Rounded Pill Shape like Screenshot) */}
+                    <div className={`${glassContainer} rounded-full p-1 gap-1`}>
                         <button
                             onClick={handleBackToExterior}
-                            className="flex items-center gap-3 px-6 py-3 rounded-full bg-white/10 text-white text-sm font-bold uppercase tracking-wider hover:bg-white/20 transition-all hover:scale-105 group"
+                            className={`rounded-full px-5 h-full text-xs font-bold tracking-wider uppercase transition-all ${!isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"}`}
                         >
-                            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                            Back to Exterior
+                            Exterior
                         </button>
-                    )}
+                        <button
+                            onClick={handleGoToInterior}
+                            disabled={!isLastVideo && !isInterior}
+                            className={`rounded-full px-5 h-full text-xs font-bold tracking-wider uppercase transition-all ${isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"} ${(!isLastVideo && !isInterior) ? 'opacity-50' : ''}`}
+                        >
+                            Interior
+                        </button>
+                    </div>
+
+                    {/* GROUP 2: PROGRESS (Rectangular Segmented Control) */}
+                    <div className={`${glassContainer} rounded-md overflow-hidden`}>
+                        {videos.map((_, idx) => {
+                            // Logic to hide too many dots if list is long
+                            if (videos.length > 8 && idx !== 0 && idx !== videos.length - 1 && idx !== current) return null;
+                            const isDot = videos.length > 8 && idx !== current;
+                            const isCurrent = idx === current;
+
+                            return (
+                                <React.Fragment key={idx}>
+                                    <div
+                                        className={`
+                                            h-full px-3 flex items-center justify-center text-xs font-bold 
+                                            ${isCurrent ? "bg-white text-slate-900 min-w-[3rem]" : "text-white/80 min-w-[2.5rem]"}
+                                        `}
+                                    >
+                                        {isDot ? "•" : `${idx + 1}m`}
+                                    </div>
+                                    {/* Separator only between non-active items */}
+                                    {idx < videos.length - 1 && !isCurrent && (idx + 1) !== current && (
+                                        <div className={separator}></div>
+                                    )}
+                                </React.Fragment>
+                            )
+                        })}
+                    </div>
+
+                    {/* GROUP 3: NAVIGATION (Rectangular Segmented Control) */}
+                    <div className={`${glassContainer} rounded-md overflow-hidden`}>
+                        {/* Prev Button */}
+                        <button
+                            onClick={handlePrev}
+                            disabled={current === 0 && !isReversed}
+                            className={`${btnBase} ${current === 0 && !isReversed ? btnDisabled : btnInactive}`}
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+
+                        <div className={separator}></div>
+
+                        {/* Status / Middle Indicator */}
+                        <div className="h-full px-4 flex items-center justify-center text-xs font-bold text-white tracking-widest min-w-[90px]">
+                            {isLastVideo ? "FINISHED" : "PLAYING"}
+                        </div>
+
+                        <div className={separator}></div>
+
+                        {/* Next / Replay Button */}
+                        {isLastVideo ? (
+                            <button
+                                onClick={handleRestart}
+                                className={`${btnBase} ${btnInactive}`}
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleNext}
+                                className={`${btnBase} ${btnInactive}`}
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+
                 </div>
             </div>
-
-            {/* Step Dots */}
-            {!isInterior && (
-                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2 z-40">
-                    {videos.map((_, idx) => (
-                        <div
-                            key={idx}
-                            className={`h-1 rounded-full transition-all duration-500 ${idx === current ? "w-8 bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]" : "w-1 bg-white/20"
-                                }`}
-                        />
-                    ))}
-                </div>
-            )}
         </div>
     );
 }

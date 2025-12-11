@@ -3,18 +3,49 @@ import logo from "../assets/Logo2-BNG.png";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Loader({ progress }) {
+  // --- VARIANTS FOR ORCHESTRATION ---
+
+  // 1. The Background Curtain (Wipes up after content is gone)
+  const containerVariants = {
+    initial: {
+      clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+    },
+    exit: {
+      clipPath: "polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)", // Wipes from bottom to top
+      transition: {
+        duration: 1.1,
+        ease: [0.76, 0, 0.24, 1], // Cinematic "Quart" easing
+        delay: 0.2, // Wait slightly for content to start fading
+      },
+    },
+  };
+
+  // 2. The Inner Content (Fades out & zooms away first)
+  const contentVariants = {
+    exit: {
+      opacity: 0,
+      y: -20,
+      scale: 0.95,
+      filter: "blur(10px)", // Adds a cinematic motion blur feel
+      transition: {
+        duration: 0.5,
+        ease: "easeInOut",
+      },
+    },
+  };
+
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {progress < 100 && (
         <motion.div
           key="loader"
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#050505] text-white overflow-hidden"
-          exit={{
-            y: "-100%",
-            transition: { duration: 1.2, ease: [0.22, 1, 0.36, 1] },
-          }}
+          variants={containerVariants}
+          initial="initial"
+          exit="exit"
         >
-          {/* --- 1. Subtle Background Texture (Luxury Feel) --- */}
+          {/* --- 1. Subtle Background Texture --- */}
+          {/* We keep this static inside the container so it gets clipped with the parent */}
           <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
             <div
               className="w-full h-full"
@@ -27,17 +58,21 @@ export default function Loader({ progress }) {
             <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/50 to-black opacity-90" />
           </div>
 
-          <div className="relative z-10 flex flex-col items-center justify-center space-y-12">
-            {/* --- 2. LOGO (Centerpiece) --- */}
+          {/* --- CONTENT WRAPPER (For Staggered Exit) --- */}
+          <motion.div
+            className="relative z-10 flex flex-col items-center justify-center space-y-12"
+            variants={contentVariants}
+            exit="exit" // Triggers the content exit animation
+          >
+            {/* --- 2. LOGO --- */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
               className="relative"
             >
-              {/* Subtle Gold Glow behind logo */}
+              {/* Gold Glow */}
               <div className="absolute inset-0 bg-[#FFD700] blur-[100px] opacity-10 rounded-full scale-150" />
-
               <img
                 src={logo}
                 alt="BNGIMMO Logo"
@@ -61,9 +96,8 @@ export default function Loader({ progress }) {
               </div>
             </motion.div>
 
-            {/* --- 4. Minimalist Progress Bar --- */}
+            {/* --- 4. Progress Bar --- */}
             <div className="w-64 sm:w-80 space-y-3">
-              {/* Bar Container */}
               <div className="h-[2px] bg-gray-800 w-full relative overflow-hidden">
                 <motion.div
                   className="absolute top-0 left-0 h-full bg-[#FFD700]"
@@ -71,7 +105,6 @@ export default function Loader({ progress }) {
                   animate={{ width: `${progress}%` }}
                   transition={{ ease: "linear", duration: 0.2 }}
                 />
-                {/* Shine effect on the bar */}
                 <motion.div
                   className="absolute top-0 h-full w-[50px] bg-gradient-to-r from-transparent to-white opacity-60 blur-sm"
                   initial={{ left: "-20%" }}
@@ -80,13 +113,12 @@ export default function Loader({ progress }) {
                 />
               </div>
 
-              {/* Status Text */}
               <div className="flex justify-between text-[10px] tracking-[0.2em] text-gray-600 font-mono uppercase">
                 <span>Loading Experience</span>
-                <span className="text-[#FFD700]">{progress}%</span>
+                <span className="text-[#FFD700]">{Math.round(progress)}%</span>
               </div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
