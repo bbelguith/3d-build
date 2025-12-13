@@ -6,7 +6,8 @@ import {
     Home,
     Map,
     Play,
-    CheckCircle2
+    CheckCircle2,
+    X
 } from "lucide-react";
 
 export default function VideoPlayer({ videos = [] }) {
@@ -16,16 +17,33 @@ export default function VideoPlayer({ videos = [] }) {
     const [isReversed, setIsReversed] = useState(false);
     const [isInterior, setIsInterior] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
+    const [isTransitioning, setIsTransitioning] = useState(false);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
+    const videoContainerRef = useRef(null);
 
     const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
+
+    // Detect mobile device
+    useEffect(() => {
+        const checkMobile = () => {
+            const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            setIsMobile(isMobileDevice);
+        };
+        
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // --- 1. INITIALIZE PLAYER ---
     useEffect(() => {
         if (videos.length > 0 && v0.current && !isInitialized) {
             v0.current.src = videos[0].src;
+            v0.current.muted = true; // Ensure muted for autoplay
             v0.current.play().catch(() => {
                 if (v0.current) {
                     v0.current.muted = true;
@@ -33,22 +51,54 @@ export default function VideoPlayer({ videos = [] }) {
                 }
             });
             setIsInitialized(true);
+            
+            // Preload next video in background
+            if (videos.length > 1 && v1.current) {
+                v1.current.src = videos[1].src;
+                v1.current.muted = true;
+                v1.current.preload = "auto";
+                v1.current.load();
+            }
+        }
+    }, [videos, isInitialized]);
+    
+    // Preload remaining videos in background
+    useEffect(() => {
+        if (videos.length > 2 && isInitialized) {
+            // Preload videos 2+ in background
+            videos.slice(2).forEach((video, index) => {
+                setTimeout(() => {
+                    const bgVid = document.createElement("video");
+                    bgVid.src = video.src;
+                    bgVid.muted = true;
+                    bgVid.preload = "auto";
+                    bgVid.load();
+                }, (index + 1) * 500); // Stagger background loading
+            });
         }
     }, [videos, isInitialized]);
 
     // --- 2. VIDEO LOGIC ---
     const playVideo = (url, index, reversed = false, isInteriorVideo = false) => {
+        // Block if already transitioning
+        if (isTransitioning) return;
+        
+        setIsTransitioning(true);
+        
         const nextLayer = activeLayer === 0 ? 1 : 0;
         const showEl = nextLayer === 0 ? v0.current : v1.current;
         const hideEl = activeLayer === 0 ? v0.current : v1.current;
 
         if (showEl) {
-            showEl.src = url;
-            showEl.load();
-
-            const onCanPlay = () => {
+            const startPlaying = () => {
                 showEl.currentTime = 0;
-                showEl.play().catch(() => { });
+                showEl.play().catch(() => { 
+                    // If play fails, ensure muted and try again
+                    if (showEl) {
+                        showEl.muted = !isInteriorVideo;
+                        showEl.play();
+                    }
+                });
 
                 if (hideEl) hideEl.classList.add("opacity-0");
                 showEl.classList.remove("opacity-0");
@@ -59,11 +109,36 @@ export default function VideoPlayer({ videos = [] }) {
                 setCurrent(index);
                 setIsReversed(reversed);
                 setIsInterior(isInteriorVideo);
+                
+                // Re-enable buttons after transition completes
+                setTimeout(() => {
+                    setIsTransitioning(false);
+                }, 800); // Slightly longer than transition duration
+            };
 
+            showEl.src = url;
+            showEl.muted = !isInteriorVideo; // Ensure muted unless interior video
+            showEl.load();
+
+            const onCanPlay = () => {
+                startPlaying();
                 showEl.removeEventListener("canplay", onCanPlay);
             };
 
             showEl.addEventListener("canplay", onCanPlay);
+            
+            // Fallback: if video is already loaded, play immediately
+            if (showEl.readyState >= 3) {
+                startPlaying();
+                showEl.removeEventListener("canplay", onCanPlay);
+            } else {
+                // Safety timeout to re-enable if video fails to load
+                setTimeout(() => {
+                    if (isTransitioning) {
+                        setIsTransitioning(false);
+                    }
+                }, 5000);
+            }
 
             showEl.onended = () => {
                 if (isInteriorVideo) {
@@ -75,11 +150,14 @@ export default function VideoPlayer({ videos = [] }) {
                     if (showEl.duration) showEl.currentTime = showEl.duration - 0.05;
                 }
             };
+        } else {
+            setIsTransitioning(false);
         }
     };
 
     // --- 3. HANDLERS ---
     const handleNext = () => {
+        if (isTransitioning) return; // Block if transitioning
         if (isReversed) {
             playVideo(videos[current].src, current, false);
         } else {
@@ -89,6 +167,7 @@ export default function VideoPlayer({ videos = [] }) {
     };
 
     const handlePrev = () => {
+        if (isTransitioning) return; // Block if transitioning
         if (!isReversed && videos[current]?.reverse) {
             playVideo(videos[current].reverse, current, true);
         } else {
@@ -98,19 +177,107 @@ export default function VideoPlayer({ videos = [] }) {
     };
 
     const handleRestart = () => {
+        if (isTransitioning) return; // Block if transitioning
         setIsInterior(false);
         playVideo(videos[0].src, 0, false);
     };
 
     const handleGoToInterior = () => {
+        if (isTransitioning) return; // Block if transitioning
         setIsInterior(true);
         playVideo(INTERIOR_VIDEO, current, false, true);
     };
 
     const handleBackToExterior = () => {
+        if (isTransitioning) return; // Block if transitioning
         setIsInterior(false);
         playVideo(videos[current].src, current, false);
     };
+
+    // Handle fullscreen mode for mobile
+    const enterMobileFullscreen = async () => {
+        setIsMobileFullscreen(true);
+        
+        // Request fullscreen and lock orientation to landscape
+        try {
+            if (videoContainerRef.current) {
+                if (videoContainerRef.current.requestFullscreen) {
+                    await videoContainerRef.current.requestFullscreen();
+                } else if (videoContainerRef.current.webkitRequestFullscreen) {
+                    await videoContainerRef.current.webkitRequestFullscreen();
+                } else if (videoContainerRef.current.msRequestFullscreen) {
+                    await videoContainerRef.current.msRequestFullscreen();
+                }
+            }
+            
+            // Lock orientation to landscape if supported
+            if (screen.orientation && screen.orientation.lock) {
+                try {
+                    await screen.orientation.lock('landscape');
+                } catch (err) {
+                    console.log('Orientation lock not supported');
+                }
+            }
+        } catch (err) {
+            console.log('Fullscreen not supported or denied');
+        }
+        
+        // Start playing video
+        if (v0.current) {
+            v0.current.play().catch(() => { });
+        }
+    };
+
+    const exitMobileFullscreen = async () => {
+        setIsMobileFullscreen(false);
+        
+        // Exit fullscreen
+        try {
+            if (document.exitFullscreen) {
+                await document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                await document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                await document.msExitFullscreen();
+            }
+        } catch (err) {
+            console.log('Error exiting fullscreen');
+        }
+        
+        // Unlock orientation
+        if (screen.orientation && screen.orientation.unlock) {
+            try {
+                screen.orientation.unlock();
+            } catch (err) {
+                console.log('Orientation unlock not supported');
+            }
+        }
+    };
+
+    // Handle fullscreen change events
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isFullscreen = !!(
+                document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.msFullscreenElement
+            );
+            
+            if (!isFullscreen && isMobileFullscreen) {
+                setIsMobileFullscreen(false);
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+        };
+    }, [isMobileFullscreen]);
 
     if (videos.length === 0) return null;
 
@@ -130,29 +297,77 @@ export default function VideoPlayer({ videos = [] }) {
     const separator = "w-[1px] h-5 bg-[#fcd34d]/40";
 
     return (
-        <div className="relative w-full h-screen bg-black overflow-hidden select-none font-sans">
+        <div 
+            ref={videoContainerRef}
+            className={`relative w-full bg-black overflow-hidden select-none font-sans ${
+                isMobile && !isMobileFullscreen ? 'h-[60vh] md:h-screen' : 'h-screen'
+            }`}
+        >
+            {/* Mobile overlay button - shown only on mobile when not in fullscreen */}
+            {isMobile && !isMobileFullscreen && (
+                <div 
+                    className="absolute inset-0 flex items-center justify-center z-40 cursor-pointer bg-black/50"
+                    onClick={enterMobileFullscreen}
+                >
+                    <div className="text-center">
+                        <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition">
+                            <Play className="w-10 h-10 md:w-12 md:h-12 text-white ml-1" fill="white" />
+                        </div>
+                        <p className="text-white text-lg md:text-xl font-semibold">Open Videos</p>
+                        <p className="text-white/80 text-sm mt-2">Tap to view in fullscreen</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Close button for mobile fullscreen */}
+            {isMobile && isMobileFullscreen && (
+                <button
+                    onClick={exitMobileFullscreen}
+                    className="absolute top-4 right-4 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/30 transition"
+                    aria-label="Close fullscreen"
+                >
+                    <X className="w-6 h-6" />
+                </button>
+            )}
+
             {/* --- VIDEO LAYERS --- */}
-            <div className="absolute inset-0">
-                <video ref={v0} className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-100" playsInline muted={!isInterior} autoPlay preload="auto" />
-                <video ref={v1} className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-0" playsInline muted={!isInterior} autoPlay preload="auto" />
+            <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
+                <video 
+                    ref={v0} 
+                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-100" 
+                    playsInline 
+                    muted={!isInterior} 
+                    autoPlay 
+                    preload="auto"
+                />
+                <video 
+                    ref={v1} 
+                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-0" 
+                    playsInline 
+                    muted={!isInterior} 
+                    autoPlay 
+                    preload="auto"
+                />
             </div>
 
-            {/* --- CONTROLS --- */}
-            <div className="absolute bottom-8 left-0 right-0 z-50 flex justify-center px-4">
+            {/* --- CONTROLS --- (hidden on mobile when not in fullscreen) */}
+            {(!isMobile || isMobileFullscreen) && (
+            <div className="absolute bottom-4 md:bottom-8 left-0 right-0 z-50 flex justify-center px-4">
                 <div className="flex flex-wrap items-center justify-center gap-3">
 
                     {/* GROUP 1: CONTEXT SWITCHER (Rounded Pill Shape like Screenshot) */}
                     <div className={`${glassContainer} rounded-full p-1 gap-1`}>
                         <button
                             onClick={handleBackToExterior}
-                            className={`rounded-full px-5 h-full text-xs font-bold tracking-wider uppercase transition-all ${!isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"}`}
+                            disabled={isTransitioning}
+                            className={`rounded-full px-5 h-full text-xs font-bold tracking-wider uppercase transition-all ${!isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"} ${isTransitioning ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             Exterior
                         </button>
                         <button
                             onClick={handleGoToInterior}
-                            disabled={!isLastVideo && !isInterior}
-                            className={`rounded-full px-5 h-full text-xs font-bold tracking-wider uppercase transition-all ${isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"} ${(!isLastVideo && !isInterior) ? 'opacity-50' : ''}`}
+                            disabled={(!isLastVideo && !isInterior) || isTransitioning}
+                            className={`rounded-full px-5 h-full text-xs font-bold tracking-wider uppercase transition-all ${isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"} ${(!isLastVideo && !isInterior) || isTransitioning ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             Interior
                         </button>
@@ -190,8 +405,8 @@ export default function VideoPlayer({ videos = [] }) {
                         {/* Prev Button */}
                         <button
                             onClick={handlePrev}
-                            disabled={current === 0 && !isReversed}
-                            className={`${btnBase} ${current === 0 && !isReversed ? btnDisabled : btnInactive}`}
+                            disabled={(current === 0 && !isReversed) || isTransitioning}
+                            className={`${btnBase} ${(current === 0 && !isReversed) || isTransitioning ? btnDisabled : btnInactive}`}
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -200,7 +415,7 @@ export default function VideoPlayer({ videos = [] }) {
 
                         {/* Status / Middle Indicator */}
                         <div className="h-full px-4 flex items-center justify-center text-xs font-bold text-white tracking-widest min-w-[90px]">
-                            {isLastVideo ? "FINISHED" : "PLAYING"}
+                            {isTransitioning ? "LOADING..." : isLastVideo ? "FINISHED" : "PLAYING"}
                         </div>
 
                         <div className={separator}></div>
@@ -209,14 +424,16 @@ export default function VideoPlayer({ videos = [] }) {
                         {isLastVideo ? (
                             <button
                                 onClick={handleRestart}
-                                className={`${btnBase} ${btnInactive}`}
+                                disabled={isTransitioning}
+                                className={`${btnBase} ${isTransitioning ? btnDisabled : btnInactive}`}
                             >
                                 <RotateCcw className="w-4 h-4" />
                             </button>
                         ) : (
                             <button
                                 onClick={handleNext}
-                                className={`${btnBase} ${btnInactive}`}
+                                disabled={isTransitioning}
+                                className={`${btnBase} ${isTransitioning ? btnDisabled : btnInactive}`}
                             >
                                 <ChevronRight className="w-4 h-4" />
                             </button>
@@ -225,6 +442,7 @@ export default function VideoPlayer({ videos = [] }) {
 
                 </div>
             </div>
+            )}
         </div>
     );
 }

@@ -225,46 +225,46 @@ export default function Plan() {
             />
 
             {/* --- PROPERTY PLANNING SECTION --- */}
-            <section className="relative z-10 py-16 sm:py-24 border-b border-gray-200 bg-gradient-to-b from-white via-gray-50 to-white">
-                <div className="flex flex-col md:flex-row justify-between items-center max-w-[1600px] mx-auto px-4 sm:px-8 mb-12 gap-6">
+            <section className="relative z-10 py-12 md:py-16 lg:py-24 border-b border-gray-200 bg-gradient-to-b from-white via-gray-50 to-white">
+                <div className="flex flex-col md:flex-row justify-between items-center max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 mb-8 md:mb-12 gap-4 md:gap-6">
                     <div className="text-center w-full flex flex-col items-center">
-                        <h1 className="text-4xl sm:text-6xl font-serif font-bold uppercase tracking-widest text-gray-900 text-center drop-shadow-sm">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold uppercase tracking-widest text-gray-900 text-center drop-shadow-sm">
                             Property Planning
                         </h1>
-                        <span className="block h-1 w-24 bg-emerald-600 rounded-full mt-6 mx-auto opacity-80" />
+                        <span className="block h-1 w-20 md:w-24 bg-emerald-600 rounded-full mt-4 md:mt-6 mx-auto opacity-80" />
                     </div>
                 </div>
 
-                <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8">
-                    <div className="flex flex-col lg:flex-row gap-8 items-stretch relative">
+                <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8">
+                    <div className="flex flex-col lg:flex-row gap-6 md:gap-8 items-stretch relative">
 
                         {/* Left Card - Sticky */}
-                        <div className="lg:w-[320px] sticky top-32 h-fit z-10">
-                            <div className="bg-white/80 border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2.5rem] p-10 flex flex-col justify-between backdrop-blur-xl transition-all hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1">
+                        <div className="lg:w-[280px] xl:w-[320px] sticky top-20 md:top-32 h-fit z-10">
+                            <div className="bg-white/80 border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 lg:p-10 flex flex-col justify-between backdrop-blur-xl transition-all hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1">
                                 <div>
-                                    <h2 className="text-5xl font-serif font-bold mb-3 text-gray-900">
+                                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold mb-2 md:mb-3 text-gray-900">
                                         Unit {currentHouse?.number || "..."}
                                     </h2>
                                     <p className={`text-xs font-extrabold uppercase tracking-widest mb-8 inline-block px-3 py-1 rounded-full ${currentHouse?.state === 'actif' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                                         {currentHouse?.state === 'actif' ? "Available Now" : "Sold"}
                                     </p>
-                                    <div className="space-y-6 text-sm text-gray-600">
-                                        <div className="flex justify-between border-b border-dashed border-gray-200 pb-3">
+                                    <div className="space-y-4 md:space-y-6 text-xs md:text-sm text-gray-600">
+                                        <div className="flex justify-between border-b border-dashed border-gray-200 pb-2 md:pb-3">
                                             <span className="font-medium tracking-wide">Type</span>
-                                            <span className="font-serif text-gray-900 uppercase text-lg">{currentHouse?.type || "A"}</span>
+                                            <span className="font-serif text-gray-900 uppercase text-base md:text-lg">{currentHouse?.type || "A"}</span>
                                         </div>
-                                        <div className="flex justify-between border-b border-dashed border-gray-200 pb-3">
+                                        <div className="flex justify-between border-b border-dashed border-gray-200 pb-2 md:pb-3">
                                             <span className="font-medium tracking-wide">Price</span>
-                                            <span className="font-serif text-emerald-700 font-bold text-xl">
+                                            <span className="font-serif text-emerald-700 font-bold text-lg md:text-xl">
                                                 {currentHouse?.price ? `$${(currentHouse.price / 1000000).toFixed(2)}M` : "Contact"}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="mt-10 grid grid-cols-2 gap-3">
+                                <div className="mt-6 md:mt-10 grid grid-cols-2 gap-2 md:gap-3">
                                     {['PDF Brochure', '3D View', 'Compare', 'Contact Us'].map((btn, i) => (
                                         <button key={btn} className={`
-                                            px-2 py-4 rounded-xl text-[11px] font-bold tracking-wider border transition-all duration-300 uppercase shadow-sm
+                                            px-2 py-3 md:py-4 rounded-lg md:rounded-xl text-[10px] md:text-[11px] font-bold tracking-wider border transition-all duration-300 uppercase shadow-sm
                                             ${i === 3
                                                 ? 'col-span-2 bg-emerald-900 text-white border-emerald-900 hover:bg-emerald-800 hover:shadow-lg'
                                                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900 hover:text-gray-900 hover:bg-gray-50'
@@ -279,28 +279,28 @@ export default function Plan() {
 
                         {/* Center Card - Normal Scroll */}
                         <div
-                            className="flex-1 min-h-[600px] rounded-[3rem] overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.1)] border border-white/50 bg-white relative group cursor-pointer transition-all hover:shadow-[0_30px_60px_rgb(0,0,0,0.15)] flex flex-col z-10"
+                            className="flex-1 min-h-[400px] md:min-h-[500px] lg:min-h-[600px] rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.1)] border border-white/50 bg-white relative group cursor-pointer transition-all hover:shadow-[0_30px_60px_rgb(0,0,0,0.15)] flex flex-col z-10"
                             onClick={() => setPopupSrc("https://res.cloudinary.com/dzbmwlwra/image/upload/v1754778241/floor-plan_jvww4l.png")}
                         >
                             <div
-                                className="absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-12"
+                                className="absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-6 md:p-8 lg:p-12"
                                 style={{ backgroundImage: "url(https://res.cloudinary.com/dzbmwlwra/image/upload/v1754778241/floor-plan_jvww4l.png)" }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />
-                            <div className="mt-auto relative z-10 p-10 text-white w-full">
-                                <span className="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-bold tracking-[0.2em] mb-4 border border-white/20 uppercase hover:bg-white/30 transition-colors">
+                            <div className="mt-auto relative z-10 p-6 md:p-8 lg:p-10 text-white w-full">
+                                <span className="inline-block px-3 md:px-4 py-1 md:py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[9px] md:text-[10px] font-bold tracking-[0.2em] mb-3 md:mb-4 border border-white/20 uppercase hover:bg-white/30 transition-colors">
                                     Interactive View
                                 </span>
-                                <p className="text-4xl font-serif font-medium mb-2">Floor Plan Overview</p>
-                                <p className="text-white/80 text-sm font-light tracking-wide">Click to expand details</p>
+                                <p className="text-2xl md:text-3xl lg:text-4xl font-serif font-medium mb-2">Floor Plan Overview</p>
+                                <p className="text-white/80 text-xs md:text-sm font-light tracking-wide">Click to expand details</p>
                             </div>
                         </div>
 
                         {/* Right Card - Sticky */}
-                        <div className="lg:w-[320px] sticky top-32 h-fit z-10">
-                            <div className="bg-white/80 border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2.5rem] p-10 backdrop-blur-xl flex flex-col justify-center transition-all hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1">
-                                <h3 className="text-xl font-serif font-bold mb-8 text-gray-900 border-b border-gray-100 pb-4">Key Features</h3>
-                                <ul className="space-y-6">
+                        <div className="lg:w-[280px] xl:w-[320px] sticky top-20 md:top-32 h-fit z-10">
+                            <div className="bg-white/80 border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 lg:p-10 backdrop-blur-xl flex flex-col justify-center transition-all hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1">
+                                <h3 className="text-lg md:text-xl font-serif font-bold mb-6 md:mb-8 text-gray-900 border-b border-gray-100 pb-3 md:pb-4">Key Features</h3>
+                                <ul className="space-y-4 md:space-y-6">
                                     {[
                                         { icon: "✨", text: "High Ceilings (3.5m)" },
                                         { icon: "💡", text: "Smart Home System" },
@@ -308,9 +308,9 @@ export default function Plan() {
                                         { icon: "🌇", text: "Panoramic City Views" },
                                         { icon: "❄️", text: "Central AC & Heating" },
                                     ].map((item, i) => (
-                                        <li key={i} className="flex items-center gap-5 text-sm text-gray-600 group/item cursor-default">
-                                            <div className="flex items-center gap-5">
-                                                <span className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-xl shadow-sm border border-gray-100 group-hover/item:scale-110 group-hover/item:bg-emerald-50 transition-all duration-300">
+                                        <li key={i} className="flex items-center gap-3 md:gap-5 text-xs md:text-sm text-gray-600 group/item cursor-default">
+                                            <div className="flex items-center gap-3 md:gap-5">
+                                                <span className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-gray-50 flex items-center justify-center text-lg md:text-xl shadow-sm border border-gray-100 group-hover/item:scale-110 group-hover/item:bg-emerald-50 transition-all duration-300">
                                                     {item.icon}
                                                 </span>
                                                 <span className="font-medium group-hover/item:text-gray-900 transition-colors">{item.text}</span>
@@ -329,12 +329,12 @@ export default function Plan() {
             <Section title="Gallery" images={currentGalleryImages} index={galleryIndex} setIndex={setGalleryIndex} />
 
             {/* --- CHOOSE YOUR HOUSE --- */}
-            <section ref={selectionRef} className="relative z-10 w-full flex flex-col items-center justify-start gap-12 pt-24 bg-white pb-32">
+            <section ref={selectionRef} className="relative z-10 w-full flex flex-col items-center justify-start gap-8 md:gap-12 pt-16 md:pt-20 lg:pt-24 bg-white pb-16 md:pb-24 lg:pb-32">
                 <Title>Select Residence</Title>
 
-                <div className="w-full max-w-[1600px] px-8 z-20">
-                    <div className="bg-gray-50/50 p-8 rounded-[3rem] border border-gray-100 shadow-inner">
-                        <div className="flex flex-wrap justify-center gap-4">
+                <div className="w-full max-w-[1600px] px-4 sm:px-6 md:px-8 z-20">
+                    <div className="bg-gray-50/50 p-4 md:p-6 lg:p-8 rounded-[2rem] md:rounded-[3rem] border border-gray-100 shadow-inner">
+                        <div className="flex flex-wrap justify-center gap-3 md:gap-4">
                             {activeHouses.map((house, i) => {
                                 const isActive = house.id === currentActiveId;
                                 const isSold = house.state !== "actif";

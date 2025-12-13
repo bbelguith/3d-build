@@ -30,7 +30,7 @@ export default function Technology() {
     ];
 
     return (
-        <section id="technology" className="relative py-24 bg-gray-50 overflow-hidden">
+        <section id="technology" className="relative py-12 md:py-16 lg:py-24 bg-gray-50 overflow-hidden">
 
             {/* --- Embedded Styles --- */}
             <style>{`
@@ -58,41 +58,41 @@ export default function Technology() {
             <div className="absolute inset-0 tech-grid-bg pointer-events-none"></div>
             <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-gradient-to-b from-white to-transparent opacity-80 pointer-events-none"></div>
 
-            <div className="max-w-7xl mx-auto px-6 md:px-10 relative z-10 font-premium">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-10 relative z-10 font-premium">
 
                 {/* --- Header Section --- */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
-                    <div className="space-y-4">
-                        <span className="text-bronze text-sm font-bold tracking-[0.2em] uppercase">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 md:mb-16 lg:mb-20 gap-6 md:gap-8">
+                    <div className="space-y-3 md:space-y-4">
+                        <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
                             03 — Innovation
                         </span>
-                        <h2 className="text-4xl md:text-5xl font-light text-gray-900 tracking-tight leading-tight">
+                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
                             Smart <span className="font-bold">Ecosystem</span>
                         </h2>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="hidden md:block h-px w-24 bg-gray-300"></div>
-                        <p className="text-gray-500 text-sm max-w-xs text-right md:text-left">
+                        <div className="hidden md:block h-px w-16 md:w-24 bg-gray-300"></div>
+                        <p className="text-gray-500 text-xs md:text-sm max-w-xs text-right md:text-left">
                             Future-proof infrastructure designed for seamless modern living.
                         </p>
                     </div>
                 </div>
 
                 {/* --- Feature Grid --- */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     {features.map((item, index) => (
                         <div
                             key={index}
-                            className="group relative bg-white border border-gray-100 p-8 rounded-2xl transition-all duration-500 hover:shadow-xl hover:shadow-gray-200/50 hover:-translate-y-2 hover:border-bronze/30"
+                            className="group relative bg-white border border-gray-100 p-6 md:p-8 rounded-xl md:rounded-2xl transition-all duration-500 hover:shadow-xl hover:shadow-gray-200/50 hover:-translate-y-2 hover:border-bronze/30"
                         >
                             {/* ID Number Watermark */}
-                            <span className="absolute top-6 right-6 text-xs font-bold text-gray-200 group-hover:text-bronze/20 transition-colors">
+                            <span className="absolute top-4 right-4 md:top-6 md:right-6 text-xs font-bold text-gray-200 group-hover:text-bronze/20 transition-colors">
                                 {item.id}
                             </span>
 
                             {/* Icon Container - FIXED */}
-                            <div className="mb-8 inline-flex p-4 rounded-xl bg-gray-50 group-hover:bg-black transition-colors duration-500">
+                            <div className="mb-6 md:mb-8 inline-flex p-3 md:p-4 rounded-lg md:rounded-xl bg-gray-50 group-hover:bg-black transition-colors duration-500">
                                 {/* FIX: Changed group-hover:text-bronze to group-hover:text-white 
                     This ensures the icon is clearly visible when the box turns black.
                 */}
@@ -102,11 +102,11 @@ export default function Technology() {
                             </div>
 
                             {/* Content */}
-                            <div className="space-y-3">
-                                <h3 className="text-lg font-bold text-gray-900 tracking-wide group-hover:text-bronze transition-colors duration-300">
+                            <div className="space-y-2 md:space-y-3">
+                                <h3 className="text-base md:text-lg font-bold text-gray-900 tracking-wide group-hover:text-bronze transition-colors duration-300">
                                     {item.title}
                                 </h3>
-                                <p className="text-sm text-gray-500 leading-relaxed group-hover:text-gray-600">
+                                <p className="text-xs md:text-sm text-gray-500 leading-relaxed group-hover:text-gray-600">
                                     {item.desc}
                                 </p>
                             </div>

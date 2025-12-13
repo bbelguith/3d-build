@@ -98,23 +98,23 @@ export default function Navbar({ playVideo }) {
         .border-bronze { border-color: var(--accent-bronze); }
       `}</style>
 
-      <div className="fixed top-5 left-0 right-0 z-50 px-5 flex justify-between items-start pointer-events-none select-none font-premium">
+      <div className="fixed top-2 md:top-5 left-0 right-0 z-50 px-3 md:px-5 flex justify-between items-start pointer-events-none select-none font-premium">
 
         {/* --- LEFT SECTION --- */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pointer-events-auto">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 md:gap-2 pointer-events-auto">
 
           {/* Brand Plaque */}
-          <div className="crystal-panel rounded-[14px] px-4 py-2.5 smooth-transition hover:scale-[1.01]">
+          <div className="crystal-panel rounded-[12px] md:rounded-[14px] px-3 md:px-4 py-2 md:py-2.5 smooth-transition hover:scale-[1.01]">
             <a
               href="/"
-              className="font-bold text-[14px] text-gray-900 tracking-widest uppercase whitespace-nowrap block"
+              className="font-bold text-xs md:text-[14px] text-gray-900 tracking-widest uppercase whitespace-nowrap block"
             >
               Ambassadeur Prestige
             </a>
           </div>
 
           {/* Navigation Controller */}
-          <div className="crystal-panel flex items-center gap-1 rounded-[14px] p-1.5 text-[12px] text-gray-500 smooth-transition">
+          <div className="crystal-panel flex items-center gap-0.5 md:gap-1 rounded-[12px] md:rounded-[14px] p-1 md:p-1.5 text-[10px] md:text-[12px] text-gray-500 smooth-transition">
             {navItems.map((item, index) => {
               const isActive = isItemActive(item);
               const isFloorPlan = item.label === "FLOOR PLANS";
@@ -126,7 +126,7 @@ export default function Navbar({ playVideo }) {
                       to={item.path}
                       onClick={(e) => handleNavClick(item, e)}
                       className={`
-                        group flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-semibold tracking-wider smooth-transition
+                        group flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-[8px] md:rounded-[10px] text-[10px] md:text-[12px] font-semibold tracking-wider smooth-transition
                         ${isActive
                           ? "bg-white shadow-sm text-gray-900"
                           : "bg-transparent hover:bg-white/50 text-gray-500 hover:text-gray-900"
@@ -140,7 +140,7 @@ export default function Navbar({ playVideo }) {
                       {isFloorPlan && (
                         <ChevronDown
                           strokeWidth={thinStroke}
-                          className={`w-3 h-3 smooth-transition ${showDropdown ? "rotate-180 text-bronze" : "rotate-0"
+                          className={`w-2.5 h-2.5 md:w-3 md:h-3 smooth-transition ${showDropdown ? "rotate-180 text-bronze" : "rotate-0"
                             } ${isActive ? "text-gray-900" : "text-gray-400 group-hover:text-gray-600"}`}
                         />
                       )}
@@ -150,7 +150,7 @@ export default function Navbar({ playVideo }) {
                     {isFloorPlan && (
                       <div
                         className={`
-                          absolute top-full left-0 mt-2 w-52 crystal-panel !bg-white/90 rounded-[14px] overflow-hidden z-50 origin-top-left smooth-transition
+                          absolute top-full left-0 mt-2 w-48 md:w-52 crystal-panel !bg-white/90 rounded-[12px] md:rounded-[14px] overflow-hidden z-50 origin-top-left smooth-transition
                           ${showDropdown
                             ? "opacity-100 scale-100 translate-y-0"
                             : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
@@ -189,25 +189,25 @@ export default function Navbar({ playVideo }) {
         </div>
 
         {/* --- RIGHT SECTION: Utility Links --- */}
-        <div className="hidden sm:flex items-center gap-1 crystal-panel rounded-[14px] p-1.5 pointer-events-auto smooth-transition">
+        <div className="hidden sm:flex items-center gap-0.5 md:gap-1 crystal-panel rounded-[12px] md:rounded-[14px] p-1 md:p-1.5 pointer-events-auto smooth-transition">
 
           {/* Inquire Button */}
           <button
             onClick={() => setIsModalOpen(true)}
-            className="group flex items-center gap-2 bg-transparent hover:bg-white text-gray-500 hover-text-bronze px-3 py-1.5 rounded-[10px] text-[12px] font-semibold tracking-wider smooth-transition"
+            className="group flex items-center gap-1.5 md:gap-2 bg-transparent hover:bg-white text-gray-500 hover-text-bronze px-2 md:px-3 py-1 md:py-1.5 rounded-[8px] md:rounded-[10px] text-[10px] md:text-[12px] font-semibold tracking-wider smooth-transition"
           >
-            <Phone strokeWidth={thinStroke} className="w-3.5 h-3.5 smooth-transition group-hover:text-bronze" />
+            <Phone strokeWidth={thinStroke} className="w-3 h-3 md:w-3.5 md:h-3.5 smooth-transition group-hover:text-bronze" />
             <span className="hidden md:inline">INQUIRE</span>
           </button>
 
-          <div className="w-px h-3 bg-gray-400/20 mx-1"></div>
+          <div className="w-px h-2.5 md:h-3 bg-gray-400/20 mx-0.5 md:mx-1"></div>
 
           {/* 4. Location Button (Uses updated click handler) */}
           <button
             onClick={handleLocationClick}
-            className="group flex items-center gap-2 bg-transparent hover:bg-white text-gray-500 hover-text-bronze px-3 py-1.5 rounded-[10px] text-[12px] font-semibold tracking-wider smooth-transition"
+            className="group flex items-center gap-1.5 md:gap-2 bg-transparent hover:bg-white text-gray-500 hover-text-bronze px-2 md:px-3 py-1 md:py-1.5 rounded-[8px] md:rounded-[10px] text-[10px] md:text-[12px] font-semibold tracking-wider smooth-transition"
           >
-            <MapPin strokeWidth={thinStroke} className="w-3.5 h-3.5 smooth-transition group-hover:text-bronze" />
+            <MapPin strokeWidth={thinStroke} className="w-3 h-3 md:w-3.5 md:h-3.5 smooth-transition group-hover:text-bronze" />
             <span className="hidden md:inline">LOCATION</span>
           </button>
         </div>
@@ -234,11 +234,11 @@ function DropdownItem({ to, label, subLabel, currentPath, close, thinStroke }) {
       `}
     >
       <div className="flex flex-col">
-        <span className={`text-[13px] font-bold tracking-wide ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>
+        <span className={`text-xs md:text-[13px] font-bold tracking-wide ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>
           {label}
         </span>
         {subLabel && (
-          <span className="text-[10px] uppercase tracking-widest text-gray-400 font-medium mt-0.5 smooth-transition group-hover:text-bronze">
+          <span className="text-[9px] md:text-[10px] uppercase tracking-widest text-gray-400 font-medium mt-0.5 smooth-transition group-hover:text-bronze">
             {subLabel}
           </span>
         )}

@@ -30,7 +30,7 @@ export default function Projects() {
     ];
 
     return (
-        <section id="projects" className="relative py-24 bg-[#f9f9f9] overflow-hidden">
+        <section id="projects" className="relative py-12 md:py-16 lg:py-24 bg-[#f9f9f9] overflow-hidden">
 
             {/* --- Embedded Styles --- */}
             <style>{`
@@ -50,21 +50,21 @@ export default function Projects() {
         }
       `}</style>
 
-            <div className="max-w-7xl mx-auto px-6 md:px-10 font-premium">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-10 font-premium">
 
                 {/* --- Header --- */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
-                    <div className="space-y-4">
-                        <span className="text-bronze text-sm font-bold tracking-[0.2em] uppercase">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 md:mb-16 lg:mb-20 gap-6 md:gap-8">
+                    <div className="space-y-3 md:space-y-4">
+                        <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
                             05 — Portfolio
                         </span>
-                        <h2 className="text-4xl md:text-5xl font-light text-gray-900 tracking-tight leading-tight">
+                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
                             Previous <span className="font-bold">Developments</span>
                         </h2>
                     </div>
 
                     <div className="hidden md:block">
-                        <p className="text-gray-500 text-sm max-w-xs text-right">
+                        <p className="text-gray-500 text-xs md:text-sm max-w-xs text-right">
                             A track record of excellence across Tunisia's most prestigious districts.
                         </p>
                     </div>
@@ -74,7 +74,7 @@ export default function Projects() {
                 <div className="w-full">
 
                     {/* Table Header (Visible on Desktop) */}
-                    <div className="hidden md:grid grid-cols-12 gap-4 pb-4 border-b border-gray-300 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    <div className="hidden md:grid grid-cols-12 gap-4 pb-4 border-b border-gray-300 text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-gray-400">
                         <div className="col-span-6">Project Name</div>
                         <div className="col-span-3">Location</div>
                         <div className="col-span-3 text-right">Completion</div>
@@ -85,14 +85,14 @@ export default function Projects() {
                         {projects.map((project, idx) => (
                             <div
                                 key={idx}
-                                className="project-row group relative grid grid-cols-1 md:grid-cols-12 gap-4 py-8 md:py-10 border-b border-gray-200 cursor-pointer items-center transition-all duration-300"
+                                className="project-row group relative grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 py-6 md:py-8 lg:py-10 border-b border-gray-200 cursor-pointer items-center transition-all duration-300"
                             >
                                 {/* Column 1: Name */}
-                                <div className="col-span-12 md:col-span-6 flex items-baseline gap-4">
+                                <div className="col-span-12 md:col-span-6 flex items-baseline gap-3 md:gap-4">
                                     <span className="hidden md:block text-xs font-bold text-gray-300 group-hover:text-bronze/50 transition-colors">
                                         0{idx + 1}
                                     </span>
-                                    <h3 className="project-title text-2xl md:text-3xl font-light text-gray-900 transition-all duration-500 ease-out">
+                                    <h3 className="project-title text-xl md:text-2xl lg:text-3xl font-light text-gray-900 transition-all duration-500 ease-out">
                                         {project.name}
                                     </h3>
                                 </div>
@@ -100,16 +100,16 @@ export default function Projects() {
                                 {/* Column 2: Location */}
                                 <div className="col-span-12 md:col-span-3 mt-2 md:mt-0">
                                     <div className="flex items-center gap-2 text-gray-500 group-hover:text-gray-800 transition-colors">
-                                        <span className="md:hidden text-[10px] uppercase font-bold text-gray-300 tracking-wider">Loc:</span>
-                                        <span className="text-sm md:text-base">{project.location}</span>
+                                        <span className="md:hidden text-[9px] md:text-[10px] uppercase font-bold text-gray-300 tracking-wider">Loc:</span>
+                                        <span className="text-xs md:text-sm lg:text-base">{project.location}</span>
                                     </div>
                                 </div>
 
                                 {/* Column 3: Year/Status */}
-                                <div className="col-span-12 md:col-span-3 mt-1 md:mt-0 flex items-center justify-between md:justify-end gap-6">
+                                <div className="col-span-12 md:col-span-3 mt-1 md:mt-0 flex items-center justify-between md:justify-end gap-4 md:gap-6">
                                     <div className="flex flex-col md:items-end">
-                                        <span className="text-sm font-medium text-gray-900">{project.year}</span>
-                                        <span className="text-[10px] uppercase tracking-wider text-gray-400 group-hover:text-bronze transition-colors">
+                                        <span className="text-xs md:text-sm font-medium text-gray-900">{project.year}</span>
+                                        <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-gray-400 group-hover:text-bronze transition-colors">
                                             {project.status}
                                         </span>
                                     </div>

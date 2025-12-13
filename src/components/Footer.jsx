@@ -23,22 +23,22 @@ export default function Footer() {
         .border-bronze { border-color: var(--accent-bronze); }
       `}</style>
 
-            <div className="max-w-7xl mx-auto px-6 md:px-10 py-16 md:py-24 font-premium">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-10 py-12 md:py-16 lg:py-24 font-premium">
 
                 {/* --- Top Section: Brand & Nav Grid --- */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8 mb-20">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-8 mb-12 md:mb-16 lg:mb-20">
 
                     {/* Brand Column */}
-                    <div className="md:col-span-5 space-y-6">
-                        <h2 className="text-2xl font-bold tracking-tight text-white">
+                    <div className="md:col-span-5 space-y-4 md:space-y-6">
+                        <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white">
                             Ambassadeur Prestige
                         </h2>
-                        <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+                        <p className="text-gray-400 text-xs md:text-sm leading-relaxed max-w-sm">
                             Redefining luxury living in Tunis. A master-planned community designed for those who seek exclusivity, privacy, and architectural excellence.
                         </p>
 
                         {/* Socials */}
-                        <div className="flex gap-4 pt-4">
+                        <div className="flex gap-3 md:gap-4 pt-2 md:pt-4">
                             {[
                                 { icon: <Instagram className="w-5 h-5" />, href: "#" },
                                 { icon: <Facebook className="w-5 h-5" />, href: "#" },
@@ -60,11 +60,11 @@ export default function Footer() {
                     <div className="hidden md:block md:col-span-1"></div>
 
                     {/* Links Column 1: Navigation */}
-                    <div className="md:col-span-3 space-y-6">
+                    <div className="md:col-span-3 space-y-4 md:space-y-6">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">
                             Explore
                         </h3>
-                        <ul className="space-y-4 text-sm text-gray-300">
+                        <ul className="space-y-3 md:space-y-4 text-xs md:text-sm text-gray-300">
                             <li><a href="/" className="hover-text-bronze transition-colors">Master Plan</a></li>
                             <li><a href="/plan" className="hover-text-bronze transition-colors">Floor Plans</a></li>
                             <li><a href="#location" className="hover-text-bronze transition-colors">Location</a></li>
@@ -73,11 +73,11 @@ export default function Footer() {
                     </div>
 
                     {/* Links Column 2: Legal/Contact */}
-                    <div className="md:col-span-3 space-y-6">
+                    <div className="md:col-span-3 space-y-4 md:space-y-6">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">
                             Information
                         </h3>
-                        <ul className="space-y-4 text-sm text-gray-300">
+                        <ul className="space-y-3 md:space-y-4 text-xs md:text-sm text-gray-300">
                             <li><a href="#contact" className="hover-text-bronze transition-colors">Book a Viewing</a></li>
                         </ul>
                     </div>

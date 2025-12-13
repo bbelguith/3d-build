@@ -7,7 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed": "node backend/run-seeders.js",
+    "seed:undo": "node backend/undo-seeders.js",
+    "migrate": "node backend/run-migrations.js",
+    "migrate:undo": "node backend/undo-migration.js",
+    "seed": "node backend/run-seeders.js",
+    "seed:undo": "node backend/undo-seeders.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",

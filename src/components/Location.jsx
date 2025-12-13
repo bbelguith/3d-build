@@ -34,7 +34,7 @@ export default function Location() {
     ];
 
     return (
-        <section id="location" className="relative py-24 bg-[#fcfcfc] overflow-hidden">
+        <section id="location" className="relative py-12 md:py-16 lg:py-24 bg-[#fcfcfc] overflow-hidden">
 
             {/* --- Embedded Styles (Matches Navbar) --- */}
             <style>{`
@@ -58,19 +58,19 @@ export default function Location() {
         }
       `}</style>
 
-            <div className="max-w-7xl mx-auto px-6 md:px-10 font-premium">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-10 font-premium">
 
                 {/* --- Header Section --- */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-                    <div className="space-y-4">
-                        <span className="text-bronze text-sm font-bold tracking-[0.2em] uppercase">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 md:mb-12 lg:mb-16 gap-4 md:gap-6">
+                    <div className="space-y-3 md:space-y-4">
+                        <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
                             02 — Neighborhood
                         </span>
-                        <h2 className="text-4xl md:text-5xl font-light text-gray-900 tracking-tight leading-tight">
+                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
                             Strategic <span className="font-bold">Location</span>
                         </h2>
                     </div>
-                    <p className="max-w-md text-gray-500 text-sm leading-relaxed text-justify">
+                    <p className="max-w-md text-gray-500 text-xs md:text-sm leading-relaxed text-justify">
                         Situated at the convergence of nature and urban convenience.
                         Enjoy seamless connectivity while remaining secluded in a private,
                         serene enclave.
@@ -78,7 +78,7 @@ export default function Location() {
                 </div>
 
                 {/* --- Content Grid --- */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 lg:gap-16">
 
                     {/* Left: Specification List */}
                     <div className="lg:col-span-5 flex flex-col justify-center">
@@ -86,28 +86,28 @@ export default function Location() {
                             {locationItems.map((item, idx) => (
                                 <div
                                     key={idx}
-                                    className="group flex items-start gap-4 border-b border-gray-200 py-6 transition-all duration-300 hover:pl-2 cursor-default"
+                                    className="group flex items-start gap-3 md:gap-4 border-b border-gray-200 py-4 md:py-6 transition-all duration-300 hover:pl-2 cursor-default"
                                 >
                                     {/* Icon Box */}
-                                    <div className="flex-shrink-0 mt-1 w-10 h-10 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 group-hover:text-bronze group-hover:border-bronze/30 transition-colors duration-300">
+                                    <div className="flex-shrink-0 mt-1 w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 group-hover:text-bronze group-hover:border-bronze/30 transition-colors duration-300">
                                         {item.icon}
                                     </div>
 
                                     {/* Text Content */}
                                     <div className="flex-1">
                                         <div className="flex justify-between items-baseline mb-1">
-                                            <span className="text-[10px] uppercase tracking-widest text-gray-400 font-medium group-hover:text-bronze transition-colors">
+                                            <span className="text-[9px] md:text-[10px] uppercase tracking-widest text-gray-400 font-medium group-hover:text-bronze transition-colors">
                                                 {item.category}
                                             </span>
-                                            <span className="text-sm font-semibold text-gray-900">
+                                            <span className="text-xs md:text-sm font-semibold text-gray-900">
                                                 {item.distance}
                                             </span>
                                         </div>
 
-                                        <h3 className="text-xl font-medium text-gray-800 group-hover:text-black transition-colors">
+                                        <h3 className="text-lg md:text-xl font-medium text-gray-800 group-hover:text-black transition-colors">
                                             {item.title}
                                         </h3>
-                                        <p className="text-sm text-gray-500 mt-1">
+                                        <p className="text-xs md:text-sm text-gray-500 mt-1">
                                             {item.details}
                                         </p>
                                     </div>
@@ -131,7 +131,7 @@ export default function Location() {
 
                     {/* Right: The Map Frame */}
                     <div className="lg:col-span-7">
-                        <div className="map-wrapper relative w-full h-[500px] lg:h-[600px] bg-gray-100 rounded-2xl overflow-hidden shadow-2xl shadow-gray-200/50 border border-white ring-1 ring-gray-200 group">
+                        <div className="map-wrapper relative w-full h-[300px] md:h-[400px] lg:h-[500px] xl:h-[600px] bg-gray-100 rounded-xl md:rounded-2xl overflow-hidden shadow-2xl shadow-gray-200/50 border border-white ring-1 ring-gray-200 group">
 
                             {/* Map Overlay Text (Visible before hover) */}
                             <div className="absolute top-6 left-6 z-10 pointer-events-none">

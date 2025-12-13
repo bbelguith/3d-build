@@ -62,11 +62,11 @@ function AppContent() {
       .catch((err) => console.error("Failed to fetch videos:", err));
   }, [hideLayout]);
 
-  // Loader logic
+  // Loader logic - Only load first 2 videos initially
   useEffect(() => {
     if (hideLayout || videos.length === 0) return;
 
-    const initialVideos = videos.slice(0, 3);
+    const initialVideos = videos.slice(0, 2); // Changed from 3 to 2
     let loadedCount = 0;
 
     const preloadVideo = (video) =>
@@ -74,23 +74,29 @@ function AppContent() {
         const vid = document.createElement("video");
         vid.src = video.src;
         vid.preload = "auto";
+        vid.muted = true; // Mute for faster loading
         vid.oncanplaythrough = () => {
           loadedCount++;
           setProgress(Math.round((loadedCount / initialVideos.length) * 100));
           resolve();
         };
         vid.onerror = resolve;
+        vid.load();
       });
 
     Promise.all(initialVideos.map(preloadVideo)).then(() => {
-      setTimeout(() => setIsReady(true), 300);
-      // Preload remaining videos in background
-      videos.slice(3).forEach((video) => {
-        const bgVid = document.createElement("video");
-        bgVid.src = video.src;
-        bgVid.preload = "auto";
-        bgVid.load();
-      });
+      setTimeout(() => setIsReady(true), 200); // Reduced delay
+      
+      // Preload remaining videos in background (non-blocking)
+      setTimeout(() => {
+        videos.slice(2).forEach((video) => {
+          const bgVid = document.createElement("video");
+          bgVid.src = video.src;
+          bgVid.preload = "auto";
+          bgVid.muted = true;
+          bgVid.load();
+        });
+      }, 1000); // Start background loading after 1 second
     });
   }, [videos, hideLayout]);
 
