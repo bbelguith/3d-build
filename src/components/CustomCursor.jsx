@@ -4,8 +4,24 @@ import { motion } from "framer-motion";
 export default function CustomCursor() {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isHovering, setIsHovering] = useState(false);
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
 
     useEffect(() => {
+        // Detect if device is touch-enabled (mobile/tablet)
+        const checkTouchDevice = () => {
+            return (
+                'ontouchstart' in window ||
+                navigator.maxTouchPoints > 0 ||
+                /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            );
+        };
+
+        const touchDevice = checkTouchDevice();
+        setIsTouchDevice(touchDevice);
+
+        // Don't initialize cursor on touch devices
+        if (touchDevice) return;
+
         const moveMouse = (e) => setMousePosition({ x: e.clientX, y: e.clientY });
 
         // Detect hover on buttons/links
@@ -25,6 +41,9 @@ export default function CustomCursor() {
             window.removeEventListener("mouseover", handleMouseOver);
         };
     }, []);
+
+    // Don't render cursor on touch devices
+    if (isTouchDevice) return null;
 
     return (
         <>

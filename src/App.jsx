@@ -44,6 +44,19 @@ function AppContent() {
   const [isReady, setIsReady] = useState(false);
   const [progress, setProgress] = useState(0);
   const [videos, setVideos] = useState([]);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  // Detect touch device to conditionally apply cursor-none
+  useEffect(() => {
+    const checkTouchDevice = () => {
+      return (
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      );
+    };
+    setIsTouchDevice(checkTouchDevice());
+  }, []);
 
   // --- NEW: SCROLL RESTORATION LOGIC ---
   // This ensures the page starts at the top whenever the route changes
@@ -75,6 +88,8 @@ function AppContent() {
         vid.src = video.src;
         vid.preload = "auto";
         vid.muted = true; // Mute for faster loading
+        vid.playsInline = true; // iOS requirement
+        vid.setAttribute("playsinline", "true"); // iOS fallback
         vid.oncanplaythrough = () => {
           loadedCount++;
           setProgress(Math.round((loadedCount / initialVideos.length) * 100));
@@ -94,6 +109,8 @@ function AppContent() {
           bgVid.src = video.src;
           bgVid.preload = "auto";
           bgVid.muted = true;
+          bgVid.playsInline = true; // iOS requirement
+          bgVid.setAttribute("playsinline", "true"); // iOS fallback
           bgVid.load();
         });
       }, 1000); // Start background loading after 1 second
@@ -107,7 +124,7 @@ function AppContent() {
       className={
         hideLayout
           ? "min-h-screen bg-white flex flex-col items-center justify-center"
-          : "bg-gray-100 min-h-screen flex flex-col cursor-none"
+          : `bg-gray-100 min-h-screen flex flex-col ${isTouchDevice ? '' : 'cursor-none'}`
       }
     >
       {/* 1. Cinematic Grain Overlay (Global Texture) */}

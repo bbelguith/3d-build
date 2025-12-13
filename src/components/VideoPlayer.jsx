@@ -72,6 +72,8 @@ export default function VideoPlayer({ videos = [] }) {
                     bgVid.src = video.src;
                     bgVid.muted = true;
                     bgVid.preload = "auto";
+                    bgVid.playsInline = true; // iOS requirement
+                    bgVid.setAttribute("playsinline", "true"); // iOS fallback
                     bgVid.load();
                 }, (index + 1) * 500); // Stagger background loading
             });

@@ -7,6 +7,7 @@ export default function Contact() {
     const formRef = useRef();
     const [isSending, setIsSending] = useState(false);
     const [copiedField, setCopiedField] = useState(null);
+    const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
     // --- Audio Logic (Preserved) ---
     const successAudio = useRef(new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_3d1f2e7d2f.mp3?filename=success-1-6297.mp3"));
@@ -21,7 +22,30 @@ export default function Contact() {
         });
     }, []);
 
+    // Track if user has interacted (required for iOS audio playback)
+    const [hasUserInteracted, setHasUserInteracted] = useState(false);
+
+    useEffect(() => {
+        // Mark interaction on any user action
+        const handleUserInteraction = () => {
+            setHasUserInteracted(true);
+            document.removeEventListener('touchstart', handleUserInteraction);
+            document.removeEventListener('click', handleUserInteraction);
+        };
+        
+        document.addEventListener('touchstart', handleUserInteraction, { once: true });
+        document.addEventListener('click', handleUserInteraction, { once: true });
+        
+        return () => {
+            document.removeEventListener('touchstart', handleUserInteraction);
+            document.removeEventListener('click', handleUserInteraction);
+        };
+    }, []);
+
     const playSound = (type) => {
+        // Only play sound if user has interacted (iOS requirement)
+        if (!hasUserInteracted) return;
+        
         try {
             const map = { success: successAudio.current, error: errorAudio.current, copy: copyAudio.current };
             const snd = map[type];
