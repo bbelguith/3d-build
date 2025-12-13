@@ -22,9 +22,6 @@ export default function Contact() {
         });
     }, []);
 
-    // Track if user has interacted (required for iOS audio playback)
-    const [hasUserInteracted, setHasUserInteracted] = useState(false);
-
     useEffect(() => {
         // Mark interaction on any user action
         const handleUserInteraction = () => {
