@@ -69,8 +69,9 @@ function AppContent() {
   useEffect(() => {
     if (hideLayout) return;
 
+    const apiBase = import.meta.env.VITE_API_BASE || "";
     axios
-      .get("http://localhost:5000/api/videos")
+      .get(`${apiBase}/api/videos`)
       .then((res) => setVideos(res.data))
       .catch((err) => console.error("Failed to fetch videos:", err));
   }, [hideLayout]);
