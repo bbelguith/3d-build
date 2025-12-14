@@ -96,6 +96,11 @@ export default function Navbar({ playVideo }) {
         .bg-bronze { background-color: var(--accent-bronze); }
         .hover-text-bronze:hover { color: var(--accent-bronze); }
         .border-bronze { border-color: var(--accent-bronze); }
+        
+        /* Hide navbar buttons when zone editor is active */
+        body.zone-editor-active .zone-editor-hide {
+          display: none !important;
+        }
       `}</style>
 
       <div className="fixed top-2 md:top-5 left-0 right-0 z-50 px-3 md:px-5 flex justify-between items-start pointer-events-none select-none font-premium">
@@ -189,7 +194,7 @@ export default function Navbar({ playVideo }) {
         </div>
 
         {/* --- RIGHT SECTION: Utility Links --- */}
-        <div className="hidden sm:flex items-center gap-0.5 md:gap-1 crystal-panel rounded-[12px] md:rounded-[14px] p-1 md:p-1.5 pointer-events-auto smooth-transition">
+        <div className="hidden sm:flex items-center gap-0.5 md:gap-1 crystal-panel rounded-[12px] md:rounded-[14px] p-1 md:p-1.5 pointer-events-auto smooth-transition zone-editor-hide">
 
           {/* Inquire Button */}
           <button

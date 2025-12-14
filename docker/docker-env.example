@@ -1,0 +1,29 @@
+# Database Configuration
+DB_HOST=mysql
+DB_PORT=3303
+DB_USER=3dbuild_user
+DB_PASSWORD=3dbuild_password
+DB_NAME=3dbuild_db
+DB_ROOT_PASSWORD=rootpassword
+
+# Backend Configuration
+BACKEND_PORT=5555
+NODE_ENV=production
+
+# Frontend Configuration
+FRONTEND_PORT=8888
+# CORS Origin - Should match how you access the frontend in your browser
+# If frontend is on port 8888, set this to http://localhost:8888
+CORS_ORIGIN=http://localhost:8888
+
+# JWT Secret (generate a secure random string)
+# JWT_SECRET=your-secure-jwt-secret-key-here
+
+# Cloudinary Configuration (if using image uploads)
+# CLOUDINARY_CLOUD_NAME=your-cloud-name
+# CLOUDINARY_API_KEY=your-api-key
+# CLOUDINARY_API_SECRET=your-api-secret
+
+# OpenAI API Key (if using chatbot)
+# OPENAI_API_KEY=your-openai-api-key
+

@@ -21,7 +21,9 @@ const result = dotenv.config({ path: envPath });
 dotenv.config();
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173" }));
+// CORS configuration - supports both Docker and local development
+const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
 
 

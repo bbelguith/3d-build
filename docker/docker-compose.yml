@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: 3d-build-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-3dbuild_db}
+      MYSQL_USER: ${DB_USER:-3dbuild_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-3dbuild_password}
+    ports:
+      - "${DB_PORT:-3303}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - 3d-build-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    container_name: 3d-build-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5555
+      DB_HOST: mysql
+      DB_USER: ${DB_USER:-3dbuild_user}
+      DB_PASSWORD: ${DB_PASSWORD:-3dbuild_password}
+      DB_NAME: ${DB_NAME:-3dbuild_db}
+      DB_PORT: 3306
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8888}
+      # Add other environment variables as needed
+      # JWT_SECRET: ${JWT_SECRET:-your-secret-key}
+      # CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      # CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      # CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+    ports:
+      - "${BACKEND_PORT:-5555}:5555"
+    volumes:
+      - ../backend:/app/backend
+      - backend_node_modules:/app/node_modules
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - 3d-build-network
+    command: >
+      sh -c "
+        echo 'Waiting for MySQL to be ready...' &&
+        sleep 10 &&
+        (npx sequelize-cli db:migrate --config backend/config/config.js --migrations-path backend/migrations || echo 'Migrations skipped or failed') &&
+        (npx sequelize-cli db:seed:all --config backend/config/config.js --seeders-path backend/seeders || echo 'Seeders skipped or failed') &&
+        node backend/server.js
+      "
+
+  # Frontend
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+    container_name: 3d-build-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8888}:80"
+    depends_on:
+      - backend
+    networks:
+      - 3d-build-network
+
+networks:
+ 3d-build-network:
+   driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+  backend_node_modules:
+    driver: local
+
