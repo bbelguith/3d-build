@@ -59,8 +59,9 @@ services:
       sh -c "
         echo 'Waiting for MySQL to be ready...' &&
         sleep 10 &&
-        (npx sequelize-cli db:migrate --config backend/config/config.js --migrations-path backend/migrations || echo 'Migrations skipped or failed') &&
-        (npx sequelize-cli db:seed:all --config backend/config/config.js --seeders-path backend/seeders || echo 'Seeders skipped or failed') &&
+        cd backend &&
+        (npx sequelize-cli db:migrate || echo 'Migrations skipped or failed') &&
+        (npx sequelize-cli db:seed:all || echo 'Seeders skipped or failed') &&
         node backend/server.js
       "
 
