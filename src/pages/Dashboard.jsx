@@ -57,11 +57,12 @@ const Dashboard = ({ email }) => {
 
   // --- FETCH DATA ---
   useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_BASE || "";
     const fetchData = async () => {
       try {
         const [housesRes, commentsRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/houses"),
-          axios.get("http://localhost:5000/api/comments")
+          axios.get(`${apiBase}/api/houses`),
+          axios.get(`${apiBase}/api/comments`)
         ]);
         setHouseList(housesRes.data);
         setComments(commentsRes.data);
@@ -97,7 +98,7 @@ const Dashboard = ({ email }) => {
       setComments(updatedComments);
 
       try {
-        await axios.put(`http://localhost:5000/api/comments/mark-seen/${houseId}`);
+        await axios.put(`${apiBase}/api/comments/mark-seen/${houseId}`);
       } catch (err) {
         console.error("Failed to sync 'seen' status", err);
       }
@@ -114,7 +115,7 @@ const Dashboard = ({ email }) => {
     setHouseList(updatedHouses);
 
     try {
-      await axios.put(`http://localhost:5000/api/houses/${houseId}`, { state: newState });
+      await axios.put(`${apiBase}/api/houses/${houseId}`, { state: newState });
       toast.success(`Unit ${houseId} updated to ${newState === "actif" ? "Active" : "Sold"}`);
     } catch (err) {
       console.error("Failed to update house state", err);

@@ -17,8 +17,9 @@ const AdminPage = () => {
     setError("");
     setIsLoading(true);
 
+    const apiBase = import.meta.env.VITE_API_BASE || "";
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post(`${apiBase}/api/auth/login`, {
         email,
         password,
       });

@@ -32,9 +32,10 @@ const HouseCommentForm = () => {
 
   // 1. Fetch the House Image from DB on mount
   useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_BASE || "";
     const fetchHouseImage = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/house-images");
+        const res = await axios.get(`${apiBase}/api/house-images`);
         const img = res.data.find((h) => h.houseId === parseInt(id));
         if (img) {
           setCurrentHouseImage(img.src);
@@ -64,8 +65,9 @@ const HouseCommentForm = () => {
       seen: false
     };
 
+    const apiBase = import.meta.env.VITE_API_BASE || "";
     try {
-      await axios.post("http://localhost:5000/api/comments", newComment);
+      await axios.post(`${apiBase}/api/comments`, newComment);
       setSuccess(true);
       setTimeout(() => {
         navigate("/");
