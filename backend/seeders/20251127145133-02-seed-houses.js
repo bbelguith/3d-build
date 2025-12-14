@@ -2,7 +2,7 @@ import { houses } from '../data/houses.js';
 
 export default {
   async up(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('Houses', null, {});
+    await queryInterface.bulkDelete('houses', null, {});
 
     const data = houses.map(h => ({
       number: h.number,
@@ -13,11 +13,11 @@ export default {
     }));
 
     if (data.length > 0) {
-      await queryInterface.bulkInsert('Houses', data, {});
+      await queryInterface.bulkInsert('houses', data, {});
     }
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('Houses', null, {});
+    await queryInterface.bulkDelete('houses', null, {});
   }
 };

@@ -4,9 +4,9 @@ export default {
   async up(queryInterface, Sequelize) {
     await queryInterface.bulkDelete('houseimages', null, {});
 
-    // 1. Fetch real House IDs (table name matches migration 'Houses')
+    // 1. Fetch real House IDs (table name matches migration 'houses')
     const houses = await queryInterface.sequelize.query(
-      `SELECT id from Houses ORDER BY id ASC;`
+      `SELECT id from houses ORDER BY id ASC;`
     );
     const houseRows = houses[0];
 

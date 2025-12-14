@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 
 export async function up(queryInterface) {
-  await queryInterface.createTable('Videos', {
+  await queryInterface.createTable('videos', {
     id: {
       allowNull: false,
       autoIncrement: true,
@@ -30,5 +30,5 @@ export async function up(queryInterface) {
 }
 
 export async function down(queryInterface) {
-  await queryInterface.dropTable('Videos');
+  await queryInterface.dropTable('videos');
 }

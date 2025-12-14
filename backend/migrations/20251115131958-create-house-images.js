@@ -16,7 +16,7 @@ export async function up(queryInterface, Sequelize) {
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'Houses', // Must match the table name created in 20251115122532-create-house
+        model: 'houses', // matches migration table name
         key: 'id'
       },
       onUpdate: 'CASCADE',
