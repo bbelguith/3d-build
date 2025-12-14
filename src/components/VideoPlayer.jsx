@@ -454,32 +454,32 @@ export default function VideoPlayer({ videos = [] }) {
         playVideo(videos[current].src, current, false);
     };
 
-    // Handle fullscreen mode for mobile - request on the active video element, with iOS fallback
+    // Handle fullscreen mode for mobile - request on the container (keeps UI/buttons) and play active video
     const enterMobileFullscreen = async () => {
         setIsMobileFullscreen(true);
 
-        // Pick the visible video element
+        const containerEl = videoContainerRef.current;
         const activeVideoEl = activeLayer === 0 ? v0.current : v1.current;
         const videoEl = activeVideoEl || v0.current;
 
-        if (!videoEl) return;
-
-        // Try standard fullscreen on the video element
-        try {
-            if (videoEl.requestFullscreen) {
-                await videoEl.requestFullscreen();
-            } else if (videoEl.webkitRequestFullscreen) {
-                await videoEl.webkitRequestFullscreen();
-            } else if (videoEl.msRequestFullscreen) {
-                await videoEl.msRequestFullscreen();
+        // Request fullscreen on the container so overlays/buttons stay visible
+        if (containerEl) {
+            try {
+                if (containerEl.requestFullscreen) {
+                    await containerEl.requestFullscreen();
+                } else if (containerEl.webkitRequestFullscreen) {
+                    await containerEl.webkitRequestFullscreen();
+                } else if (containerEl.msRequestFullscreen) {
+                    await containerEl.msRequestFullscreen();
+                }
+            } catch (err) {
+                console.log('Fullscreen not supported or denied');
             }
-        } catch (err) {
-            console.log('Fullscreen not supported or denied');
         }
 
-        // iOS native video fullscreen fallback
+        // iOS native video fullscreen fallback if container fails
         try {
-            if (videoEl.webkitEnterFullscreen) {
+            if (videoEl?.webkitEnterFullscreen) {
                 videoEl.webkitEnterFullscreen();
             }
         } catch (err) {
@@ -496,7 +496,7 @@ export default function VideoPlayer({ videos = [] }) {
         }
 
         // Start playing video
-        videoEl.play().catch(() => { });
+        videoEl?.play().catch(() => { });
     };
 
     const exitMobileFullscreen = async () => {
