@@ -40,6 +40,7 @@ function AppContent() {
   const location = useLocation();
   const hideLayout =
     location.pathname === "/admin" || location.pathname === "/dashboard";
+  const isHome = location.pathname === "/";
 
   const [isReady, setIsReady] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -224,8 +225,8 @@ function AppContent() {
       </main>
 
       {!hideLayout && <Footer />}
-      {/* Hide chat on touch devices so it doesn't block controls on mobile video */}
-      {!hideLayout && !isTouchDevice && <ChatBot />}
+      {/* Hide chat only on phone when on the home/video page */}
+      {!hideLayout && (!(isTouchDevice && isHome)) && <ChatBot />}
 
       {/* 3. Scroll To Top Button (Bottom) */}
       {!hideLayout && <ScrollToTop />}

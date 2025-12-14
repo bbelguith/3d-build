@@ -149,46 +149,40 @@ export default function VideoPlayer({ videos = [] }) {
     };
     
     const handleVideoClick = (e) => {
-        // On mobile, force fullscreen + orientation before any editor logic
-        if (isMobile && !isMobileFullscreen && !isZoneEditorMode) {
-            enterMobileFullscreen();
-            return;
+        const activeVideo = activeLayer === 0 ? v0.current : v1.current;
+        if (activeVideo) {
+            activeVideo.play().catch(() => {});
         }
 
+        // On mobile, request fullscreen + orientation on any tap (non-editor)
+        if (isMobile && !isMobileFullscreen && !isZoneEditorMode) {
+            enterMobileFullscreen();
+            // still allow zones to be tapped after fullscreen request
+        }
+
+        // If not in editor mode, nothing else to do
         if (!isZoneEditorMode || !editingZoneId) return;
-        
-        const activeVideo = activeLayer === 0 ? v0.current : v1.current;
+
+        // Editor mode: add points
         if (!activeVideo) return;
-        
-        // Recalculate video display area on each click (in case of resize)
         const displayArea = calculateVideoDisplayArea(activeVideo);
         if (!displayArea) return;
-        
-        // Calculate click position relative to container
+
         const clickX = e.clientX - displayArea.x;
         const clickY = e.clientY - displayArea.y;
-        
-        // Check if click is within container bounds
+
         if (clickX >= 0 && clickX <= displayArea.width && clickY >= 0 && clickY <= displayArea.height) {
-            // With object-cover, convert to video coordinates accounting for cropping
-            // Adjust for offset and scale
             const adjustedX = (clickX - displayArea.offsetX) / displayArea.scaleX;
             const adjustedY = (clickY - displayArea.offsetY) / displayArea.scaleY;
-            
-            // Add crop offset to get actual video coordinates
             const videoX = adjustedX + displayArea.cropX;
             const videoY = adjustedY + displayArea.cropY;
-            
-            // Clamp to video dimensions
             const clampedX = Math.max(0, Math.min(activeVideo.videoWidth, videoX));
             const clampedY = Math.max(0, Math.min(activeVideo.videoHeight, videoY));
-            
+
             setCapturedPoints(prev => ({
                 ...prev,
                 [editingZoneId]: [...(prev[editingZoneId] || []), clampedX, clampedY]
             }));
-            
-            // Update video display rect for overlay rendering
             setVideoDisplayRect(displayArea);
         }
     };
