@@ -62,7 +62,7 @@ services:
         cd backend &&
         (npx sequelize-cli db:migrate || echo 'Migrations skipped or failed') &&
         (npx sequelize-cli db:seed:all || echo 'Seeders skipped or failed') &&
-        node backend/server.js
+        node server.js
       "
 
   # Frontend
