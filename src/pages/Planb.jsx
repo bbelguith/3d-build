@@ -31,14 +31,15 @@ export default function Plan() {
 
     // 2. FETCH DATA
     useEffect(() => {
+        const apiBase = import.meta.env.VITE_API_BASE || "";
         const fetchAllData = async () => {
             try {
                 const [housesRes, hImgRes, rImgRes, gImgRes, fImgRes] = await Promise.all([
-                    axios.get("http://localhost:5000/api/houses"),
-                    axios.get("http://localhost:5000/api/house-images"),
-                    axios.get("http://localhost:5000/api/room-images"),
-                    axios.get("http://localhost:5000/api/gallery-images"),
-                    axios.get("http://localhost:5000/api/floor-images"),
+                    axios.get(`${apiBase}/api/houses`),
+                    axios.get(`${apiBase}/api/house-images`),
+                    axios.get(`${apiBase}/api/room-images`),
+                    axios.get(`${apiBase}/api/gallery-images`),
+                    axios.get(`${apiBase}/api/floor-images`),
                 ]);
 
                 setHouses(housesRes.data);
