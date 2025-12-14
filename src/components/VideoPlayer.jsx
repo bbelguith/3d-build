@@ -662,7 +662,7 @@ export default function VideoPlayer({ videos = [] }) {
                         <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition">
                             <Play className="w-10 h-10 md:w-12 md:h-12 text-white ml-1" fill="white" />
                         </div>
-                        <p className="text-white text-lg md:text-xl font-semibold">Open Videos</p>
+                        <p className="text-white text-lg md:text-xl font-semibold">Show Project</p>
                         <p className="text-white/80 text-sm mt-2">Tap to view in fullscreen</p>
                     </div>
                 </div>
@@ -679,16 +679,6 @@ export default function VideoPlayer({ videos = [] }) {
                 </button>
             )}
 
-            {/* Quick Enter Fullscreen button for mobile (when not already fullscreen) */}
-            {isMobile && !isMobileFullscreen && !isZoneEditorMode && (
-                <button
-                    onClick={enterMobileFullscreen}
-                    className="absolute bottom-6 right-4 z-50 w-14 h-14 flex items-center justify-center rounded-full bg-white/25 backdrop-blur-md text-white hover:bg-white/35 transition shadow-lg border border-white/20"
-                    aria-label="Enter fullscreen"
-                >
-                    <span className="text-sm font-bold">Full</span>
-                </button>
-            )}
 
             {/* --- VIDEO LAYERS --- */}
             <div 
