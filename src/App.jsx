@@ -224,7 +224,8 @@ function AppContent() {
       </main>
 
       {!hideLayout && <Footer />}
-      {!hideLayout && <ChatBot />}
+      {/* Hide chat on touch devices so it doesn't block controls on mobile video */}
+      {!hideLayout && !isTouchDevice && <ChatBot />}
 
       {/* 3. Scroll To Top Button (Bottom) */}
       {!hideLayout && <ScrollToTop />}

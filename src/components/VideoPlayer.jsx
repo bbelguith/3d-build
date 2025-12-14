@@ -149,6 +149,12 @@ export default function VideoPlayer({ videos = [] }) {
     };
     
     const handleVideoClick = (e) => {
+        // On mobile, force fullscreen + orientation before any editor logic
+        if (isMobile && !isMobileFullscreen && !isZoneEditorMode) {
+            enterMobileFullscreen();
+            return;
+        }
+
         if (!isZoneEditorMode || !editingZoneId) return;
         
         const activeVideo = activeLayer === 0 ? v0.current : v1.current;
@@ -628,6 +634,11 @@ export default function VideoPlayer({ videos = [] }) {
                     50% { stroke-opacity: 0.9; }
                     100% { stroke-opacity: 0.2; }
                 }
+                @keyframes zonePulse {
+                    0% { fill-opacity: 0.18; stroke-opacity: 0.4; }
+                    50% { fill-opacity: 0.42; stroke-opacity: 0.9; }
+                    100% { fill-opacity: 0.18; stroke-opacity: 0.4; }
+                }
             `}</style>
 
         <div 
@@ -793,21 +804,18 @@ export default function VideoPlayer({ videos = [] }) {
                                     const centerY = yCoords.reduce((a, b) => a + b, 0) / yCoords.length;
 
                                     const isHovered = hoveredZone === zone.id;
-                                    const baseOpacity = isMobile ? 1 : (isHovered ? 1 : 0);
-                                    const mobileStrokeStyle = isMobile ? {
-                                        animation: 'zoneBlink 1.2s ease-in-out infinite',
-                                        strokeDasharray: '10 8'
-                                    } : {};
-
                                     return (
                                         <g key={zone.id}>
                                             <polygon
                                                 points={points.join(' ')}
                                                 className="cursor-pointer transition-all duration-300"
-                                                fill={isMobile ? 'rgba(96, 165, 250, 0.05)' : (isHovered ? 'rgba(96, 165, 250, 0.15)' : 'transparent')}
-                                                stroke={isHovered || isMobile ? '#60a5fa' : 'rgba(96, 165, 250, 0)'}
+                                                fill={isHovered ? 'rgba(96, 165, 250, 0.35)' : 'rgba(96, 165, 250, 0.18)'}
+                                                stroke="#60a5fa"
                                                 strokeWidth={isHovered ? '3' : '2'}
-                                                style={{ pointerEvents: 'all', opacity: baseOpacity, ...mobileStrokeStyle }}
+                                                style={{
+                                                    pointerEvents: 'all',
+                                                    animation: 'zonePulse 1.4s ease-in-out infinite'
+                                                }}
                                                 onMouseEnter={() => setHoveredZone(zone.id)}
                                                 onMouseLeave={() => setHoveredZone(null)}
                                                 onClick={() => handleZoneClick(zone)}
