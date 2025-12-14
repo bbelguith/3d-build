@@ -21,9 +21,19 @@ const result = dotenv.config({ path: envPath });
 dotenv.config();
 const app = express();
 
-// CORS configuration - supports both Docker and local development
-const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
-app.use(cors({ origin: corsOrigin }));
+// CORS configuration - supports multiple origins (comma-separated in CORS_ORIGIN)
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map(o => o.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow non-browser (no origin) or any listed origin
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  }
+}));
 app.use(express.json());
 
 
