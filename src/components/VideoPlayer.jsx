@@ -51,19 +51,19 @@ export default function VideoPlayer({ videos = [] }) {
         { 
             id: 1, 
             coords: [2393,295,2400,220,2427,183,2475,166,3482,122,3560,153,3591,214,3591,1706,3570,1710,3050,1740,2315,1760,2275,1756,2240,1702,2230,1680],
-            label: "Bloc 1", 
+            label: "Prime Villas", 
             houseId: 1 
         },
         { 
             id: 2, 
             coords: [2000,129,2353,109,2168,1645,2112,1675,2057,1695,1700,1706],
-            label: "Bloc 2", 
+            label: "Commercial Hub", 
             houseId: 2 
         },
         { 
             id: 3, 
             coords: [1817,136,1572,146,1118,64,870,146,799,166,772,244,90,1845,324,1919,433,1940,1376,1984],
-            label: "Bloc 3", 
+            label: "Twin Villas", 
             houseId: 3 
         },
     ];
@@ -460,38 +460,49 @@ export default function VideoPlayer({ videos = [] }) {
         playVideo(videos[current].src, current, false);
     };
 
-    // Handle fullscreen mode for mobile
+    // Handle fullscreen mode for mobile - request on the active video element, with iOS fallback
     const enterMobileFullscreen = async () => {
         setIsMobileFullscreen(true);
-        
-        // Request fullscreen and lock orientation to landscape
+
+        // Pick the visible video element
+        const activeVideoEl = activeLayer === 0 ? v0.current : v1.current;
+        const videoEl = activeVideoEl || v0.current;
+
+        if (!videoEl) return;
+
+        // Try standard fullscreen on the video element
         try {
-            if (videoContainerRef.current) {
-                if (videoContainerRef.current.requestFullscreen) {
-                    await videoContainerRef.current.requestFullscreen();
-                } else if (videoContainerRef.current.webkitRequestFullscreen) {
-                    await videoContainerRef.current.webkitRequestFullscreen();
-                } else if (videoContainerRef.current.msRequestFullscreen) {
-                    await videoContainerRef.current.msRequestFullscreen();
-                }
-            }
-            
-            // Lock orientation to landscape if supported
-            if (screen.orientation && screen.orientation.lock) {
-                try {
-                    await screen.orientation.lock('landscape');
-                } catch (err) {
-                    console.log('Orientation lock not supported');
-                }
+            if (videoEl.requestFullscreen) {
+                await videoEl.requestFullscreen();
+            } else if (videoEl.webkitRequestFullscreen) {
+                await videoEl.webkitRequestFullscreen();
+            } else if (videoEl.msRequestFullscreen) {
+                await videoEl.msRequestFullscreen();
             }
         } catch (err) {
             console.log('Fullscreen not supported or denied');
         }
-        
-        // Start playing video
-        if (v0.current) {
-            v0.current.play().catch(() => { });
+
+        // iOS native video fullscreen fallback
+        try {
+            if (videoEl.webkitEnterFullscreen) {
+                videoEl.webkitEnterFullscreen();
+            }
+        } catch (err) {
+            // ignore
         }
+
+        // Attempt orientation lock to landscape where supported
+        if (screen.orientation && screen.orientation.lock) {
+            try {
+                await screen.orientation.lock('landscape');
+            } catch {
+                // silently ignore if not supported
+            }
+        }
+
+        // Start playing video
+        videoEl.play().catch(() => { });
     };
 
     const exitMobileFullscreen = async () => {
@@ -635,9 +646,9 @@ export default function VideoPlayer({ videos = [] }) {
                     100% { stroke-opacity: 0.2; }
                 }
                 @keyframes zonePulse {
-                    0% { fill-opacity: 0.18; stroke-opacity: 0.4; }
-                    50% { fill-opacity: 0.42; stroke-opacity: 0.9; }
-                    100% { fill-opacity: 0.18; stroke-opacity: 0.4; }
+                    0% { fill-opacity: 0.25; stroke-opacity: 0.5; }
+                    50% { fill-opacity: 0.6; stroke-opacity: 1; }
+                    100% { fill-opacity: 0.25; stroke-opacity: 0.5; }
                 }
             `}</style>
 
@@ -809,9 +820,9 @@ export default function VideoPlayer({ videos = [] }) {
                                             <polygon
                                                 points={points.join(' ')}
                                                 className="cursor-pointer transition-all duration-300"
-                                                fill={isHovered ? 'rgba(96, 165, 250, 0.35)' : 'rgba(96, 165, 250, 0.18)'}
+                                                fill={isHovered ? 'rgba(96, 165, 250, 0.55)' : 'rgba(96, 165, 250, 0.28)'}
                                                 stroke="#60a5fa"
-                                                strokeWidth={isHovered ? '3' : '2'}
+                                                strokeWidth={isHovered ? '3.5' : '2.5'}
                                                 style={{
                                                     pointerEvents: 'all',
                                                     animation: 'zonePulse 1.4s ease-in-out infinite'
@@ -831,14 +842,14 @@ export default function VideoPlayer({ videos = [] }) {
                                                         </linearGradient>
                                                     </defs>
                                                     <rect
-                                                        x={centerX - 120}
-                                                        y={centerY - 64}
-                                                        width="240"
-                                                        height="60"
-                                                        rx="16"
+                                                        x={centerX - 140}
+                                                        y={centerY - 72}
+                                                        width="280"
+                                                        height="72"
+                                                        rx="18"
                                                         fill={`url(#zone-label-${zone.id})`}
                                                         stroke="#fcd34d"
-                                                        strokeWidth="2.5"
+                                                        strokeWidth="2.8"
                                                         opacity="0.98"
                                                         filter="url(#shadow-medium)"
                                                     />
@@ -847,9 +858,9 @@ export default function VideoPlayer({ videos = [] }) {
                                                         y={centerY - 24}
                                                         textAnchor="middle"
                                                         fill="#0f172a"
-                                                        fontSize="16"
-                                                        fontWeight="800"
-                                                        className="pointer-events-none tracking-wider"
+                                                        fontSize="18"
+                                                        fontWeight="900"
+                                                        className="pointer-events-none tracking-widest"
                                                     >
                                                         {zone.label.toUpperCase()}
                                                     </text>
