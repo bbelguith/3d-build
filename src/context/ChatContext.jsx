@@ -24,6 +24,8 @@ export const ChatProvider = ({ children }) => {
   const toggleChat = () => setIsOpen(!isOpen);
   const clearConversation = () => setMessages([messages[0]]);
 
+  const apiBase = import.meta.env.VITE_API_BASE || "";
+
   // THE IMPORTANT PART: Connecting to your Backend
   const sendMessage = async (text) => {
     // 1. Add User Message immediately
@@ -32,8 +34,8 @@ export const ChatProvider = ({ children }) => {
     setIsLoading(true);
 
     try {
-      // 2. Call your specific Backend API (Port 5000)
-      const response = await fetch('http://localhost:5000/api/chat', {
+      // 2. Call your specific Backend API
+      const response = await fetch(`${apiBase}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

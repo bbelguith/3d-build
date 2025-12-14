@@ -140,9 +140,10 @@ export default function ChatBot() {
   const inputRef = useRef(null);
 
   useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_BASE || "";
     const fetchImages = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/house-images");
+        const response = await fetch(`${apiBase}/api/house-images`);
         if (response.ok) {
           const data = await response.json();
           setHouseImages(data);
