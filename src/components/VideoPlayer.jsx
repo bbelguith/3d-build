@@ -679,6 +679,17 @@ export default function VideoPlayer({ videos = [] }) {
                 </button>
             )}
 
+            {/* Quick Enter Fullscreen button for mobile (when not already fullscreen) */}
+            {isMobile && !isMobileFullscreen && !isZoneEditorMode && (
+                <button
+                    onClick={enterMobileFullscreen}
+                    className="absolute bottom-6 right-4 z-50 w-14 h-14 flex items-center justify-center rounded-full bg-white/25 backdrop-blur-md text-white hover:bg-white/35 transition shadow-lg border border-white/20"
+                    aria-label="Enter fullscreen"
+                >
+                    <span className="text-sm font-bold">Full</span>
+                </button>
+            )}
+
             {/* --- VIDEO LAYERS --- */}
             <div 
                 ref={videoDisplayRef}
