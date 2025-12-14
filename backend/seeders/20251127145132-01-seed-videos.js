@@ -3,7 +3,7 @@ import { videos } from '../data/videos.js';
 export default {
   async up(queryInterface, Sequelize) {
     // Prevent duplicate keys if re-seeding
-    await queryInterface.bulkDelete('videos', null, {});
+    await queryInterface.bulkDelete('Videos', null, {});
 
     const data = videos.map(v => ({
       src: v.src,
@@ -13,11 +13,11 @@ export default {
     }));
 
     if (data.length > 0) {
-      await queryInterface.bulkInsert('videos', data, {});
+      await queryInterface.bulkInsert('Videos', data, {});
     }
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('videos', null, {});
+    await queryInterface.bulkDelete('Videos', null, {});
   }
 };
