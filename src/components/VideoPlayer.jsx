@@ -206,18 +206,10 @@ export default function VideoPlayer({ videos = [] }) {
         // NOTE: Simple zone editor branch kept for future use but disabled in UI.
         // if (isSimpleZoneEditor) { ... }
 
-        // Default behaviour (play video + handle advanced editor if enabled)
-        if (activeVideo) {
-            activeVideo.play().catch(() => {});
-        }
+        // Normal user clicks on the video surface should NOT restart or change playback.
+        // We only use this handler when the advanced zone editor is active.
 
-        // On mobile, request fullscreen + orientation on any tap (non-editor)
-        if (isMobile && !isMobileFullscreen && !isZoneEditorMode) {
-            enterMobileFullscreen();
-            // still allow zones to be tapped after fullscreen request
-        }
-
-        // If not in editor mode, nothing else to do
+        // If not in editor mode, do nothing.
         if (!isZoneEditorMode || !editingZoneId) return;
 
         // Advanced editor mode: add points into capturedPoints[editingZoneId]
@@ -356,9 +348,11 @@ export default function VideoPlayer({ videos = [] }) {
         if (videos.length > 0 && v0.current && !isInitialized) {
             v0.current.src = videos[0].src;
             v0.current.muted = true; // Ensure muted for autoplay
+            v0.current.playbackRate = 1.2; // Speed up playback
             v0.current.play().catch(() => {
                 if (v0.current) {
                     v0.current.muted = true;
+                    v0.current.playbackRate = 1.2;
                     v0.current.play();
                 }
             });
@@ -368,6 +362,7 @@ export default function VideoPlayer({ videos = [] }) {
             if (videos.length > 1 && v1.current) {
                 v1.current.src = videos[1].src;
                 v1.current.muted = true;
+                v1.current.playbackRate = 1.2;
                 v1.current.preload = "auto";
                 v1.current.load();
             }
@@ -378,16 +373,17 @@ export default function VideoPlayer({ videos = [] }) {
     useEffect(() => {
         if (videos.length > 2 && isInitialized) {
             // Preload videos 2+ in background
-            videos.slice(2).forEach((video, index) => {
-                setTimeout(() => {
-                    const bgVid = document.createElement("video");
-                    bgVid.src = video.src;
-                    bgVid.muted = true;
-                    bgVid.preload = "auto";
-                    bgVid.playsInline = true; // iOS requirement
-                    bgVid.setAttribute("playsinline", "true"); // iOS fallback
-                    bgVid.load();
-                }, (index + 1) * 500); // Stagger background loading
+                    videos.slice(2).forEach((video, index) => {
+                        setTimeout(() => {
+                            const bgVid = document.createElement("video");
+                            bgVid.src = video.src;
+                            bgVid.muted = true;
+                            bgVid.preload = "auto";
+                            bgVid.playbackRate = 1.2;
+                            bgVid.playsInline = true; // iOS requirement
+                            bgVid.setAttribute("playsinline", "true"); // iOS fallback
+                            bgVid.load();
+                        }, (index + 1) * 500); // Stagger background loading
             });
         }
     }, [videos, isInitialized]);
@@ -406,10 +402,12 @@ export default function VideoPlayer({ videos = [] }) {
         if (showEl) {
             const startPlaying = () => {
                 showEl.currentTime = 0;
+                showEl.playbackRate = 1.2; // Speed up playback for all transitions
                 showEl.play().catch(() => { 
                     // If play fails, ensure muted and try again
                     if (showEl) {
                         showEl.muted = !isInteriorVideo;
+                        showEl.playbackRate = 1.2;
                         showEl.play();
                     }
                 });
