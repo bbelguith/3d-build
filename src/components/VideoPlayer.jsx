@@ -956,17 +956,21 @@ export default function VideoPlayer({ videos = [] }) {
                                     </filter>
                                 </defs>
                                 {zonesForCurrentVideo.map((zone) => {
+                                    // Optional per-zone offset for fine tuning (only used when defined)
+                                    const dx = typeof zone.offsetX === "number" ? zone.offsetX : 0;
+                                    const dy = typeof zone.offsetY === "number" ? zone.offsetY : 0;
+
                                     const points = [];
                                     for (let i = 0; i < zone.coords.length; i += 2) {
-                                        points.push(`${zone.coords[i]},${zone.coords[i + 1]}`);
+                                        points.push(`${zone.coords[i] + dx},${zone.coords[i + 1] + dy}`);
                                     }
 
                                     // Calculate center for tooltip (in SVG coords)
                                     const xCoords = [];
                                     const yCoords = [];
                                     for (let i = 0; i < zone.coords.length; i += 2) {
-                                        xCoords.push(zone.coords[i]);
-                                        yCoords.push(zone.coords[i + 1]);
+                                        xCoords.push(zone.coords[i] + dx);
+                                        yCoords.push(zone.coords[i + 1] + dy);
                                     }
                                     const centerX = xCoords.reduce((a, b) => a + b, 0) / xCoords.length;
                                     const centerY = yCoords.reduce((a, b) => a + b, 0) / yCoords.length;
