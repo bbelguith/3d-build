@@ -673,21 +673,11 @@ export default function VideoPlayer({ videos = [] }) {
         : [];
     const hasZonesForCurrentVideo = zonesForCurrentVideo.length > 0;
 
-    // Master "zones" video (the one that shows the frame with clickable areas)
-    const zonesMasterConfig = useMemo(
-        () => clickableZones.find(z => z.videoId),
-        []
-    );
-    const isOnZonesVideo = !!(
-        zonesMasterConfig &&
-        currentVideo &&
-        currentVideo.id === zonesMasterConfig.videoId
-    );
-
+    // Jump helper: always go to the last video (assumed to be the zones video)
     const handleGoToZonesVideo = () => {
-        if (!zonesMasterConfig) return;
-        const targetIndex = videos.findIndex(v => v.id === zonesMasterConfig.videoId);
-        if (targetIndex === -1 || !videos[targetIndex]) return;
+        if (!videos.length) return;
+        const targetIndex = videos.length - 1;
+        if (!videos[targetIndex]) return;
 
         setIsInterior(false);
         playVideo(videos[targetIndex].src, targetIndex, false, false);
@@ -1051,12 +1041,12 @@ export default function VideoPlayer({ videos = [] }) {
                         </button>
                     </div>
 
-                    {/* GROUP 1.5: PEEK A HOUSE (Jump to zones video) */}
+                    {/* GROUP 1.5: PEEK A HOUSE (Jump to last video with areas) */}
                     <div className={`${glassContainer} rounded-full overflow-hidden`}>
                         <button
                             onClick={handleGoToZonesVideo}
-                            disabled={!zonesMasterConfig || isOnZonesVideo || isTransitioning}
-                            className={`${btnBase} ${(!zonesMasterConfig || isOnZonesVideo || isTransitioning) ? btnDisabled : btnInactive}`}
+                            disabled={isLastVideo || isTransitioning}
+                            className={`${btnBase} ${(isLastVideo || isTransitioning) ? btnDisabled : btnInactive}`}
                         >
                             Peek a house
                         </button>
