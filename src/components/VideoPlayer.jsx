@@ -938,19 +938,21 @@ export default function VideoPlayer({ videos = [] }) {
                                                 onMouseEnter={() => setHoveredZone(zone.id)}
                                                 onMouseLeave={() => setHoveredZone(null)}
                                                 onClick={() => {
-                                                    // Prefer targetVideoId when set, otherwise fallback to interior for peek zone
+                                                    // If a target video is configured, jump to it
                                                     if (zone.targetVideoId) {
                                                         const targetIndex = videos.findIndex(v => v.id === zone.targetVideoId);
                                                         if (targetIndex !== -1) {
                                                             playVideo(videos[targetIndex].src, targetIndex, false, false);
-                                                            return;
                                                         }
+                                                        return;
                                                     }
+                                                    // For the special peek zone with no targetVideoId yet, do nothing
                                                     if (isPeekZone) {
-                                                        handleGoToInterior();
-                                                    } else {
-                                                        handleZoneClick(zone);
+                                                        console.log("Peek area clicked, no interior video configured yet.");
+                                                        return;
                                                     }
+                                                    // Default behaviour for other zones
+                                                    handleZoneClick(zone);
                                                 }}
                                             />
 
@@ -959,16 +961,17 @@ export default function VideoPlayer({ videos = [] }) {
                                                 // Always-visible "See interior" button for this area, positioned above the zone
                                                 <g
                                                     onClick={() => {
-                                                        if (zone.targetVideoId) {
-                                                            const targetIndex = videos.findIndex(v => v.id === zone.targetVideoId);
-                                                            if (targetIndex !== -1) {
-                                                                playVideo(videos[targetIndex].src, targetIndex, false, false);
-                                                                return;
-                                                            }
+                                                        // Only act when a targetVideoId is configured; otherwise, do nothing
+                                                        if (!zone.targetVideoId) {
+                                                            console.log("See Interior clicked, but no interior video is configured yet.");
+                                                            return;
                                                         }
-                                                        handleGoToInterior();
+                                                        const targetIndex = videos.findIndex(v => v.id === zone.targetVideoId);
+                                                        if (targetIndex !== -1) {
+                                                            playVideo(videos[targetIndex].src, targetIndex, false, false);
+                                                        }
                                                     }}
-                                                    style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                                                    style={{ cursor: zone.targetVideoId ? 'pointer' : 'default', pointerEvents: 'all' }}
                                                 >
                                                     <defs>
                                                         <linearGradient id={`zone-button-${zone.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
