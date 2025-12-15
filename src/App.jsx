@@ -47,18 +47,6 @@ function AppContent() {
   const [videos, setVideos] = useState([]);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-  // Detect touch device to conditionally apply cursor-none
-  useEffect(() => {
-    const checkTouchDevice = () => {
-      return (
-        'ontouchstart' in window ||
-        navigator.maxTouchPoints > 0 ||
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      );
-    };
-    setIsTouchDevice(checkTouchDevice());
-  }, []);
-
   // --- NEW: SCROLL RESTORATION LOGIC ---
   // This ensures the page starts at the top whenever the route changes
   useEffect(() => {
@@ -126,7 +114,7 @@ function AppContent() {
       className={
         hideLayout
           ? "min-h-screen bg-white flex flex-col items-center justify-center"
-          : `bg-gray-100 min-h-screen flex flex-col ${isTouchDevice ? '' : 'cursor-none'}`
+          : "bg-gray-100 min-h-screen flex flex-col"
       }
     >
       {/* 1. Cinematic Grain Overlay (Global Texture) */}
@@ -135,7 +123,8 @@ function AppContent() {
       {/* 2. Scroll Progress Bar (Top) */}
       {!hideLayout && <ScrollProgress />}
 
-      {!hideLayout && <CustomCursor />}
+      {/* CustomCursor temporarily disabled to use default system cursor */}
+      {/* {!hideLayout && <CustomCursor />} */}
 
       {!hideLayout && <Navbar />}
 
