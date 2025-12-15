@@ -935,10 +935,9 @@ export default function VideoPlayer({ videos = [] }) {
                 })()}
             </div>
 
-            {/* --- ZONE EDITOR UI (Temporary) - COMMENTED OUT FOR FUTURE USE --- */}
-            {/* Uncomment this section when you need to edit zones for other videos/blocs */}
-            {/*
-            {showClickableZones && isLastVideo && !isInterior && (
+            {/* --- ZONE EDITOR UI (Temporary) --- */}
+            {/* Visible on any exterior video; used to capture coordinates for zones */}
+            {!isInterior && (
                 <div className="absolute top-4 right-4 z-50 bg-white/90 backdrop-blur-md rounded-lg p-4 shadow-lg border border-gray-300">
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between mb-2">
@@ -1016,7 +1015,6 @@ export default function VideoPlayer({ videos = [] }) {
                     </div>
                 </div>
             )}
-            */}
 
             {/* --- CONTROLS --- (hidden on mobile when not in fullscreen) */}
             {(!isMobile || isMobileFullscreen) && (
