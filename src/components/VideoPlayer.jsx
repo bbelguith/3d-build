@@ -454,6 +454,13 @@ export default function VideoPlayer({ videos = [] }) {
         playVideo(videos[current].src, current, false);
     };
 
+    const isIOS = useMemo(() => {
+        const ua = navigator.userAgent || navigator.vendor || window.opera;
+        const iOSDevice = /iPad|iPhone|iPod/.test(ua);
+        const iPadOS13Up = ua.includes("Mac") && "ontouchend" in document;
+        return iOSDevice || iPadOS13Up;
+    }, []);
+
     // Handle fullscreen mode for mobile - request on the container (keeps UI/buttons) and play active video
     const enterMobileFullscreen = async () => {
         setIsMobileFullscreen(true);
@@ -477,13 +484,16 @@ export default function VideoPlayer({ videos = [] }) {
             }
         }
 
-        // iOS native video fullscreen fallback if container fails
-        try {
-            if (videoEl?.webkitEnterFullscreen) {
-                videoEl.webkitEnterFullscreen();
+        // Avoid native iOS fullscreen so overlays/rotation stay visible.
+        // We keep playback inline and rely on the container taking the full viewport.
+        if (!isIOS) {
+            try {
+                if (videoEl?.webkitEnterFullscreen) {
+                    videoEl.webkitEnterFullscreen();
+                }
+            } catch (err) {
+                // ignore
             }
-        } catch (err) {
-            // ignore
         }
 
         // Attempt orientation lock to landscape where supported
