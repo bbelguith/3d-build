@@ -175,7 +175,9 @@ export default function VideoPlayer({ videos = [] }) {
     
     const handleVideoClick = (e) => {
         const activeVideo = activeLayer === 0 ? v0.current : v1.current;
-        if (activeVideo) {
+
+        // ONLY play / resume video when NOT in editor mode
+        if (activeVideo && (!isZoneEditorMode || !editingZoneId)) {
             activeVideo.play().catch(() => {});
         }
 
@@ -935,9 +937,9 @@ export default function VideoPlayer({ videos = [] }) {
                 })()}
             </div>
 
-            {/* --- ZONE EDITOR UI (Temporary) --- */}
-            {/* Visible on any exterior video; used to capture coordinates for zones */}
-            {!isInterior && (
+            {/* --- ZONE EDITOR UI (Temporary) - same behaviour as original version --- */}
+            {/* Only visible on exterior of the last video when zones are shown */}
+            {showClickableZones && isLastVideo && !isInterior && (
                 <div className="absolute top-4 right-4 z-50 bg-white/90 backdrop-blur-md rounded-lg p-4 shadow-lg border border-gray-300">
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between mb-2">
