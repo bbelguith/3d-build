@@ -44,27 +44,34 @@ export default function VideoPlayer({ videos = [] }) {
     const IMAGE_WIDTH = 3600; // Approximate max x coordinate
     const IMAGE_HEIGHT = 1920; // Approximate max y coordinate
     
-    // Clickable zones for blocs in the last frame (last video)
+    // Clickable zones for blocs in a specific video frame
     // Coordinates are in pixels from the image map (final adjusted coordinates)
-    // Format: { id, coords (pixel array), label, houseId }
+    // Format: { id, coords (pixel array), label, houseId, videoId? }
+    // - videoId (optional for now): DB id of the video this zone belongs to.
+    //   If omitted, the zone will be treated as attached to "the last video"
+    //   for backwards compatibility. For new zones, ALWAYS set videoId so
+    //   adding videos later won't break the mapping.
     const clickableZones = [
         { 
             id: 1, 
             coords: [2393,295,2400,220,2427,183,2475,166,3482,122,3560,153,3591,214,3591,1706,3570,1710,3050,1740,2315,1760,2275,1756,2240,1702,2230,1680],
             label: "Prime Villas", 
-            houseId: 1 
+            houseId: 1,
+            // videoId: 5, // <-- set this to the DB id of the video that shows this frame
         },
         { 
             id: 2, 
             coords: [2000,129,2353,109,2168,1645,2112,1675,2057,1695,1700,1706],
             label: "Commercial Hub", 
-            houseId: 2 
+            houseId: 2,
+            // videoId: 5,
         },
         { 
             id: 3, 
             coords: [1817,136,1572,146,1118,64,870,146,799,166,772,244,90,1845,324,1919,433,1940,1376,1984],
             label: "Twin Villas", 
-            houseId: 3 
+            houseId: 3,
+            // videoId: 5,
         },
     ];
     
@@ -80,11 +87,29 @@ export default function VideoPlayer({ videos = [] }) {
         return points.join(',');
     };
     
-    // Handle zone click - placeholder for future video playback
+    // Handle zone click - hook for navigation / video jump
     const handleZoneClick = (zone) => {
         if (isZoneEditorMode) return; // Block during editor mode
-        // TODO: hook into per-bloc video playback when assets are available
-        console.log(`Bloc ${zone.id} clicked - video playback placeholder`);
+
+        // EXAMPLE BEHAVIOUR (you can customise this):
+        // 1) If zone.targetVideoId is set, jump to that video in the current list
+        // 2) Else if zone.targetRoute is set, navigate to that route
+        // 3) Else just log (current behaviour)
+
+        if (zone.targetVideoId) {
+            const targetIndex = videos.findIndex(v => v.id === zone.targetVideoId);
+            if (targetIndex !== -1) {
+                playVideo(videos[targetIndex].src, targetIndex, false, false);
+                return;
+            }
+        }
+
+        if (zone.targetRoute) {
+            navigate(zone.targetRoute);
+            return;
+        }
+
+        console.log(`Bloc ${zone.id} clicked - no target configured yet`);
     };
     
     // Helper function to calculate video display area with object-cover
@@ -280,7 +305,7 @@ export default function VideoPlayer({ videos = [] }) {
         alert('Adjusted coordinates logged to console! Check the browser console (F12) to copy them.');
     };
 
-    const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
+    ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
 
     // Detect mobile device
     useEffect(() => {
@@ -570,11 +595,20 @@ export default function VideoPlayer({ videos = [] }) {
                 setVideoTime(activeVideo.currentTime);
                 setVideoDuration(activeVideo.duration || 0);
                 
-                // Check if we're on the last frame of the last video (within last 0.5 seconds)
-                const isLastVideo = current === videos.length - 1;
+                // Determine if current video has zones attached (by DB video id)
+                const currentVideo = videos[current];
+                const hasZonesForCurrentVideo = !!currentVideo && clickableZones.some(zone => {
+                    // If zone.videoId is set, it must match DB id
+                    if (zone.videoId) return zone.videoId === currentVideo.id;
+                    // Backwards-compat: zones without videoId are treated as "last video" zones
+                    const isLastVideoFallback = current === videos.length - 1;
+                    return isLastVideoFallback;
+                });
+
+                // Check if we're on the last frame of the current video (within last 0.5 seconds)
                 const isLastFrame = activeVideo.duration && activeVideo.currentTime >= activeVideo.duration - 0.5;
                 
-                if (isLastVideo && isLastFrame && !isInterior) {
+                if (hasZonesForCurrentVideo && isLastFrame && !isInterior) {
                     setShowClickableZones(true);
                 } else if (activeVideo.currentTime < activeVideo.duration - 1) {
                     setShowClickableZones(false);
@@ -627,6 +661,17 @@ export default function VideoPlayer({ videos = [] }) {
     if (videos.length === 0) return null;
 
     const isLastVideo = current === videos.length - 1;
+
+    // Zones attached to the currently playing video (by DB id or legacy last-video fallback)
+    const currentVideo = videos[current];
+    const zonesForCurrentVideo = currentVideo
+        ? clickableZones.filter(zone => {
+            if (zone.videoId) return zone.videoId === currentVideo.id;
+            // legacy zones without videoId: treat them as last-video-only
+            return current === videos.length - 1;
+        })
+        : [];
+    const hasZonesForCurrentVideo = zonesForCurrentVideo.length > 0;
 
     // --- STYLES (Matching Navbar) ---
     // The "Glass" container
@@ -781,8 +826,8 @@ export default function VideoPlayer({ videos = [] }) {
                     );
                 })()}
                 
-                {/* Clickable Zones Overlay - Only shown on last frame of last video (hidden in editor mode) */}
-                {showClickableZones && isLastVideo && !isInterior && !isZoneEditorMode && (() => {
+                {/* Clickable Zones Overlay - only when current video has zones (hidden in editor mode) */}
+                {showClickableZones && hasZonesForCurrentVideo && !isInterior && !isZoneEditorMode && (() => {
                     const activeVideo = activeLayer === 0 ? v0.current : v1.current;
                     if (!activeVideo) return null;
 
@@ -803,7 +848,7 @@ export default function VideoPlayer({ videos = [] }) {
                                         <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="rgba(0,0,0,0.25)" />
                                     </filter>
                                 </defs>
-                                {clickableZones.map((zone) => {
+                                {zonesForCurrentVideo.map((zone) => {
                                     const points = [];
                                     for (let i = 0; i < zone.coords.length; i += 2) {
                                         points.push(`${zone.coords[i]},${zone.coords[i + 1]}`);
