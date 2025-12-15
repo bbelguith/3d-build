@@ -85,8 +85,8 @@ export default function VideoPlayer({ videos = [] }) {
             houseId: 1,
             attachToIndex: 0, // show on last frame of FIRST video in the list
             // Manual adjustment knobs for fine‑tuning position (in video pixels)
-            offsetX: 50,  // + moves area to the right, - moves to the left
-            offsetY: -40, // + moves area down, - moves up
+            offsetX: 40,  // + moves area to the right, - moves to the left
+            offsetY: -90, // + moves area down, - moves up
         },
     ];
     
