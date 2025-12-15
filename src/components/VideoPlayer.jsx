@@ -61,7 +61,8 @@ export default function VideoPlayer({ videos = [] }) {
             coords: [2393,295,2400,220,2427,183,2475,166,3482,122,3560,153,3591,214,3591,1706,3570,1710,3050,1740,2315,1760,2275,1756,2240,1702,2230,1680],
             label: "Prime Villas", 
             houseId: 1,
-            // videoId: 5, // <-- set this to the DB id of the video that shows this frame
+            // videoId: 5, // (optional) DB id of the video that SHOWS this frame
+            // targetVideoId: 10, // (optional) DB id of the video to PLAY when this area is clicked
         },
         { 
             id: 2, 
@@ -69,6 +70,7 @@ export default function VideoPlayer({ videos = [] }) {
             label: "Commercial Hub", 
             houseId: 2,
             // videoId: 5,
+            // targetVideoId: 11,
         },
         { 
             id: 3, 
@@ -76,6 +78,7 @@ export default function VideoPlayer({ videos = [] }) {
             label: "Twin Villas", 
             houseId: 3,
             // videoId: 5,
+            // targetVideoId: 12,
         },
         { 
             id: 4,
@@ -98,7 +101,7 @@ export default function VideoPlayer({ videos = [] }) {
             offsetX: -2,  // + moves area to the right, - moves to the left
             offsetY: -128, // + moves area down, - moves up
             // Optional: when set, clicking this zone/button jumps to that video id
-            // targetVideoId: 5,
+             targetVideoId: 4,
         },
     ];
     
