@@ -1,9 +1,16 @@
 import { DataTypes } from 'sequelize';
 
 export async function up(queryInterface) {
-  await queryInterface.createTable('Comments', {
+  // Use lowercase table names to match other migrations and models on case-sensitive MySQL
+  await queryInterface.createTable('comments', {
     id: { allowNull: false, autoIncrement: true, primaryKey: true, type: DataTypes.INTEGER },
-    houseId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Houses', key: 'id' }, onDelete: 'CASCADE' },
+    houseId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: { model: 'houses', key: 'id' },
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE'
+    },
     name: { type: DataTypes.STRING, allowNull: false },
     phone: { type: DataTypes.STRING, allowNull: false },
     request: { type: DataTypes.STRING, allowNull: false },
@@ -16,5 +23,5 @@ export async function up(queryInterface) {
 }
 
 export async function down(queryInterface) {
-  await queryInterface.dropTable('Comments');
+  await queryInterface.dropTable('comments');
 }
