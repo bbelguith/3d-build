@@ -81,7 +81,7 @@ export default function VideoPlayer({ videos = [] }) {
             id: 4,
             // New clickable area (coords you provided) – attached to FIRST video (index 0)
             coords: [1636.4084278768232,1185.7893030794166,1702.7941653160453,1152.5964343598057,1704.453808752026,1127.7017828200974,1809.0113452188007,1081.2317666126419,1913.5688816855754,1165.8735818476498,1911.9092382495949,1238.897893030794,1961.6985413290113,1282.0486223662883,1805.6920583468395,1363.3711507293356],
-            
+            label: "Peek Area",
             houseId: 1,
             attachToIndex: 0, // show on last frame of FIRST video in the list
             // Manual adjustment knobs for fine‑tuning position (in video pixels)
@@ -956,20 +956,17 @@ export default function VideoPlayer({ videos = [] }) {
                                     </filter>
                                 </defs>
                                 {zonesForCurrentVideo.map((zone) => {
-                                    const dx = zone.offsetX || 0;
-                                    const dy = zone.offsetY || 0;
-
                                     const points = [];
                                     for (let i = 0; i < zone.coords.length; i += 2) {
-                                        points.push(`${zone.coords[i] + dx},${zone.coords[i + 1] + dy}`);
+                                        points.push(`${zone.coords[i]},${zone.coords[i + 1]}`);
                                     }
 
                                     // Calculate center for tooltip (in SVG coords)
                                     const xCoords = [];
                                     const yCoords = [];
                                     for (let i = 0; i < zone.coords.length; i += 2) {
-                                        xCoords.push(zone.coords[i] + dx);
-                                        yCoords.push(zone.coords[i + 1] + dy);
+                                        xCoords.push(zone.coords[i]);
+                                        yCoords.push(zone.coords[i + 1]);
                                     }
                                     const centerX = xCoords.reduce((a, b) => a + b, 0) / xCoords.length;
                                     const centerY = yCoords.reduce((a, b) => a + b, 0) / yCoords.length;
