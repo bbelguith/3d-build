@@ -91,7 +91,7 @@ export default function VideoPlayer({ videos = [] }) {
                 1701.1345218800648,1127.7017828200974,
                 1704.453808752026,1160.8946515397083
             ],
-            label: "Peek Area",
+            label: "", // no text label – we'll render a custom button instead
             houseId: 1,
             attachToIndex: 0, // show on last frame of FIRST video in the list
             // Manual adjustment knobs for fine‑tuning position (in video pixels)
@@ -919,12 +919,13 @@ export default function VideoPlayer({ videos = [] }) {
                                     const centerY = yCoords.reduce((a, b) => a + b, 0) / yCoords.length;
 
                                     const isHovered = hoveredZone === zone.id;
+                                    const isPeekZone = zone.id === 4;
                                     return (
                                         <g key={zone.id}>
                                             <polygon
                                                 points={points.join(' ')}
                                                 className="cursor-pointer transition-all duration-300"
-                                                fill={isHovered ? 'rgba(96, 165, 250, 0.55)' : 'rgba(96, 165, 250, 0.28)'}
+                                                fill={isHovered || isPeekZone ? 'rgba(96, 165, 250, 0.55)' : 'rgba(96, 165, 250, 0.28)'}
                                                 stroke="#60a5fa"
                                                 strokeWidth={isHovered ? '3.5' : '2.5'}
                                                 style={{
@@ -933,14 +934,24 @@ export default function VideoPlayer({ videos = [] }) {
                                                 }}
                                                 onMouseEnter={() => setHoveredZone(zone.id)}
                                                 onMouseLeave={() => setHoveredZone(null)}
-                                                onClick={() => handleZoneClick(zone)}
+                                                onClick={() => {
+                                                    if (isPeekZone) {
+                                                        handleGoToInterior();
+                                                    } else {
+                                                        handleZoneClick(zone);
+                                                    }
+                                                }}
                                             />
 
-                                            {/* Label tooltip - revamped pill style */}
-                                            {hoveredZone === zone.id && (
-                                                <g>
+                                            {/* Label tooltip / button */}
+                                            {isPeekZone ? (
+                                                // Always-visible "See interior" button for this area
+                                                <g
+                                                    onClick={handleGoToInterior}
+                                                    style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                                                >
                                                     <defs>
-                                                        <linearGradient id={`zone-label-${zone.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                                                        <linearGradient id={`zone-button-${zone.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
                                                             <stop offset="0%" stopColor="rgba(255,255,255,0.98)" />
                                                             <stop offset="100%" stopColor="rgba(236, 245, 255, 0.94)" />
                                                         </linearGradient>
@@ -951,12 +962,11 @@ export default function VideoPlayer({ videos = [] }) {
                                                         width="280"
                                                         height="72"
                                                         rx="18"
-                                                        fill={`url(#zone-label-${zone.id})`}
+                                                        fill={`url(#zone-button-${zone.id})`}
                                                         stroke="#fcd34d"
                                                         strokeWidth="2.8"
                                                         opacity="0.98"
-                                                        filter="url(#shadow-medium)"
-                                                    />
+                                                        filter="url(#shadow-medium)`" />
                                                     <text
                                                         x={centerX}
                                                         y={centerY - 24}
@@ -966,9 +976,42 @@ export default function VideoPlayer({ videos = [] }) {
                                                         fontWeight="900"
                                                         className="pointer-events-none tracking-widest"
                                                     >
-                                                        {zone.label.toUpperCase()}
+                                                        SEE INTERIOR
                                                     </text>
                                                 </g>
+                                            ) : (
+                                                hoveredZone === zone.id && (
+                                                    <g>
+                                                        <defs>
+                                                            <linearGradient id={`zone-label-${zone.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                                                                <stop offset="0%" stopColor="rgba(255,255,255,0.98)" />
+                                                                <stop offset="100%" stopColor="rgba(236, 245, 255, 0.94)" />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <rect
+                                                            x={centerX - 140}
+                                                            y={centerY - 72}
+                                                            width="280"
+                                                            height="72"
+                                                            rx="18"
+                                                            fill={`url(#zone-label-${zone.id})`}
+                                                            stroke="#fcd34d"
+                                                            strokeWidth="2.8"
+                                                            opacity="0.98"
+                                                            filter="url(#shadow-medium)`" />
+                                                        <text
+                                                            x={centerX}
+                                                            y={centerY - 24}
+                                                            textAnchor="middle"
+                                                            fill="#0f172a"
+                                                            fontSize="18"
+                                                            fontWeight="900"
+                                                            className="pointer-events-none tracking-widest"
+                                                        >
+                                                            {zone.label.toUpperCase()}
+                                                        </text>
+                                                    </g>
+                                                )
                                             )}
                                         </g>
                                     );
