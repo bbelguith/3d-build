@@ -27,6 +27,9 @@ export default function VideoPlayer({ videos = [] }) {
     const [videoTime, setVideoTime] = useState(0);
     const [videoDuration, setVideoDuration] = useState(0);
     const [hoveredZone, setHoveredZone] = useState(null);
+    // Visual feedback state for the special "SEE INTERIOR" button (zone id 4)
+    const [isPeekButtonHovered, setIsPeekButtonHovered] = useState(false);
+    const [isPeekButtonActive, setIsPeekButtonActive] = useState(false);
     
     // Advanced zone editor state (existing)
     const [isZoneEditorMode, setIsZoneEditorMode] = useState(false);
@@ -101,7 +104,7 @@ export default function VideoPlayer({ videos = [] }) {
             offsetX: -2,  // + moves area to the right, - moves to the left
             offsetY: -128, // + moves area down, - moves up
             // Optional: when set, clicking this zone/button jumps to that video id
-            targetVideoId: 4,
+            ///targetVideoId: 4,
         },
     ];
     
