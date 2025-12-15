@@ -348,11 +348,11 @@ export default function VideoPlayer({ videos = [] }) {
         if (videos.length > 0 && v0.current && !isInitialized) {
             v0.current.src = videos[0].src;
             v0.current.muted = true; // Ensure muted for autoplay
-            v0.current.playbackRate = 1.2; // Speed up playback
+            v0.current.playbackRate = 1.4; // Speed up playback
             v0.current.play().catch(() => {
                 if (v0.current) {
                     v0.current.muted = true;
-                    v0.current.playbackRate = 1.2;
+                    v0.current.playbackRate = 1.4;
                     v0.current.play();
                 }
             });
@@ -362,7 +362,7 @@ export default function VideoPlayer({ videos = [] }) {
             if (videos.length > 1 && v1.current) {
                 v1.current.src = videos[1].src;
                 v1.current.muted = true;
-                v1.current.playbackRate = 1.2;
+                v1.current.playbackRate = 1.4;
                 v1.current.preload = "auto";
                 v1.current.load();
             }
@@ -379,7 +379,7 @@ export default function VideoPlayer({ videos = [] }) {
                             bgVid.src = video.src;
                             bgVid.muted = true;
                             bgVid.preload = "auto";
-                            bgVid.playbackRate = 1.2;
+                            bgVid.playbackRate = 1.4;
                             bgVid.playsInline = true; // iOS requirement
                             bgVid.setAttribute("playsinline", "true"); // iOS fallback
                             bgVid.load();
@@ -402,30 +402,31 @@ export default function VideoPlayer({ videos = [] }) {
         if (showEl) {
             const startPlaying = () => {
                 showEl.currentTime = 0;
-                showEl.playbackRate = 1.2; // Speed up playback for all transitions
+                showEl.playbackRate = 1.4; // Speed up playback for all transitions
                 showEl.play().catch(() => { 
                     // If play fails, ensure muted and try again
                     if (showEl) {
                         showEl.muted = !isInteriorVideo;
-                        showEl.playbackRate = 1.2;
+                        showEl.playbackRate = 1.4;
                         showEl.play();
                     }
                 });
 
-                if (hideEl) hideEl.classList.add("opacity-0");
+                // Instant switch - no opacity transitions since videos are linked/continuous
+                if (hideEl) {
+                    hideEl.classList.remove("opacity-100");
+                    hideEl.classList.add("opacity-0");
+                }
                 showEl.classList.remove("opacity-0");
-                showEl.classList.add("transition-opacity", "duration-700");
-                if (hideEl) hideEl.classList.add("transition-opacity", "duration-700");
+                showEl.classList.add("opacity-100");
 
                 setActiveLayer(nextLayer);
                 setCurrent(index);
                 setIsReversed(reversed);
                 setIsInterior(isInteriorVideo);
                 
-                // Re-enable buttons after transition completes
-                setTimeout(() => {
-                    setIsTransitioning(false);
-                }, 800); // Slightly longer than transition duration
+                // Re-enable buttons immediately (no transition delay)
+                setIsTransitioning(false);
             };
 
             showEl.src = url;
@@ -794,7 +795,7 @@ export default function VideoPlayer({ videos = [] }) {
             >
                 <video 
                     ref={v0} 
-                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-100" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-100" 
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
@@ -802,7 +803,7 @@ export default function VideoPlayer({ videos = [] }) {
                 />
                 <video 
                     ref={v1} 
-                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-0" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-0" 
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
