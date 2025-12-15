@@ -34,8 +34,8 @@ export default function VideoPlayer({ videos = [] }) {
     const [capturedPoints, setCapturedPoints] = useState({});
     const [videoDisplayRect, setVideoDisplayRect] = useState(null);
 
-    // Simple ad‑hoc zone editor (for capturing raw coords for you)
-    const [isSimpleZoneEditor, setIsSimpleZoneEditor] = useState(false);
+    // Simple ad‑hoc zone editor (for capturing raw coords for you) – now disabled
+    const [isSimpleZoneEditor] = useState(false);
     const [simplePoints, setSimplePoints] = useState([]);
 
     const v0 = useRef(null);
@@ -77,14 +77,14 @@ export default function VideoPlayer({ videos = [] }) {
             houseId: 3,
             // videoId: 5,
         },
-        // Example for your new zone (coords you provided) – we'll attach videoId once you tell me it
-        // { 
-        //     id: 4,
-        //     coords: [1631.4294975688817,1185.7893030794166,1701.1345218800648,1157.5753646677472,1701.1345218800648,1131.0210696920583,1810.6709886547812,1081.2317666126419,1916.8881685575366,1165.8735818476498,1913.5688816855754,1238.897893030794,1961.6985413290113,1277.0696920583468,1804.032414910859,1355.072933549433,1634.7487844408429,1185.7893030794166],
-        //     label: "New Area",
-        //     houseId: 4,
-        //     // videoId: 2, // <-- set this to the DB id of the video where this area should appear
-        // },
+        { 
+            id: 4,
+            // New clickable area (coords you provided) – attached to FIRST video (index 0)
+            coords: [1636.4084278768232,1185.7893030794166,1702.7941653160453,1152.5964343598057,1704.453808752026,1127.7017828200974,1809.0113452188007,1081.2317666126419,1913.5688816855754,1165.8735818476498,1911.9092382495949,1238.897893030794,1961.6985413290113,1282.0486223662883,1805.6920583468395,1363.3711507293356],
+            label: "Peek Area",
+            houseId: 1,
+            attachToIndex: 0, // show on last frame of FIRST video in the list
+        },
     ];
     
     // Convert pixel coordinates to percentage coordinates
@@ -636,7 +636,9 @@ export default function VideoPlayer({ videos = [] }) {
                 const hasZonesForCurrentVideo = !!currentVideo && clickableZones.some(zone => {
                     // If zone.videoId is set, it must match DB id
                     if (zone.videoId) return zone.videoId === currentVideo.id;
-                    // Backwards-compat: zones without videoId are treated as "last video" zones
+                    // If zone.attachToIndex is set, it must match current index
+                    if (typeof zone.attachToIndex === "number") return zone.attachToIndex === current;
+                    // Backwards-compat: zones without videoId/attachToIndex are treated as "last video" zones
                     const isLastVideoFallback = current === videos.length - 1;
                     return isLastVideoFallback;
                 });
@@ -698,12 +700,13 @@ export default function VideoPlayer({ videos = [] }) {
 
     const isLastVideo = current === videos.length - 1;
 
-    // Zones attached to the currently playing video (by DB id or legacy last-video fallback)
+    // Zones attached to the currently playing video (by DB id / index / legacy last-video)
     const currentVideo = videos[current];
     const zonesForCurrentVideo = currentVideo
         ? clickableZones.filter(zone => {
             if (zone.videoId) return zone.videoId === currentVideo.id;
-            // legacy zones without videoId: treat them as last-video-only
+            if (typeof zone.attachToIndex === "number") return zone.attachToIndex === current;
+            // legacy zones without videoId/attachToIndex: treat them as last-video-only
             return current === videos.length - 1;
         })
         : [];
@@ -781,74 +784,7 @@ export default function VideoPlayer({ videos = [] }) {
             )}
 
 
-            {/* --- SIMPLE ZONE EDITOR PANEL (for capturing coords) --- */}
-            {isSimpleZoneEditor && (
-                <div className="absolute top-4 left-4 z-50 bg-white/90 backdrop-blur-md rounded-lg p-3 shadow-lg border border-gray-300 text-xs text-gray-800 space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                        <span className="font-bold uppercase tracking-widest text-[10px] text-gray-500">
-                            SIMPLE ZONE EDITOR
-                        </span>
-                        <button
-                            onClick={() => setIsSimpleZoneEditor(false)}
-                            className="px-2 py-1 rounded bg-red-500 text-white font-semibold hover:bg-red-600 text-[10px]"
-                        >
-                            Close
-                        </button>
-                    </div>
-                    <div className="space-y-1">
-                        <p>1. Pause video where you want the area.</p>
-                        <p>2. Click on the video to add points (at least 3–4).</p>
-                        <p>3. Click “Log coords” and send me the array + video id.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => {
-                                console.log("=== SIMPLE ZONE COORDS ===");
-                                console.log("coords:", JSON.stringify(simplePoints));
-                                console.log("Point count:", simplePoints.length / 2);
-                                console.log("Copy this coords array and tell me which video id it belongs to.");
-                                alert("Coords logged to console. Open DevTools → Console to copy them.");
-                            }}
-                            disabled={simplePoints.length < 6}
-                            className={`px-3 py-1 rounded text-[11px] font-semibold ${
-                                simplePoints.length < 6
-                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                    : "bg-emerald-500 text-white hover:bg-emerald-600"
-                            }`}
-                        >
-                            Log coords
-                        </button>
-                        <button
-                            onClick={() => setSimplePoints([])}
-                            disabled={simplePoints.length === 0}
-                            className={`px-2 py-1 rounded text-[11px] font-semibold ${
-                                simplePoints.length === 0
-                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                    : "bg-gray-800 text-white hover:bg-black"
-                            }`}
-                        >
-                            Clear
-                        </button>
-                    </div>
-                    <div className="text-[10px] text-gray-600">
-                        Points: {simplePoints.length / 2}
-                    </div>
-                </div>
-            )}
-
-            {/* TOGGLE BUTTON FOR SIMPLE ZONE EDITOR (temporary tooling – visible now in prod too) */}
-            {(
-                <button
-                    type="button"
-                    onClick={() => {
-                        setIsSimpleZoneEditor((prev) => !prev);
-                        setSimplePoints([]);
-                    }}
-                    className="absolute top-4 right-4 z-40 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-black/70 text-white hover:bg-black transition shadow-lg"
-                >
-                    {isSimpleZoneEditor ? "Close Zone Editor" : "Open Zone Editor"}
-                </button>
-            )}
+            {/* SIMPLE ZONE EDITOR PANEL & TOGGLE (temporary) – disabled for now */}
 
             {/* --- VIDEO LAYERS --- */}
             <div 
