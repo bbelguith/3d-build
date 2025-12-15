@@ -673,6 +673,26 @@ export default function VideoPlayer({ videos = [] }) {
         : [];
     const hasZonesForCurrentVideo = zonesForCurrentVideo.length > 0;
 
+    // Master "zones" video (the one that shows the frame with clickable areas)
+    const zonesMasterConfig = useMemo(
+        () => clickableZones.find(z => z.videoId),
+        []
+    );
+    const isOnZonesVideo = !!(
+        zonesMasterConfig &&
+        currentVideo &&
+        currentVideo.id === zonesMasterConfig.videoId
+    );
+
+    const handleGoToZonesVideo = () => {
+        if (!zonesMasterConfig) return;
+        const targetIndex = videos.findIndex(v => v.id === zonesMasterConfig.videoId);
+        if (targetIndex === -1 || !videos[targetIndex]) return;
+
+        setIsInterior(false);
+        playVideo(videos[targetIndex].src, targetIndex, false, false);
+    };
+
     // --- STYLES (Matching Navbar) ---
     // The "Glass" container
     const glassContainer = "bg-[#4a6fa5]/60 backdrop-blur-md border border-[#fcd34d]/60 shadow-lg flex items-center h-10";
@@ -1028,6 +1048,17 @@ export default function VideoPlayer({ videos = [] }) {
                             className={`rounded-full px-5 h-full text-xs font-bold tracking-wider uppercase transition-all ${isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"} ${(!isLastVideo && !isInterior) || isTransitioning ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             Interior
+                        </button>
+                    </div>
+
+                    {/* GROUP 1.5: PEEK A HOUSE (Jump to zones video) */}
+                    <div className={`${glassContainer} rounded-full overflow-hidden`}>
+                        <button
+                            onClick={handleGoToZonesVideo}
+                            disabled={!zonesMasterConfig || isOnZonesVideo || isTransitioning}
+                            className={`${btnBase} ${(!zonesMasterConfig || isOnZonesVideo || isTransitioning) ? btnDisabled : btnInactive}`}
+                        >
+                            Peek a house
                         </button>
                     </div>
 
