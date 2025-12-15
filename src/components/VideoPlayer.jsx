@@ -96,7 +96,7 @@ export default function VideoPlayer({ videos = [] }) {
             attachToIndex: 0, // show on last frame of FIRST video in the list
             // Manual adjustment knobs for fine‑tuning position (in video pixels)
             offsetX: 0,  // + moves area to the right, - moves to the left
-            offsetY: -130, // + moves area down, - moves up
+            offsetY: -128, // + moves area down, - moves up
         },
     ];
     
