@@ -40,6 +40,7 @@ const ToggleSwitch = ({ checked, onChange, disabled }) => (
 
 const Dashboard = ({ email }) => {
   const navigate = useNavigate();
+  const apiBase = import.meta.env.VITE_API_BASE || "";
 
   // 1. DATA STATE
   const [houseList, setHouseList] = useState([]);
@@ -57,7 +58,6 @@ const Dashboard = ({ email }) => {
 
   // --- FETCH DATA ---
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_BASE || "";
     const fetchData = async () => {
       try {
         const [housesRes, commentsRes] = await Promise.all([
