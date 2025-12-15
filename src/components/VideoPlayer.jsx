@@ -97,6 +97,8 @@ export default function VideoPlayer({ videos = [] }) {
             // Manual adjustment knobs for fine‑tuning position (in video pixels)
             offsetX: -2,  // + moves area to the right, - moves to the left
             offsetY: -128, // + moves area down, - moves up
+            // Optional: when set, clicking this zone/button jumps to that video id
+            // targetVideoId: 5,
         },
     ];
     
@@ -917,6 +919,7 @@ export default function VideoPlayer({ videos = [] }) {
                                     }
                                     const centerX = xCoords.reduce((a, b) => a + b, 0) / xCoords.length;
                                     const centerY = yCoords.reduce((a, b) => a + b, 0) / yCoords.length;
+                                    const minY = Math.min(...yCoords);
 
                                     const isHovered = hoveredZone === zone.id;
                                     const isPeekZone = zone.id === 4;
@@ -935,6 +938,14 @@ export default function VideoPlayer({ videos = [] }) {
                                                 onMouseEnter={() => setHoveredZone(zone.id)}
                                                 onMouseLeave={() => setHoveredZone(null)}
                                                 onClick={() => {
+                                                    // Prefer targetVideoId when set, otherwise fallback to interior for peek zone
+                                                    if (zone.targetVideoId) {
+                                                        const targetIndex = videos.findIndex(v => v.id === zone.targetVideoId);
+                                                        if (targetIndex !== -1) {
+                                                            playVideo(videos[targetIndex].src, targetIndex, false, false);
+                                                            return;
+                                                        }
+                                                    }
                                                     if (isPeekZone) {
                                                         handleGoToInterior();
                                                     } else {
@@ -945,9 +956,18 @@ export default function VideoPlayer({ videos = [] }) {
 
                                             {/* Label tooltip / button */}
                                             {isPeekZone ? (
-                                                // Always-visible "See interior" button for this area
+                                                // Always-visible "See interior" button for this area, positioned above the zone
                                                 <g
-                                                    onClick={handleGoToInterior}
+                                                    onClick={() => {
+                                                        if (zone.targetVideoId) {
+                                                            const targetIndex = videos.findIndex(v => v.id === zone.targetVideoId);
+                                                            if (targetIndex !== -1) {
+                                                                playVideo(videos[targetIndex].src, targetIndex, false, false);
+                                                                return;
+                                                            }
+                                                        }
+                                                        handleGoToInterior();
+                                                    }}
                                                     style={{ cursor: 'pointer', pointerEvents: 'all' }}
                                                 >
                                                     <defs>
@@ -958,7 +978,7 @@ export default function VideoPlayer({ videos = [] }) {
                                                     </defs>
                                                     <rect
                                                         x={centerX - 140}
-                                                        y={centerY - 72}
+                                                        y={minY - 88}  // above the top edge of the zone
                                                         width="280"
                                                         height="72"
                                                         rx="18"
@@ -969,7 +989,7 @@ export default function VideoPlayer({ videos = [] }) {
                                                         filter="url(#shadow-medium)`" />
                                                     <text
                                                         x={centerX}
-                                                        y={centerY - 24}
+                                                        y={minY - 88 + 40}
                                                         textAnchor="middle"
                                                         fill="#0f172a"
                                                         fontSize="18"
