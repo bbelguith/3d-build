@@ -1005,7 +1005,8 @@ export default function VideoPlayer({ videos = [] }) {
                                                         filter="url(#shadow-medium)`" />
                                                     <text
                                                         x={centerX}
-                                                        y={centerY - 14}
+                                                        // Vertically center the label text inside the 60px-high box
+                                                        y={centerY - 10}
                                                         textAnchor="middle"
                                                         fill="#0f172a"
                                                         fontSize="28"
