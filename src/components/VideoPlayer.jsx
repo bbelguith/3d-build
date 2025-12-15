@@ -938,7 +938,14 @@ export default function VideoPlayer({ videos = [] }) {
                                                         // TEMP: disable all navigation until all videos are configured
                                                         console.log("See Interior button clicked (navigation disabled until all videos are configured).");
                                                     }}
-                                                    style={{ cursor: 'default', pointerEvents: 'all' }}
+                                                    onMouseEnter={() => setIsPeekButtonHovered(true)}
+                                                    onMouseLeave={() => {
+                                                        setIsPeekButtonHovered(false);
+                                                        setIsPeekButtonActive(false);
+                                                    }}
+                                                    onMouseDown={() => setIsPeekButtonActive(true)}
+                                                    onMouseUp={() => setIsPeekButtonActive(false)}
+                                                    style={{ cursor: 'pointer', pointerEvents: 'all' }}
                                                 >
                                                     <defs>
                                                         <linearGradient id={`zone-button-${zone.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
@@ -952,17 +959,24 @@ export default function VideoPlayer({ videos = [] }) {
                                                         width="280"
                                                         height="72"
                                                         rx="18"
-                                                        fill={`url(#zone-button-${zone.id})`}
-                                                        stroke="#fcd34d"
-                                                        strokeWidth="2.8"
-                                                        opacity="0.98"
+                                                        fill={
+                                                            isPeekButtonActive
+                                                                ? "#f59e0b" // strong orange on click
+                                                                : isPeekButtonHovered
+                                                                    ? "#fef3c7" // warm highlight on hover
+                                                                    : `url(#zone-button-${zone.id})`
+                                                        }
+                                                        stroke={isPeekButtonActive ? "#b45309" : isPeekButtonHovered ? "#fbbf24" : "#fcd34d"}
+                                                        strokeWidth={isPeekButtonActive ? "4" : isPeekButtonHovered ? "3.2" : "2.8"}
+                                                        opacity={isPeekButtonActive ? "0.96" : isPeekButtonHovered ? "1" : "0.98"}
+                                                        transform={isPeekButtonActive ? "translate(0,3)" : isPeekButtonHovered ? "translate(0,-1)" : "translate(0,0)"}
                                                         filter="url(#shadow-medium)`" />
                                                     <text
                                                         x={centerX}
                                                         y={minY - 88 + 40}
                                                         textAnchor="middle"
                                                         fill="#0f172a"
-                                                        fontSize="18"
+                                                        fontSize={isPeekButtonActive ? 22 : isPeekButtonHovered ? 20 : 18}
                                                         fontWeight="900"
                                                         className="pointer-events-none tracking-widest"
                                                     >
