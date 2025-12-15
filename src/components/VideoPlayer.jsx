@@ -828,6 +828,20 @@ export default function VideoPlayer({ videos = [] }) {
                 </div>
             )}
 
+            {/* TOGGLE BUTTON FOR SIMPLE ZONE EDITOR (temporary tooling – visible now in prod too) */}
+            {(
+                <button
+                    type="button"
+                    onClick={() => {
+                        setIsSimpleZoneEditor((prev) => !prev);
+                        setSimplePoints([]);
+                    }}
+                    className="absolute top-4 right-4 z-40 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-black/70 text-white hover:bg-black transition shadow-lg"
+                >
+                    {isSimpleZoneEditor ? "Close Zone Editor" : "Open Zone Editor"}
+                </button>
+            )}
+
             {/* --- VIDEO LAYERS --- */}
             <div 
                 ref={videoDisplayRef}
