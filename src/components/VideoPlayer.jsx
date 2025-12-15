@@ -101,7 +101,7 @@ export default function VideoPlayer({ videos = [] }) {
             offsetX: -2,  // + moves area to the right, - moves to the left
             offsetY: -128, // + moves area down, - moves up
             // Optional: when set, clicking this zone/button jumps to that video id
-             targetVideoId: 4,
+            targetVideoId: 4,
         },
     ];
     
@@ -120,26 +120,8 @@ export default function VideoPlayer({ videos = [] }) {
     // Handle zone click - hook for navigation / video jump
     const handleZoneClick = (zone) => {
         if (isZoneEditorMode) return; // Block during editor mode
-
-        // EXAMPLE BEHAVIOUR (you can customise this):
-        // 1) If zone.targetVideoId is set, jump to that video in the current list
-        // 2) Else if zone.targetRoute is set, navigate to that route
-        // 3) Else just log (current behaviour)
-
-        if (zone.targetVideoId) {
-            const targetIndex = videos.findIndex(v => v.id === zone.targetVideoId);
-            if (targetIndex !== -1) {
-                playVideo(videos[targetIndex].src, targetIndex, false, false);
-                return;
-            }
-        }
-
-        if (zone.targetRoute) {
-            navigate(zone.targetRoute);
-            return;
-        }
-
-        console.log(`Bloc ${zone.id} clicked - no target configured yet`);
+        // TEMP: disable all navigation until all videos are ready
+        console.log(`Zone ${zone.id} clicked (navigation disabled until all videos are configured).`);
     };
     
     // Helper function to calculate video display area with object-cover
@@ -940,21 +922,8 @@ export default function VideoPlayer({ videos = [] }) {
                                                 onMouseEnter={() => setHoveredZone(zone.id)}
                                                 onMouseLeave={() => setHoveredZone(null)}
                                                 onClick={() => {
-                                                    // If a target video is configured, jump to it
-                                                    if (zone.targetVideoId) {
-                                                        const targetIndex = videos.findIndex(v => v.id === zone.targetVideoId);
-                                                        if (targetIndex !== -1) {
-                                                            playVideo(videos[targetIndex].src, targetIndex, false, false);
-                                                        }
-                                                        return;
-                                                    }
-                                                    // For the special peek zone with no targetVideoId yet, do nothing
-                                                    if (isPeekZone) {
-                                                        console.log("Peek area clicked, no interior video configured yet.");
-                                                        return;
-                                                    }
-                                                    // Default behaviour for other zones
-                                                    handleZoneClick(zone);
+                                                    // TEMP: disable all navigation until all videos are configured
+                                                    console.log(`Zone ${zone.id} polygon clicked (navigation disabled until all videos are configured).`);
                                                 }}
                                             />
 
@@ -963,17 +932,10 @@ export default function VideoPlayer({ videos = [] }) {
                                                 // Always-visible "See interior" button for this area, positioned above the zone
                                                 <g
                                                     onClick={() => {
-                                                        // Only act when a targetVideoId is configured; otherwise, do nothing
-                                                        if (!zone.targetVideoId) {
-                                                            console.log("See Interior clicked, but no interior video is configured yet.");
-                                                            return;
-                                                        }
-                                                        const targetIndex = videos.findIndex(v => v.id === zone.targetVideoId);
-                                                        if (targetIndex !== -1) {
-                                                            playVideo(videos[targetIndex].src, targetIndex, false, false);
-                                                        }
+                                                        // TEMP: disable all navigation until all videos are configured
+                                                        console.log("See Interior button clicked (navigation disabled until all videos are configured).");
                                                     }}
-                                                    style={{ cursor: zone.targetVideoId ? 'pointer' : 'default', pointerEvents: 'all' }}
+                                                    style={{ cursor: 'default', pointerEvents: 'all' }}
                                                 >
                                                     <defs>
                                                         <linearGradient id={`zone-button-${zone.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
