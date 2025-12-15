@@ -77,6 +77,14 @@ export default function VideoPlayer({ videos = [] }) {
             houseId: 3,
             // videoId: 5,
         },
+        // Example for your new zone (coords you provided) – we'll attach videoId once you tell me it
+        // { 
+        //     id: 4,
+        //     coords: [1631.4294975688817,1185.7893030794166,1701.1345218800648,1157.5753646677472,1701.1345218800648,1131.0210696920583,1810.6709886547812,1081.2317666126419,1916.8881685575366,1165.8735818476498,1913.5688816855754,1238.897893030794,1961.6985413290113,1277.0696920583468,1804.032414910859,1355.072933549433,1634.7487844408429,1185.7893030794166],
+        //     label: "New Area",
+        //     houseId: 4,
+        //     // videoId: 2, // <-- set this to the DB id of the video where this area should appear
+        // },
     ];
     
     // Convert pixel coordinates to percentage coordinates
@@ -866,7 +874,7 @@ export default function VideoPlayer({ videos = [] }) {
                     preload="auto"
                 />
                 
-                {/* Zone Editor Overlay - Shows captured points */}
+                {/* Zone Editor Overlay - Shows captured points (advanced editor) */}
                 {isZoneEditorMode && Object.keys(capturedPoints).length > 0 && (() => {
                     const activeVideo = activeLayer === 0 ? v0.current : v1.current;
                     if (!activeVideo) return null;
@@ -926,6 +934,59 @@ export default function VideoPlayer({ videos = [] }) {
                                                 );
                                             })}
                                         </g>
+                                    );
+                                })}
+                            </svg>
+                        </div>
+                    );
+                })()}
+
+                {/* Simple Zone Editor Overlay - shows polygon for simplePoints */}
+                {isSimpleZoneEditor && simplePoints.length >= 6 && (() => {
+                    const activeVideo = activeLayer === 0 ? v0.current : v1.current;
+                    if (!activeVideo) return null;
+
+                    const displayArea = calculateVideoDisplayArea(activeVideo);
+                    if (!displayArea) return null;
+
+                    const screenPoints = [];
+                    for (let i = 0; i < simplePoints.length; i += 2) {
+                        const adjustedX = simplePoints[i] - displayArea.cropX;
+                        const adjustedY = simplePoints[i + 1] - displayArea.cropY;
+                        const x = (adjustedX * displayArea.scaleX) + displayArea.offsetX;
+                        const y = (adjustedY * displayArea.scaleY) + displayArea.offsetY;
+                        screenPoints.push(`${x},${y}`);
+                    }
+                    if (screenPoints.length < 3) return null;
+
+                    return (
+                        <div className="absolute inset-0 z-30 pointer-events-none">
+                            <svg
+                                className="absolute inset-0 w-full h-full"
+                                style={{ pointerEvents: 'none' }}
+                            >
+                                <polygon
+                                    points={screenPoints.join(' ')}
+                                    fill="rgba(34,197,94,0.18)"
+                                    stroke="#22c55e"
+                                    strokeWidth="3"
+                                />
+                                {simplePoints.map((pt, idx) => {
+                                    if (idx % 2 !== 0) return null;
+                                    const adjustedX = pt - displayArea.cropX;
+                                    const adjustedY = simplePoints[idx + 1] - displayArea.cropY;
+                                    const x = (adjustedX * displayArea.scaleX) + displayArea.offsetX;
+                                    const y = (adjustedY * displayArea.scaleY) + displayArea.offsetY;
+                                    return (
+                                        <circle
+                                            key={idx}
+                                            cx={x}
+                                            cy={y}
+                                            r="5"
+                                            fill="#22c55e"
+                                            stroke="white"
+                                            strokeWidth="2"
+                                        />
                                     );
                                 })}
                             </svg>
