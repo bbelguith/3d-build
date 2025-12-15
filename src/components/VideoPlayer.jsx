@@ -984,38 +984,37 @@ export default function VideoPlayer({ videos = [] }) {
                                                     </text>
                                                 </g>
                                             ) : (
-                                                hoveredZone === zone.id && (
-                                                    <g>
-                                                        <defs>
-                                                            <linearGradient id={`zone-label-${zone.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                                                                <stop offset="0%" stopColor="rgba(255,255,255,0.98)" />
-                                                                <stop offset="100%" stopColor="rgba(236, 245, 255, 0.94)" />
-                                                            </linearGradient>
-                                                        </defs>
-                                                        <rect
-                                                            x={centerX - 140}
-                                                            y={centerY - 72}
-                                                            width="280"
-                                                            height="72"
-                                                            rx="18"
-                                                            fill={`url(#zone-label-${zone.id})`}
-                                                            stroke="#fcd34d"
-                                                            strokeWidth="2.8"
-                                                            opacity="0.98"
-                                                            filter="url(#shadow-medium)`" />
-                                                        <text
-                                                            x={centerX}
-                                                            y={centerY - 24}
-                                                            textAnchor="middle"
-                                                            fill="#0f172a"
-                                                            fontSize="18"
-                                                            fontWeight="900"
-                                                            className="pointer-events-none tracking-widest"
-                                                        >
-                                                            {zone.label.toUpperCase()}
-                                                        </text>
-                                                    </g>
-                                                )
+                                                // Always-visible labels for the 3 main areas
+                                                <g>
+                                                    <defs>
+                                                        <linearGradient id={`zone-label-${zone.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                                                            <stop offset="0%" stopColor="rgba(255,255,255,0.98)" />
+                                                            <stop offset="100%" stopColor="rgba(236, 245, 255, 0.94)" />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <rect
+                                                        x={centerX - 160}
+                                                        y={centerY - 40}
+                                                        width="320"
+                                                        height="60"
+                                                        rx="20"
+                                                        fill={`url(#zone-label-${zone.id})`}
+                                                        stroke="#fcd34d"
+                                                        strokeWidth="3.2"
+                                                        opacity="0.98"
+                                                        filter="url(#shadow-medium)`" />
+                                                    <text
+                                                        x={centerX}
+                                                        y={centerY - 14}
+                                                        textAnchor="middle"
+                                                        fill="#0f172a"
+                                                        fontSize="28"
+                                                        fontWeight="900"
+                                                        className="pointer-events-none tracking-widest"
+                                                    >
+                                                        {zone.label.toUpperCase()}
+                                                    </text>
+                                                </g>
                                             )}
                                         </g>
                                     );
