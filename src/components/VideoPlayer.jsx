@@ -994,7 +994,7 @@ export default function VideoPlayer({ videos = [] }) {
                                                     </defs>
                                                     <rect
                                                         x={centerX - 160}
-                                                        y={centerY - 40}
+                                                        y={centerY - 30}
                                                         width="320"
                                                         height="60"
                                                         rx="20"
@@ -1005,8 +1005,7 @@ export default function VideoPlayer({ videos = [] }) {
                                                         filter="url(#shadow-medium)`" />
                                                     <text
                                                         x={centerX}
-                                                        // Vertically center the label text inside the 60px-high box
-                                                        y={centerY - 10}
+                                                        y={centerY + 2}
                                                         textAnchor="middle"
                                                         fill="#0f172a"
                                                         fontSize="28"
