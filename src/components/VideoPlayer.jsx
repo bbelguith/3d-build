@@ -34,8 +34,8 @@ export default function VideoPlayer({ videos = [] }) {
     const [capturedPoints, setCapturedPoints] = useState({});
     const [videoDisplayRect, setVideoDisplayRect] = useState(null);
 
-    // Simple ad‑hoc zone editor (for capturing raw coords for you) – now disabled
-    const [isSimpleZoneEditor] = useState(false);
+    // Simple ad‑hoc zone editor (for capturing raw coords for you)
+    const [isSimpleZoneEditor, setIsSimpleZoneEditor] = useState(false);
     const [simplePoints, setSimplePoints] = useState([]);
 
     const v0 = useRef(null);
@@ -787,7 +787,72 @@ export default function VideoPlayer({ videos = [] }) {
             )}
 
 
-            {/* SIMPLE ZONE EDITOR PANEL & TOGGLE (temporary) – disabled for now */}
+            {/* SIMPLE ZONE EDITOR PANEL & TOGGLE (temporary, for capturing clean coords) */}
+            {isSimpleZoneEditor && (
+                <div className="absolute top-4 left-4 z-50 bg-white/90 backdrop-blur-md rounded-lg p-3 shadow-lg border border-gray-300 text-xs text-gray-800 space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="font-bold uppercase tracking-widest text-[10px] text-gray-500">
+                            SIMPLE ZONE EDITOR
+                        </span>
+                        <button
+                            onClick={() => setIsSimpleZoneEditor(false)}
+                            className="px-2 py-1 rounded bg-red-500 text-white font-semibold hover:bg-red-600 text-[10px]"
+                        >
+                            Close
+                        </button>
+                    </div>
+                    <div className="space-y-1">
+                        <p>1. Pause video where you want the area.</p>
+                        <p>2. Click on the video to add points (at least 3–4).</p>
+                        <p>3. Click “Log coords” and share them with me + the video id.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                console.log("=== SIMPLE ZONE COORDS ===");
+                                console.log("coords:", JSON.stringify(simplePoints));
+                                console.log("Point count:", simplePoints.length / 2);
+                                console.log("Copy this coords array and tell me which video id it belongs to.");
+                                alert("Coords logged to console. Open DevTools → Console to copy them.");
+                            }}
+                            disabled={simplePoints.length < 6}
+                            className={`px-3 py-1 rounded text-[11px] font-semibold ${
+                                simplePoints.length < 6
+                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                    : "bg-emerald-500 text-white hover:bg-emerald-600"
+                            }`}
+                        >
+                            Log coords
+                        </button>
+                        <button
+                            onClick={() => setSimplePoints([])}
+                            disabled={simplePoints.length === 0}
+                            className={`px-2 py-1 rounded text-[11px] font-semibold ${
+                                simplePoints.length === 0
+                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                    : "bg-gray-800 text-white hover:bg-black"
+                            }`}
+                        >
+                            Clear
+                        </button>
+                    </div>
+                    <div className="text-[10px] text-gray-600">
+                        Points: {simplePoints.length / 2}
+                    </div>
+                </div>
+            )}
+
+            {/* Toggle button for simple zone editor */}
+            <button
+                type="button"
+                onClick={() => {
+                    setIsSimpleZoneEditor(prev => !prev);
+                    setSimplePoints([]);
+                }}
+                className="absolute top-4 right-4 z-40 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-black/70 text-white hover:bg-black transition shadow-lg"
+            >
+                {isSimpleZoneEditor ? "Close Zone Editor" : "Open Zone Editor"}
+            </button>
 
             {/* --- VIDEO LAYERS --- */}
             <div 
