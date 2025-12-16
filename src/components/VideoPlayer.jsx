@@ -28,6 +28,7 @@ export default function VideoPlayer({ videos = [] }) {
     const [isPeekButtonHovered, setIsPeekButtonHovered] = useState(false);
     const [isPeekButtonActive, setIsPeekButtonActive] = useState(false);
     const [showArrowHint, setShowArrowHint] = useState(true);
+    const [hasVideoEnded, setHasVideoEnded] = useState(false);
     
     // Advanced zone editor state (existing)
     const [isZoneEditorMode, setIsZoneEditorMode] = useState(false);
@@ -389,6 +390,8 @@ export default function VideoPlayer({ videos = [] }) {
         if (isTransitioning) return;
         
         setIsTransitioning(true);
+        setShowClickableZones(false);
+        setHasVideoEnded(false);
         
         const nextLayer = activeLayer === 0 ? 1 : 0;
         const showEl = nextLayer === 0 ? v0.current : v1.current;
@@ -457,8 +460,9 @@ export default function VideoPlayer({ videos = [] }) {
                     showEl.pause();
                     if (showEl.duration) {
                         showEl.currentTime = showEl.duration - 0.05;
-                        setShowClickableZones(true); // Show zones when video ends
                     }
+                    setHasVideoEnded(true);
+                    setShowClickableZones(true); // Show zones when video ends
                 }
             };
         } else {
@@ -654,12 +658,11 @@ export default function VideoPlayer({ videos = [] }) {
                 });
 
                 // Check if we're on the last frame of the current video (within last 0.5 seconds)
-                const isLastFrame = activeVideo.duration && activeVideo.currentTime >= activeVideo.duration - 0.5;
+                const isLastFrame = activeVideo.duration && activeVideo.currentTime >= activeVideo.duration - 0.35;
                 
-                if (hasZonesForCurrentVideo && isLastFrame && !isInterior) {
-                    setShowClickableZones(true);
-                } else if (activeVideo.currentTime < activeVideo.duration - 1) {
-                    setShowClickableZones(false);
+                if (!hasVideoEnded && hasZonesForCurrentVideo && isLastFrame && !isInterior) {
+                    setHasVideoEnded(true);
+                    setShowClickableZones(true); // show once at end without hiding again
                 }
             }
         };
@@ -671,7 +674,7 @@ export default function VideoPlayer({ videos = [] }) {
                 activeVideo.removeEventListener('timeupdate', updateTime);
             }
         };
-    }, [current, activeLayer, isInterior, videos.length]);
+    }, [current, activeLayer, isInterior, videos.length, hasVideoEnded]);
     
     // Add/remove body class to hide navbar buttons when zone editor is active
     useEffect(() => {
