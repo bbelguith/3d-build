@@ -56,6 +56,11 @@ export default function VideoPlayer({ videos = [] }) {
     //   If omitted, the zone will be treated as attached to "the last video"
     //   for backwards compatibility. For new zones, ALWAYS set videoId so
     //   adding videos later won't break the mapping.
+    // Tuning knobs for the newly added custom area (videoId 3)
+    // Adjust these to nudge the whole polygon left/right/up/down without redrawing
+    const CUSTOM_AREA_OFFSET_X = 0; // + moves right, - moves left
+    const CUSTOM_AREA_OFFSET_Y = -30; // + moves down, - moves up
+
     const clickableZones = [
         { 
             id: 1, 
@@ -126,8 +131,8 @@ export default function VideoPlayer({ videos = [] }) {
             label: "", // render SEE INTERIOR button
             houseId: 1,
             videoId: 3,
-            offsetX: 0,
-            offsetY: 0,
+            offsetX: CUSTOM_AREA_OFFSET_X,
+            offsetY: CUSTOM_AREA_OFFSET_Y,
         },
     ];
     
