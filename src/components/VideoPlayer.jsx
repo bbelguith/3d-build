@@ -1189,19 +1189,14 @@ export default function VideoPlayer({ videos = [] }) {
                         {/* Next Button (always an arrow, even on last video) */}
                         <div className="relative">
                             {showArrowHint && (
-                                <>
-                                    <span className="absolute -inset-4 rounded-full bg-[#fcd34d]/25 blur-lg animate-pulse pointer-events-none" />
-                                    <span className="absolute -top-16 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-[#f97316] to-[#fcd34d] text-[11px] font-semibold text-slate-900 shadow-lg whitespace-nowrap">
-                                        Start here →
-                                    </span>
-                                    <span className="absolute -top-14 left-1/2 -translate-x-1/2 h-4 w-4 rounded-full bg-[#fcd34d] animate-ping pointer-events-none" />
-                                    <span className="absolute -top-14 left-1/2 -translate-x-1/2 h-4 w-4 rounded-full bg-[#fbbf24] shadow-lg pointer-events-none" />
-                                </>
+                                <span className="absolute -top-14 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-[#f97316] to-[#fcd34d] text-[11px] font-semibold text-slate-900 shadow-lg whitespace-nowrap">
+                                    Tap to play →
+                                </span>
                             )}
                             <button
                                 onClick={isLastVideo ? handleRestart : handleNext}
                                 disabled={isTransitioning}
-                                className={`${btnArrow} ${isTransitioning ? btnArrowDisabled : ""}`}
+                                className={`${btnArrow} ${isTransitioning ? btnArrowDisabled : ""} ${showArrowHint ? "animate-pulse ring-4 ring-[#fcd34d]/40" : ""}`}
                                 aria-label="Play next video"
                             >
                                 <ChevronRight className="w-6 h-6" />
