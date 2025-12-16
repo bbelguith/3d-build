@@ -1074,7 +1074,75 @@ export default function VideoPlayer({ videos = [] }) {
             </div>
 
             {/* --- ZONE EDITOR UI (Enabled for manual polygon capture) --- */}
-            {/* Zone editor disabled */}
+            {/* Hidden by default; set SHOW_ZONE_EDITOR = true to reveal in future */}
+            {false && !isSimpleZoneEditor && !isMobile && (
+                <div className="absolute top-4 right-4 z-50 bg-white/90 backdrop-blur-md rounded-lg p-4 shadow-lg border border-gray-300">
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-sm font-bold text-gray-800">Zone Editor</h3>
+                            <button
+                                onClick={() => {
+                                    setIsZoneEditorMode(!isZoneEditorMode);
+                                    setEditingZoneId(null);
+                                    setCapturedPoints({});
+                                }}
+                                className="px-3 py-1 text-xs font-semibold rounded bg-blue-500 text-white hover:bg-blue-600"
+                            >
+                                {isZoneEditorMode ? 'Exit Editor' : 'Enable Editor'}
+                            </button>
+                        </div>
+                        
+                        {isZoneEditorMode && (
+                            <>
+                                <div className="text-xs text-gray-600 mb-2">
+                                    Click “Start new area”, then click points on the video to outline it. When done, click “Finish & log” to output coordinates in the console.
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => {
+                                            const tempId = 'custom';
+                                            if (editingZoneId === tempId) {
+                                                finishEditingZone();
+                                            } else {
+                                                startEditingZone(tempId);
+                                            }
+                                        }}
+                                        className={`px-3 py-1 text-xs font-semibold rounded ${editingZoneId ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                    >
+                                        {editingZoneId ? 'Finish & log' : 'Start new area'}
+                                    </button>
+                                    {capturedPoints['custom'] && capturedPoints['custom'].length > 0 && (
+                                        <>
+                                            <span className="text-xs text-gray-600">
+                                                ({capturedPoints['custom'].length / 2} points)
+                                            </span>
+                                            <button
+                                                onClick={() => clearZonePoints('custom')}
+                                                className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                                            >
+                                                Clear
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                                {editingZoneId && (
+                                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                                        Click on the video to mark points. Click “Finish & log” when done.
+                                    </div>
+                                )}
+                                
+                                <button
+                                    onClick={applyTransformation}
+                                    disabled={Object.keys(capturedPoints).length === 0 || Object.values(capturedPoints).some(p => p.length === 0)}
+                                    className="mt-2 px-4 py-2 text-sm font-bold bg-purple-500 text-white rounded hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                >
+                                    Calculate & Log Adjusted Coordinates
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* --- CONTROLS --- (hidden on mobile when not in fullscreen) */}
             {(!isMobile || isMobileFullscreen) && (

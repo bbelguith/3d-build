@@ -20,7 +20,7 @@ export const videos = [
     title: "v5"
   },
   {
-    src: "https://res.cloudinary.com/dueoeevmz/video/upload/f_auto,q_auto,vc_h265/v1765900202/last7_y0j61h.mp4",
+    src: "https://res.cloudinary.com/dueoeevmz/video/upload/f_auto,q_auto,vc_h265/v1765900911/lastved_glilfz.mp4",
     title: "v6"
   },
 
