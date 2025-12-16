@@ -949,6 +949,15 @@ export default function VideoPlayer({ videos = [] }) {
 
                                     const isHovered = hoveredZone === zone.id;
                                     const isPeekZone = zone.id === 4 || zone.id === 5;
+                                    const buttonScale = isMobile ? 1.6 : 1;
+                                    const btnWidth = 280 * buttonScale;
+                                    const btnHeight = 72 * buttonScale;
+                                    const btnRx = 18 * buttonScale;
+                                    const btnYOffset = 88 * buttonScale;
+                                    const fontBase = isMobile ? 28 : 18;
+                                    const fontHover = fontBase + 2;
+                                    const fontActive = fontBase + 4;
+
                                     return (
                                         <g key={zone.id}>
                                             <polygon
@@ -993,11 +1002,11 @@ export default function VideoPlayer({ videos = [] }) {
                                                         </linearGradient>
                                                     </defs>
                                                     <rect
-                                                        x={centerX - 140}
-                                                        y={minY - 88}  // above the top edge of the zone
-                                                        width="280"
-                                                        height="72"
-                                                        rx="18"
+                                                        x={centerX - btnWidth / 2}
+                                                        y={minY - btnYOffset}  // above the top edge of the zone
+                                                        width={btnWidth}
+                                                        height={btnHeight}
+                                                        rx={btnRx}
                                                         fill={
                                                             isPeekButtonActive
                                                                 ? "#f59e0b" // strong orange on click
@@ -1012,10 +1021,10 @@ export default function VideoPlayer({ videos = [] }) {
                                                         filter="url(#shadow-medium)`" />
                                                     <text
                                                         x={centerX}
-                                                        y={minY - 88 + 40}
+                                                        y={minY - btnYOffset + (btnHeight / 2) + 4}
                                                         textAnchor="middle"
                                                         fill="#0f172a"
-                                                        fontSize={isPeekButtonActive ? 22 : isPeekButtonHovered ? 20 : 18}
+                                                        fontSize={isPeekButtonActive ? fontActive : isPeekButtonHovered ? fontHover : fontBase}
                                                         fontWeight="900"
                                                         className="pointer-events-none tracking-widest"
                                                     >
