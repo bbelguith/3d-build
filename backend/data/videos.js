@@ -8,7 +8,7 @@ export const videos = [
     title: "v2"
   },
   {
-    src: "https://res.cloudinary.com/dueoeevmz/video/upload/f_auto,q_auto,vc_h265/v1765893532/3fix_ak3exq.mp4",
+    src: "https://res.cloudinary.com/dueoeevmz/video/upload/f_auto,q_auto,vc_h265/v1765900157/3refix_aydav8.mp4",
     title: "v3"
   },
   {
@@ -20,7 +20,7 @@ export const videos = [
     title: "v5"
   },
   {
-    src: "https://res.cloudinary.com/dueoeevmz/video/upload/f_auto,q_auto,vc_h265/v1765893532/3fix_ak3exq.mp4",
+    src: "https://res.cloudinary.com/dueoeevmz/video/upload/f_auto,q_auto,vc_h265/v1765900202/last7_y0j61h.mp4",
     title: "v6"
   },
 
