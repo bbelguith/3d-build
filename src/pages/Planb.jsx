@@ -17,7 +17,6 @@ export default function Plan() {
 
     // 1. STATE
     const [houses, setHouses] = useState([]);
-    const [houseImages, setHouseImages] = useState([]);
     const [roomImages, setRoomImages] = useState([]);
     const [galleryImages, setGalleryImages] = useState([]);
     const [floorPlanImages, setFloorPlanImages] = useState([]);
@@ -33,16 +32,14 @@ export default function Plan() {
         const apiBase = import.meta.env.VITE_API_BASE || "";
         const fetchAllData = async () => {
             try {
-                const [housesRes, hImgRes, rImgRes, gImgRes, fImgRes] = await Promise.all([
+                const [housesRes, rImgRes, gImgRes, fImgRes] = await Promise.all([
                     axios.get(`${apiBase}/api/houses`),
-                    axios.get(`${apiBase}/api/house-images`),
                     axios.get(`${apiBase}/api/room-images`),
                     axios.get(`${apiBase}/api/gallery-images`),
                     axios.get(`${apiBase}/api/floor-images`),
                 ]);
 
                 setHouses(housesRes.data);
-                setHouseImages(hImgRes.data);
                 setRoomImages(rImgRes.data);
                 setGalleryImages(gImgRes.data);
                 setFloorPlanImages(fImgRes.data);
@@ -124,10 +121,6 @@ export default function Plan() {
     // Determine currently selected house
     const currentHouse = activeHouses[currentIdx];
     const currentActiveId = hoveredHouseId ?? (currentHouse ? currentHouse.id : null);
-
-    // Images logic
-    const currentImageObj = houseImages.find((img) => img.houseId === currentActiveId);
-    const currentImage = currentImageObj?.src ?? "https://res.cloudinary.com/dzbmwlwra/image/upload/f_auto,q_auto/v1762360930/49ba186a-621c-4825-859e-ff097bec92c5_rdji7t.jpg";
 
     const currentRoomImages = roomImages.map((img) => img.src);
     const currentGalleryImages = galleryImages.map((img) => img.src);
