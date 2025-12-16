@@ -657,10 +657,10 @@ export default function VideoPlayer({ videos = [] }) {
                     return isLastVideoFallback;
                 });
 
-                // Check if we're on the last frame of the current video (within last 0.5 seconds)
-                const isLastFrame = activeVideo.duration && activeVideo.currentTime >= activeVideo.duration - 0.35;
+                // Check if we're on the last frame of the current video (within last 0.15 seconds)
+                const isLastFrame = activeVideo.duration && activeVideo.currentTime >= activeVideo.duration - 0.15;
                 
-                if (!hasVideoEnded && hasZonesForCurrentVideo && isLastFrame && !isInterior) {
+                if (!hasVideoEnded && hasZonesForCurrentVideo && isLastFrame && !isInterior && !isTransitioning) {
                     setHasVideoEnded(true);
                     setShowClickableZones(true); // show once at end without hiding again
                 }
