@@ -59,7 +59,7 @@ export default function VideoPlayer({ videos = [] }) {
     // Tuning knobs for the newly added custom area (videoId 3)
     // Adjust these to nudge the whole polygon left/right/up/down without redrawing
     const CUSTOM_AREA_OFFSET_X = 0; // + moves right, - moves left
-    const CUSTOM_AREA_OFFSET_Y = -120; // + moves down, - moves up
+    const CUSTOM_AREA_OFFSET_Y = -130; // + moves down, - moves up
 
     const clickableZones = [
         { 
