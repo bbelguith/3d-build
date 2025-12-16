@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
     ChevronLeft,
     ChevronRight,
-    RotateCcw,
     Home,
     Map,
     Play,
@@ -463,12 +462,36 @@ export default function VideoPlayer({ videos = [] }) {
     };
 
     // --- 3. HANDLERS ---
+    // Find a video by its DB id, fallback to the 2nd video, then the first
+    const findVideoIndexById = (targetId) => {
+        if (!videos || !videos.length) return -1;
+        const normalizedId = Number(targetId);
+        const matchById = videos.findIndex(v => Number(v.id) === normalizedId);
+        if (matchById !== -1) return matchById;
+        if (videos.length > 1) return 1; // fallback to video #2 when id is missing
+        return 0;
+    };
+
+    const playVideoById = (targetId) => {
+        const targetIndex = findVideoIndexById(targetId);
+        if (targetIndex < 0 || !videos[targetIndex]) return;
+        setIsInterior(false);
+        playVideo(videos[targetIndex].src, targetIndex, false);
+    };
+
     const handleNext = () => {
         if (isTransitioning) return; // Block if transitioning
+
+        const atLastVideo = current === videos.length - 1;
+        if (atLastVideo) {
+            playVideoById(2); // Loop back to the video whose DB id is 2
+            return;
+        }
+
         if (isReversed) {
             playVideo(videos[current].src, current, false);
         } else {
-            const nextIndex = (current + 1) % videos.length;
+            const nextIndex = Math.min(current + 1, videos.length - 1);
             playVideo(videos[nextIndex].src, nextIndex, false);
         }
     };
@@ -485,8 +508,7 @@ export default function VideoPlayer({ videos = [] }) {
 
     const handleRestart = () => {
         if (isTransitioning) return; // Block if transitioning
-        setIsInterior(false);
-        playVideo(videos[0].src, 0, false);
+        playVideoById(2); // Always jump to the video whose DB id is 2
     };
 
     const handleGoToInterior = () => {
@@ -711,12 +733,15 @@ export default function VideoPlayer({ videos = [] }) {
     // --- STYLES (Matching Navbar) ---
     // The "Glass" container
     const glassContainer = "bg-[#4a6fa5]/60 backdrop-blur-md border border-[#fcd34d]/60 shadow-lg flex items-center h-10";
+    const glassContainerNav = "bg-[#4a6fa5]/70 backdrop-blur-md border border-[#fcd34d]/80 shadow-xl flex items-center h-12 px-1";
 
     // Buttons
     const btnBase = "h-full px-4 text-xs font-bold tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap";
     const btnActive = "bg-white text-slate-900";
     const btnInactive = "text-white hover:bg-white/10 hover:text-[#fcd34d]";
     const btnDisabled = "text-white/30 cursor-not-allowed";
+    const btnArrow = "w-12 h-12 rounded-full bg-white text-slate-900 shadow-xl border border-white/60 transition-all duration-200 flex items-center justify-center hover:scale-105 hover:bg-[#fcd34d] hover:text-slate-900";
+    const btnArrowDisabled = "opacity-50 cursor-not-allowed hover:scale-100 hover:bg-white";
 
     // Dividers
     const separator = "w-[1px] h-5 bg-[#fcd34d]/40";
@@ -1173,43 +1198,35 @@ export default function VideoPlayer({ videos = [] }) {
                     </div>
 
                     {/* GROUP 3: NAVIGATION (Rectangular Segmented Control) */}
-                    <div className={`${glassContainer} rounded-md overflow-hidden`}>
+                    <div className={`${glassContainerNav} rounded-full`}>
                         {/* Prev Button */}
                         <button
                             onClick={handlePrev}
                             disabled={(current === 0 && !isReversed) || isTransitioning}
-                            className={`${btnBase} ${(current === 0 && !isReversed) || isTransitioning ? btnDisabled : btnInactive}`}
+                            className={`${btnArrow} ${((current === 0 && !isReversed) || isTransitioning) ? btnArrowDisabled : ""}`}
+                            aria-label="Play previous video"
                         >
-                            <ChevronLeft className="w-4 h-4" />
+                            <ChevronLeft className="w-5 h-5" />
                         </button>
 
-                        <div className={separator}></div>
+                        <div className={`${separator} h-8`}></div>
 
                         {/* Status / Middle Indicator */}
                         <div className="h-full px-4 flex items-center justify-center text-xs font-bold text-white tracking-widest min-w-[90px]">
                             {isTransitioning ? "LOADING..." : isLastVideo ? "FINISHED" : "PLAYING"}
                         </div>
 
-                        <div className={separator}></div>
+                        <div className={`${separator} h-8`}></div>
 
-                        {/* Next / Replay Button */}
-                        {isLastVideo ? (
-                            <button
-                                onClick={handleRestart}
-                                disabled={isTransitioning}
-                                className={`${btnBase} ${isTransitioning ? btnDisabled : btnInactive}`}
-                            >
-                                <RotateCcw className="w-4 h-4" />
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleNext}
-                                disabled={isTransitioning}
-                                className={`${btnBase} ${isTransitioning ? btnDisabled : btnInactive}`}
-                            >
-                                <ChevronRight className="w-4 h-4" />
-                            </button>
-                        )}
+                        {/* Next Button (always an arrow, even on last video) */}
+                        <button
+                            onClick={isLastVideo ? handleRestart : handleNext}
+                            disabled={isTransitioning}
+                            className={`${btnArrow} ${isTransitioning ? btnArrowDisabled : ""}`}
+                            aria-label="Play next video"
+                        >
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
                     </div>
 
                 </div>
