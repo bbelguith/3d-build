@@ -1055,14 +1055,12 @@ export default function VideoPlayer({ videos = [] }) {
                 })()}
             </div>
 
-            {/* --- ZONE EDITOR UI (Temporary) - COMMENTED OUT FOR FUTURE USE --- */}
-            {/* Uncomment this section when you need to edit zones for other videos/blocs */}
-            {/*
-            {showClickableZones && isLastVideo && !isInterior && !isSimpleZoneEditor && (
+            {/* --- ZONE EDITOR UI (Enabled for manual polygon capture) --- */}
+            {!isSimpleZoneEditor && !isMobile && (
                 <div className="absolute top-4 right-4 z-50 bg-white/90 backdrop-blur-md rounded-lg p-4 shadow-lg border border-gray-300">
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-sm font-bold text-gray-800">Zone Editor (Temporary)</h3>
+                            <h3 className="text-sm font-bold text-gray-800">Zone Editor</h3>
                             <button
                                 onClick={() => {
                                     setIsZoneEditorMode(!isZoneEditorMode);
@@ -1078,10 +1076,10 @@ export default function VideoPlayer({ videos = [] }) {
                         {isZoneEditorMode && (
                             <>
                                 <div className="text-xs text-gray-600 mb-2">
-                                    Click on a zone below to start editing, then click points on the video to mark boundaries.
+                                    Choose a zone, then click points on the video to outline it. Click the same zone again to finish and log the coords.
                                 </div>
                                 
-                                <div className="flex flex-col gap-2">
+                                <div className="flex flex-col gap-2 max-h-48 overflow-auto pr-1">
                                     {clickableZones.map(zone => (
                                         <div key={zone.id} className="flex items-center gap-2">
                                             <button
@@ -1098,7 +1096,7 @@ export default function VideoPlayer({ videos = [] }) {
                                                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                                 }`}
                                             >
-                                                {editingZoneId === zone.id ? `✓ ${zone.label}` : zone.label}
+                                                {editingZoneId === zone.id ? `✓ ${zone.label || `Zone ${zone.id}`}` : (zone.label || `Zone ${zone.id}`)}
                                             </button>
                                             {capturedPoints[zone.id] && capturedPoints[zone.id].length > 0 && (
                                                 <span className="text-xs text-gray-600">
@@ -1136,7 +1134,6 @@ export default function VideoPlayer({ videos = [] }) {
                     </div>
                 </div>
             )}
-            */}
 
             {/* --- CONTROLS --- (hidden on mobile when not in fullscreen) */}
             {(!isMobile || isMobileFullscreen) && (
