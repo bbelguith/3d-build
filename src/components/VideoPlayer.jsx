@@ -1076,49 +1076,39 @@ export default function VideoPlayer({ videos = [] }) {
                         {isZoneEditorMode && (
                             <>
                                 <div className="text-xs text-gray-600 mb-2">
-                                    Choose a zone, then click points on the video to outline it. Click the same zone again to finish and log the coords.
+                                    Click “Start new area”, then click points on the video to outline it. When done, click “Finish & log” to output coordinates in the console.
                                 </div>
-                                
-                                <div className="flex flex-col gap-2 max-h-48 overflow-auto pr-1">
-                                    {clickableZones.map(zone => (
-                                        <div key={zone.id} className="flex items-center gap-2">
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => {
+                                            const tempId = 'custom';
+                                            if (editingZoneId === tempId) {
+                                                finishEditingZone();
+                                            } else {
+                                                startEditingZone(tempId);
+                                            }
+                                        }}
+                                        className={`px-3 py-1 text-xs font-semibold rounded ${editingZoneId ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                    >
+                                        {editingZoneId ? 'Finish & log' : 'Start new area'}
+                                    </button>
+                                    {capturedPoints['custom'] && capturedPoints['custom'].length > 0 && (
+                                        <>
+                                            <span className="text-xs text-gray-600">
+                                                ({capturedPoints['custom'].length / 2} points)
+                                            </span>
                                             <button
-                                                onClick={() => {
-                                                    if (editingZoneId === zone.id) {
-                                                        finishEditingZone();
-                                                    } else {
-                                                        startEditingZone(zone.id);
-                                                    }
-                                                }}
-                                                className={`px-3 py-1 text-xs font-semibold rounded ${
-                                                    editingZoneId === zone.id 
-                                                        ? 'bg-green-500 text-white' 
-                                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                }`}
+                                                onClick={() => clearZonePoints('custom')}
+                                                className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
                                             >
-                                                {editingZoneId === zone.id ? `✓ ${zone.label || `Zone ${zone.id}`}` : (zone.label || `Zone ${zone.id}`)}
+                                                Clear
                                             </button>
-                                            {capturedPoints[zone.id] && capturedPoints[zone.id].length > 0 && (
-                                                <span className="text-xs text-gray-600">
-                                                    ({capturedPoints[zone.id].length / 2} points)
-                                                </span>
-                                            )}
-                                            {capturedPoints[zone.id] && capturedPoints[zone.id].length > 0 && (
-                                                <button
-                                                    onClick={() => clearZonePoints(zone.id)}
-                                                    className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                                                >
-                                                    Clear
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
+                                        </>
+                                    )}
                                 </div>
-                                
                                 {editingZoneId && (
                                     <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                                        <strong>Editing Zone {editingZoneId}:</strong> Click on the video to mark points. 
-                                        Click the same zone button again when done.
+                                        Click on the video to mark points. Click “Finish & log” when done.
                                     </div>
                                 )}
                                 
