@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
     ChevronLeft,
     ChevronRight,
-    Home,
-    Map,
     Play,
     CheckCircle2,
     X
@@ -29,6 +27,7 @@ export default function VideoPlayer({ videos = [] }) {
     // Visual feedback state for the special "SEE INTERIOR" button (zone id 4)
     const [isPeekButtonHovered, setIsPeekButtonHovered] = useState(false);
     const [isPeekButtonActive, setIsPeekButtonActive] = useState(false);
+    const [showArrowHint, setShowArrowHint] = useState(true);
     
     // Advanced zone editor state (existing)
     const [isZoneEditorMode, setIsZoneEditorMode] = useState(false);
@@ -481,6 +480,7 @@ export default function VideoPlayer({ videos = [] }) {
 
     const handleNext = () => {
         if (isTransitioning) return; // Block if transitioning
+        markArrowHintSeen();
 
         const atLastVideo = current === videos.length - 1;
         if (atLastVideo) {
@@ -498,6 +498,7 @@ export default function VideoPlayer({ videos = [] }) {
 
     const handlePrev = () => {
         if (isTransitioning) return; // Block if transitioning
+        markArrowHintSeen();
         if (!isReversed && videos[current]?.reverse) {
             playVideo(videos[current].reverse, current, true);
         } else {
@@ -508,13 +509,8 @@ export default function VideoPlayer({ videos = [] }) {
 
     const handleRestart = () => {
         if (isTransitioning) return; // Block if transitioning
+        markArrowHintSeen();
         playVideoById(2); // Always jump to the video whose DB id is 2
-    };
-
-    const handleGoToInterior = () => {
-        if (isTransitioning) return; // Block if transitioning
-        setIsInterior(true);
-        playVideo(INTERIOR_VIDEO, current, false, true);
     };
 
     const handleBackToExterior = () => {
@@ -704,6 +700,28 @@ export default function VideoPlayer({ videos = [] }) {
         return () => window.removeEventListener('resize', handleResize);
     }, [showClickableZones, isZoneEditorMode, editingZoneId, activeLayer]);
 
+    const markArrowHintSeen = () => {
+        if (showArrowHint) {
+            setShowArrowHint(false);
+            localStorage.setItem("navHintSeen", "true");
+        }
+    };
+
+    // One-time hint on the navigation arrows
+    useEffect(() => {
+        const seen = localStorage.getItem("navHintSeen");
+        if (seen === "true") {
+            setShowArrowHint(false);
+            return;
+        }
+        
+        const timer = setTimeout(() => {
+            markArrowHintSeen();
+        }, 7000);
+        return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     if (videos.length === 0) return null;
 
     const isLastVideo = current === videos.length - 1;
@@ -733,15 +751,15 @@ export default function VideoPlayer({ videos = [] }) {
     // --- STYLES (Matching Navbar) ---
     // The "Glass" container
     const glassContainer = "bg-[#4a6fa5]/60 backdrop-blur-md border border-[#fcd34d]/60 shadow-lg flex items-center h-10";
-    const glassContainerNav = "bg-[#4a6fa5]/70 backdrop-blur-md border border-[#fcd34d]/80 shadow-xl flex items-center h-12 px-1";
+    const glassContainerNav = "bg-[#1f2d4d]/85 backdrop-blur-lg border border-[#fcd34d]/80 shadow-2xl flex items-center h-14 px-2 rounded-full";
 
     // Buttons
     const btnBase = "h-full px-4 text-xs font-bold tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap";
     const btnActive = "bg-white text-slate-900";
     const btnInactive = "text-white hover:bg-white/10 hover:text-[#fcd34d]";
     const btnDisabled = "text-white/30 cursor-not-allowed";
-    const btnArrow = "w-12 h-12 rounded-full bg-white text-slate-900 shadow-xl border border-white/60 transition-all duration-200 flex items-center justify-center hover:scale-105 hover:bg-[#fcd34d] hover:text-slate-900";
-    const btnArrowDisabled = "opacity-50 cursor-not-allowed hover:scale-100 hover:bg-white";
+    const btnArrow = "relative w-14 h-14 rounded-full bg-gradient-to-br from-white to-[#fcd34d]/90 text-slate-900 shadow-[0_10px_40px_rgba(0,0,0,0.35)] border border-white/70 transition-all duration-200 flex items-center justify-center hover:scale-110 hover:shadow-[0_12px_50px_rgba(252,211,77,0.6)]";
+    const btnArrowDisabled = "opacity-50 cursor-not-allowed hover:scale-100 hover:shadow-[0_10px_40px_rgba(0,0,0,0.35)]";
 
     // Dividers
     const separator = "w-[1px] h-5 bg-[#fcd34d]/40";
@@ -1141,25 +1159,18 @@ export default function VideoPlayer({ videos = [] }) {
             <div className="absolute bottom-4 md:bottom-8 left-0 right-0 z-50 flex justify-center px-4">
                 <div className="flex flex-wrap items-center justify-center gap-3">
 
-                    {/* GROUP 1: CONTEXT SWITCHER (Rounded Pill Shape like Screenshot) */}
+                    {/* GROUP 1: CONTEXT SWITCHER (Exterior only) */}
                     <div className={`${glassContainer} rounded-full p-1 gap-1`}>
                         <button
                             onClick={handleBackToExterior}
                             disabled={isTransitioning}
-                            className={`rounded-full px-5 h-full text-xs font-bold tracking-wider uppercase transition-all ${!isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"} ${isTransitioning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`rounded-full px-6 h-full text-xs font-bold tracking-wider uppercase transition-all ${!isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"} ${isTransitioning ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             Exterior
                         </button>
-                        <button
-                            onClick={handleGoToInterior}
-                            disabled={(!isLastVideo && !isInterior) || isTransitioning}
-                            className={`rounded-full px-5 h-full text-xs font-bold tracking-wider uppercase transition-all ${isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"} ${(!isLastVideo && !isInterior) || isTransitioning ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            Interior
-                        </button>
                     </div>
 
-                    {/* GROUP 1.5: PEEK A HOUSE (Jump to last video with areas) */}
+                    {/* GROUP 1.5: PEEK A HOUSE (Jump to zones video) */}
                     <div className={`${glassContainer} rounded-full overflow-hidden`}>
                         <button
                             onClick={handleGoToZonesVideo}
@@ -1170,35 +1181,8 @@ export default function VideoPlayer({ videos = [] }) {
                         </button>
                     </div>
 
-                    {/* GROUP 2: PROGRESS (Rectangular Segmented Control) */}
-                    <div className={`${glassContainer} rounded-md overflow-hidden`}>
-                        {videos.map((_, idx) => {
-                            // Logic to hide too many dots if list is long
-                            if (videos.length > 8 && idx !== 0 && idx !== videos.length - 1 && idx !== current) return null;
-                            const isDot = videos.length > 8 && idx !== current;
-                            const isCurrent = idx === current;
-
-                            return (
-                                <React.Fragment key={idx}>
-                                    <div
-                                        className={`
-                                            h-full px-3 flex items-center justify-center text-xs font-bold 
-                                            ${isCurrent ? "bg-white text-slate-900 min-w-[3rem]" : "text-white/80 min-w-[2.5rem]"}
-                                        `}
-                                    >
-                                        {isDot ? "•" : `${idx + 1}m`}
-                                    </div>
-                                    {/* Separator only between non-active items */}
-                                    {idx < videos.length - 1 && !isCurrent && (idx + 1) !== current && (
-                                        <div className={separator}></div>
-                                    )}
-                                </React.Fragment>
-                            )
-                        })}
-                    </div>
-
                     {/* GROUP 3: NAVIGATION (Rectangular Segmented Control) */}
-                    <div className={`${glassContainerNav} rounded-full`}>
+                    <div className={`${glassContainerNav} relative`}>
                         {/* Prev Button */}
                         <button
                             onClick={handlePrev}
@@ -1219,14 +1203,23 @@ export default function VideoPlayer({ videos = [] }) {
                         <div className={`${separator} h-8`}></div>
 
                         {/* Next Button (always an arrow, even on last video) */}
-                        <button
-                            onClick={isLastVideo ? handleRestart : handleNext}
-                            disabled={isTransitioning}
-                            className={`${btnArrow} ${isTransitioning ? btnArrowDisabled : ""}`}
-                            aria-label="Play next video"
-                        >
-                            <ChevronRight className="w-5 h-5" />
-                        </button>
+                        <div className="relative">
+                            {showArrowHint && (
+                                <>
+                                    <span className="absolute -top-4 -left-3 h-3 w-3 rounded-full bg-[#fcd34d] animate-ping"></span>
+                                    <span className="absolute -top-4 -left-3 h-3 w-3 rounded-full bg-[#fbbf24] shadow-lg"></span>
+                                    <span className="absolute -top-10 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-white drop-shadow-md whitespace-nowrap">Tap to start</span>
+                                </>
+                            )}
+                            <button
+                                onClick={isLastVideo ? handleRestart : handleNext}
+                                disabled={isTransitioning}
+                                className={`${btnArrow} ${isTransitioning ? btnArrowDisabled : ""}`}
+                                aria-label="Play next video"
+                            >
+                                <ChevronRight className="w-6 h-6" />
+                            </button>
+                        </div>
                     </div>
 
                 </div>
