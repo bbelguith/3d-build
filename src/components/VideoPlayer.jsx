@@ -703,24 +703,8 @@ export default function VideoPlayer({ videos = [] }) {
     const markArrowHintSeen = () => {
         if (showArrowHint) {
             setShowArrowHint(false);
-            localStorage.setItem("navHintSeen", "true");
         }
     };
-
-    // One-time hint on the navigation arrows
-    useEffect(() => {
-        const seen = localStorage.getItem("navHintSeen");
-        if (seen === "true") {
-            setShowArrowHint(false);
-            return;
-        }
-        
-        const timer = setTimeout(() => {
-            markArrowHintSeen();
-        }, 7000);
-        return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     if (videos.length === 0) return null;
 
@@ -1206,9 +1190,12 @@ export default function VideoPlayer({ videos = [] }) {
                         <div className="relative">
                             {showArrowHint && (
                                 <>
-                                    <span className="absolute -top-4 -left-3 h-3 w-3 rounded-full bg-[#fcd34d] animate-ping"></span>
-                                    <span className="absolute -top-4 -left-3 h-3 w-3 rounded-full bg-[#fbbf24] shadow-lg"></span>
-                                    <span className="absolute -top-10 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-white drop-shadow-md whitespace-nowrap">Tap to start</span>
+                                    <span className="absolute -inset-3 rounded-full bg-[#fcd34d]/20 blur-md animate-pulse pointer-events-none" />
+                                    <span className="absolute -top-2 -right-2 px-2 py-1 rounded-full bg-gradient-to-r from-[#f97316] to-[#fcd34d] text-[10px] font-semibold text-slate-900 shadow-lg whitespace-nowrap">
+                                        Start here →
+                                    </span>
+                                    <span className="absolute -top-5 -left-5 h-4 w-4 rounded-full bg-[#fcd34d] animate-ping pointer-events-none" />
+                                    <span className="absolute -top-5 -left-5 h-4 w-4 rounded-full bg-[#fbbf24] shadow-lg pointer-events-none" />
                                 </>
                             )}
                             <button
