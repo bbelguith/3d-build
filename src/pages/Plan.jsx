@@ -3,9 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-// Import visual component (Parallax Only)
-import ParallaxImage from "../components/ParallaxImage";
-
 // --- SKELETON LOADER COMPONENT ---
 const SkeletonPulse = ({ className }) => (
     <div className={`bg-gray-200 animate-pulse rounded-lg ${className}`} />
@@ -30,7 +27,6 @@ export default function Plan() {
     const [roomIndex, setRoomIndex] = useState(0);
     const [galleryIndex, setGalleryIndex] = useState(0);
     const [floorIndex, setFloorIndex] = useState(0);
-    const [popupSrc, setPopupSrc] = useState(null);
 
     // 2. FETCH DATA
     useEffect(() => {
@@ -369,37 +365,7 @@ export default function Plan() {
                         </div>
                     </div>
                 </div>
-
-                {/* Parallax Hero Image */}
-                <ParallaxImage
-                    src={currentImage}
-                    className="relative w-full max-w-[1600px] h-[75vh] rounded-t-[4rem] shadow-2xl mx-auto mt-auto border-t-8 border-x-8 border-white bg-gray-100 group cursor-zoom-in"
-                    onClick={() => setPopupSrc(currentImage)}
-                >
-                    <div className="absolute inset-0 pointer-events-none flex items-center justify-between px-4 sm:px-12">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); prevHouse(); }}
-                            className="pointer-events-auto w-20 h-20 rounded-full bg-white/10 backdrop-blur-lg border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300 shadow-2xl group"
-                        >
-                            <span className="text-3xl pb-1 group-hover:-translate-x-1 transition-transform">&larr;</span>
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); nextHouse(); }}
-                            className="pointer-events-auto w-20 h-20 rounded-full bg-white/10 backdrop-blur-lg border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300 shadow-2xl group"
-                        >
-                            <span className="text-3xl pb-1 group-hover:translate-x-1 transition-transform">&rarr;</span>
-                        </button>
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-                </ParallaxImage>
             </section>
-
-            {popupSrc && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-xl flex items-center justify-center z-[150] p-4 animate-[fadeIn_0.3s_ease-out]" onClick={() => setPopupSrc(null)}>
-                    <img src={popupSrc} alt="Popup" className="max-w-full max-h-[90vh] rounded-lg shadow-2xl border border-white/10" onClick={(e) => e.stopPropagation()} />
-                    <button onClick={() => setPopupSrc(null)} className="absolute top-8 right-8 text-white/50 hover:text-white text-5xl font-thin transition-colors">&times;</button>
-                </div>
-            )}
 
             <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: scale(1.02); } to { opacity: 1; transform: scale(1); } }
