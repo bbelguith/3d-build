@@ -720,11 +720,11 @@ export default function VideoPlayer({ videos = [] }) {
         : [];
     const hasZonesForCurrentVideo = zonesForCurrentVideo.length > 0;
 
-    // Jump helper: always go to the last video (assumed to be the zones video)
+    // Jump helper: go to the video whose DB id is 5 (zones/peek video)
     const handleGoToZonesVideo = () => {
         if (!videos.length) return;
-        const targetIndex = videos.length - 1;
-        if (!videos[targetIndex]) return;
+        const targetIndex = findVideoIndexById(5);
+        if (targetIndex < 0 || !videos[targetIndex]) return;
 
         setIsInterior(false);
         playVideo(videos[targetIndex].src, targetIndex, false, false);
