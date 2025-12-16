@@ -107,6 +107,28 @@ export default function VideoPlayer({ videos = [] }) {
             // Optional: when set later, clicking this zone/button jumps to that interior video id
             // targetVideoId: <interiorVideoId>,
         },
+        { 
+            id: 5,
+            // New clickable area drawn on video with DB id 3 (SEE INTERIOR button)
+            coords: [
+                1264.0258819124685,1354.8653833575477,
+                1773.7438520189737,1100.9399477000945,
+                1799.8832351013587,1115.876738032886,
+                1971.6563239284592,1029.9901936193355,
+                2223.714660794313,1134.5477259488753,
+                1811.0858278509522,1633.0631033057866,
+                1766.2754568525781,1672.2721779293638,
+                1719.5979870626052,1692.810264636952,
+                1652.382430565044,1698.4115610117487,
+                1601.9707631918732,1692.810264636952,
+                1551.5590958187022,1662.9366839713693
+            ],
+            label: "", // render SEE INTERIOR button
+            houseId: 1,
+            videoId: 3,
+            offsetX: 0,
+            offsetY: 0,
+        },
     ];
     
     // Convert pixel coordinates to percentage coordinates
@@ -918,7 +940,7 @@ export default function VideoPlayer({ videos = [] }) {
                                     const minY = Math.min(...yCoords);
 
                                     const isHovered = hoveredZone === zone.id;
-                                    const isPeekZone = zone.id === 4;
+                                    const isPeekZone = zone.id === 4 || zone.id === 5;
                                     return (
                                         <g key={zone.id}>
                                             <polygon
