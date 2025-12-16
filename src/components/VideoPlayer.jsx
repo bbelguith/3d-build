@@ -281,41 +281,20 @@ export default function VideoPlayer({ videos = [] }) {
     };
     
     const applyTransformation = () => {
-        const transformations = calculateTransformation();
-        const adjustedZones = clickableZones.map(zone => {
-            const transform = transformations[zone.id];
-            if (!transform) {
-                console.warn(`No transformation calculated for zone ${zone.id}`);
-                return zone;
-            }
-            
-            const adjustedCoords = zone.coords.map((coord, index) => {
-                if (index % 2 === 0) {
-                    // X coordinate
-                    return Math.round((coord * transform.scale) + transform.offsetX);
-                } else {
-                    // Y coordinate
-                    return Math.round((coord * transform.scale) + transform.offsetY);
-                }
-            });
-            
-            return { ...zone, coords: adjustedCoords };
-        });
+        const pts = capturedPoints['custom'];
+        if (!pts || pts.length < 6) {
+            alert('Add at least 3 points before logging.');
+            return;
+        }
+
+        console.clear();
+        console.log('=== NEW AREA COORDINATES (video pixels) ===');
+        console.log(`coords: [${pts.join(',')}]`);
+        console.log('JSON:');
+        console.log(JSON.stringify({ id: 'custom', coords: pts }, null, 2));
+        console.log('===========================================');
         
-        // Log the adjusted coordinates to console for copying
-        console.log('=== ADJUSTED ZONE COORDINATES ===');
-        console.log('Copy these coordinates and replace them in the clickableZones array:');
-        console.log('');
-        adjustedZones.forEach(zone => {
-            console.log(`Zone ${zone.id} (${zone.label}):`);
-            console.log(`coords: [${zone.coords.join(',')}],`);
-        });
-        console.log('');
-        console.log('Full array format:');
-        console.log(JSON.stringify(adjustedZones.map(z => ({ id: z.id, coords: z.coords, label: z.label, houseId: z.houseId })), null, 2));
-        console.log('================================');
-        
-        alert('Adjusted coordinates logged to console! Check the browser console (F12) to copy them.');
+        alert('New area coordinates logged to console.');
     };
 
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
