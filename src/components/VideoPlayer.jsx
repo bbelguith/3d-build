@@ -57,90 +57,8 @@ export default function VideoPlayer({ videos = [] }) {
     //   If omitted, the zone will be treated as attached to "the last video"
     //   for backwards compatibility. For new zones, ALWAYS set videoId so
     //   adding videos later won't break the mapping.
-    // Tuning knobs for the newly added custom area (videoId 3)
-    // Adjust these to nudge the whole polygon left/right/up/down without redrawing
-    const CUSTOM_AREA_OFFSET_X = 0; // + moves right, - moves left
-    const CUSTOM_AREA_OFFSET_Y = -130; // + moves down, - moves up
-
-    const clickableZones = [
-        { 
-            id: 1, 
-            // Area shown on video with DB id 5 (final overview with 3 areas)
-            coords: [2393,295,2400,220,2427,183,2475,166,3482,122,3560,153,3591,214,3591,1706,3570,1710,3050,1740,2315,1760,2275,1756,2240,1702,2230,1680],
-            label: "Prime Villas", 
-            houseId: 1,
-            videoId: 5, // DB video id that shows this area
-            attachToIndex: 3, // fallback by order
-            // targetVideoId: <videoId>, // set later to jump to a detail video
-        },
-        { 
-            id: 2, 
-            // Area shown on video with DB id 5
-            coords: [2000,129,2353,109,2168,1645,2112,1675,2057,1695,1700,1706],
-            label: "Commercial Hub", 
-            houseId: 2,
-            videoId: 5,
-            attachToIndex: 3, // fallback by order
-            // targetVideoId: <videoId>,
-        },
-        { 
-            id: 3, 
-            // Area shown on video with DB id 5
-            coords: [1817,136,1572,146,1118,64,870,146,799,166,772,244,90,1845,324,1919,433,1940,1376,1984],
-            label: "Twin Villas", 
-            houseId: 3,
-            videoId: 5,
-            attachToIndex: 3, // fallback by order
-            // targetVideoId: <videoId>,
-        },
-        { 
-            id: 4,
-            // New clickable area (coords you provided) – attached to video with DB id 2
-            coords: [
-                1636.4084278768232,1184.1296596434358,
-                1810.6709886547812,1351.7536466774718,
-                1961.6985413290113,1282.0486223662883,
-                1911.9092382495949,1235.5786061588333,
-                1916.8881685575366,1164.2139384116695,
-                1813.9902755267424,1081.2317666126419,
-                1752.583468395462,1102.807131280389,
-                1701.1345218800648,1127.7017828200974,
-                1704.453808752026,1160.8946515397083
-            ],
-            label: "", // no text label – we render a custom "SEE INTERIOR" button instead
-            houseId: 1,
-            videoId: 2, // DB video id that shows this single area with the SEE INTERIOR button
-            attachToIndex: 1, // fallback by order
-            // Manual adjustment knobs for fine‑tuning position (in video pixels)
-            offsetX: -2,  // + moves area to the right, - moves to the left
-            offsetY: -128, // + moves area down, - moves up
-            // Optional: when set later, clicking this zone/button jumps to that interior video id
-            // targetVideoId: <interiorVideoId>,
-        },
-        { 
-            id: 5,
-            // New clickable area drawn on video with DB id 3 (SEE INTERIOR button)
-            coords: [
-                1264.0258819124685,1354.8653833575477,
-                1773.7438520189737,1100.9399477000945,
-                1799.8832351013587,1115.876738032886,
-                1971.6563239284592,1029.9901936193355,
-                2223.714660794313,1134.5477259488753,
-                1811.0858278509522,1633.0631033057866,
-                1766.2754568525781,1672.2721779293638,
-                1719.5979870626052,1692.810264636952,
-                1652.382430565044,1698.4115610117487,
-                1601.9707631918732,1692.810264636952,
-                1551.5590958187022,1662.9366839713693
-            ],
-            label: "", // render SEE INTERIOR button
-            houseId: 1,
-            videoId: 3,
-            attachToIndex: 2, // fallback by order
-            offsetX: CUSTOM_AREA_OFFSET_X,
-            offsetY: CUSTOM_AREA_OFFSET_Y,
-        },
-    ];
+    // Zones removed temporarily; will be recreated with the editor later
+    const clickableZones = [];
     
     // Convert pixel coordinates to percentage coordinates
     const convertCoordsToPercent = (coords) => {
@@ -390,17 +308,7 @@ export default function VideoPlayer({ videos = [] }) {
     }, [videos, isInitialized]);
 
     // --- 2. VIDEO LOGIC ---
-    const hasZonesForIndex = (idx) => {
-        const videoAtIdx = videos[idx];
-        if (!videoAtIdx) return false;
-        const vidId = Number(videoAtIdx.id);
-        return clickableZones.some(zone => {
-            const zoneVid = typeof zone.videoId !== "undefined" ? Number(zone.videoId) : null;
-            if (zoneVid !== null && !Number.isNaN(zoneVid)) return zoneVid === vidId;
-            if (typeof zone.attachToIndex === "number") return zone.attachToIndex === idx;
-            return idx === videos.length - 1;
-        });
-    };
+    const hasZonesForIndex = () => false;
 
     const playVideo = (url, index, reversed = false, isInteriorVideo = false) => {
         // Block if already transitioning
@@ -469,19 +377,10 @@ export default function VideoPlayer({ videos = [] }) {
             }
 
             showEl.onended = () => {
-                const zonesExistForThisVideo = hasZonesForIndex(index);
-
                 if (isInteriorVideo) {
                     const lastIndex = videos.length - 1;
                     setIsInterior(false);
                     playVideo(videos[lastIndex].src, lastIndex, false, false);
-                } else if (zonesExistForThisVideo) {
-                    showEl.pause();
-                    if (showEl.duration) {
-                        showEl.currentTime = showEl.duration - 0.05;
-                    }
-                    setHasVideoEnded(true);
-                    setShowClickableZones(true); // Show zones when video ends (any video with zones, including id 2 and 5)
                 } else if (index === videos.length - 1) {
                     showEl.pause();
                     if (showEl.duration) {
@@ -673,13 +572,7 @@ export default function VideoPlayer({ videos = [] }) {
                 
                 const hasZonesForCurrentVideo = hasZonesForIndex(current);
 
-                // Check if we're on the last frame of the current video (within last 0.15 seconds)
-                const isLastFrame = activeVideo.duration && activeVideo.currentTime >= activeVideo.duration - 0.15;
-                
-                if (!hasVideoEnded && hasZonesForCurrentVideo && isLastFrame && !isInterior && !isTransitioning) {
-                    setHasVideoEnded(true);
-                    setShowClickableZones(true); // show once at end without hiding again
-                }
+                // Zones disabled
             }
         };
 
@@ -921,7 +814,7 @@ export default function VideoPlayer({ videos = [] }) {
                 })()}
 
                 {/* Clickable Zones Overlay - only when current video has zones (hidden in editor mode) */}
-                {showClickableZones && hasZonesForCurrentVideo && !isInterior && !isZoneEditorMode && (() => {
+                {false && showClickableZones && hasZonesForCurrentVideo && !isInterior && !isZoneEditorMode && (() => {
                     const activeVideo = activeLayer === 0 ? v0.current : v1.current;
                     if (!activeVideo) return null;
 
