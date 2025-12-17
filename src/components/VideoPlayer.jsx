@@ -388,8 +388,10 @@ export default function VideoPlayer({ videos = [] }) {
     const hasZonesForIndex = (idx) => {
         const videoAtIdx = videos[idx];
         if (!videoAtIdx) return false;
+        const vidId = Number(videoAtIdx.id);
         return clickableZones.some(zone => {
-            if (zone.videoId) return zone.videoId === videoAtIdx.id;
+            const zoneVid = typeof zone.videoId !== "undefined" ? Number(zone.videoId) : null;
+            if (zoneVid !== null && !Number.isNaN(zoneVid)) return zoneVid === vidId;
             if (typeof zone.attachToIndex === "number") return zone.attachToIndex === idx;
             return idx === videos.length - 1;
         });
