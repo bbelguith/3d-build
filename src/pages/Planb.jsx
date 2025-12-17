@@ -22,6 +22,7 @@ export default function Plan() {
     const [floorPlanImages, setFloorPlanImages] = useState([]);
     const [twinPlanIdx, setTwinPlanIdx] = useState(0);
     const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0 });
+    const [twinPreloaded, setTwinPreloaded] = useState(false);
     const [loading, setLoading] = useState(true);
 
     const [hoveredHouseId, setHoveredHouseId] = useState(null);
@@ -132,6 +133,28 @@ export default function Plan() {
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986531/1ER-villabande_zze0o3.png",
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986533/terrase-villabande_dman5u.png"
     ]), []);
+
+    // Preload heavy plan images to reduce first paint lag
+    useEffect(() => {
+        let cancelled = false;
+        const preload = async () => {
+            const loaders = twinPlanImages.map(
+                (src) =>
+                    new Promise((res) => {
+                        const img = new Image();
+                        img.onload = () => res(true);
+                        img.onerror = () => res(false);
+                        img.src = src;
+                    })
+            );
+            await Promise.all(loaders);
+            if (!cancelled) setTwinPreloaded(true);
+        };
+        preload();
+        return () => {
+            cancelled = true;
+        };
+    }, [twinPlanImages]);
 
     const openLightbox = (images, index = 0) => setLightbox({ open: true, images, index });
     const closeLightbox = () => setLightbox({ open: false, images: [], index: 0 });
@@ -291,7 +314,7 @@ export default function Plan() {
                             onClick={handleTwinPlanClick}
                         >
                             <div
-                                className="absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-12 -rotate-90 origin-center"
+                                className={`absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-12 -rotate-90 origin-center ${!twinPreloaded ? "opacity-0" : "opacity-100"}`}
                                 style={{ backgroundImage: `url(${twinPlanImages[twinPlanIdx]})` }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />

@@ -28,6 +28,7 @@ export default function Plan() {
     const [floorIndex, setFloorIndex] = useState(0);
     const [primePlanIdx, setPrimePlanIdx] = useState(0);
     const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0 });
+    const [primePreloaded, setPrimePreloaded] = useState(false);
 
     // 2. FETCH DATA
     useEffect(() => {
@@ -125,6 +126,28 @@ export default function Plan() {
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986610/plan_terrasse_villa_isolee_riz5mc.png",
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986523/WhatsApp_Image_2025-12-17_at_15.49.21_krfpum.jpg"
     ]), []);
+
+    // Preload heavy plan images to reduce first paint lag
+    useEffect(() => {
+        let cancelled = false;
+        const preload = async () => {
+            const loaders = primePlanImages.map(
+                (src) =>
+                    new Promise((res) => {
+                        const img = new Image();
+                        img.onload = () => res(true);
+                        img.onerror = () => res(false);
+                        img.src = src;
+                    })
+            );
+            await Promise.all(loaders);
+            if (!cancelled) setPrimePreloaded(true);
+        };
+        preload();
+        return () => {
+            cancelled = true;
+        };
+    }, [primePlanImages]);
 
     const openLightbox = (images, index = 0) => setLightbox({ open: true, images, index });
     const closeLightbox = () => setLightbox({ open: false, images: [], index: 0 });
@@ -290,7 +313,7 @@ export default function Plan() {
                             onClick={handlePrimePlanClick}
                         >
                             <div
-                                className="absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-6 md:p-8 lg:p-12 -rotate-90 origin-center"
+                                className={`absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-6 md:p-8 lg:p-12 -rotate-90 origin-center ${!primePreloaded ? "opacity-0" : "opacity-100"}`}
                                 style={{ backgroundImage: `url(${primePlanImages[primePlanIdx]})` }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />

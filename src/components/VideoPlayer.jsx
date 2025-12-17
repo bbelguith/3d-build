@@ -385,6 +385,16 @@ export default function VideoPlayer({ videos = [] }) {
     }, [videos, isInitialized]);
 
     // --- 2. VIDEO LOGIC ---
+    const hasZonesForIndex = (idx) => {
+        const videoAtIdx = videos[idx];
+        if (!videoAtIdx) return false;
+        return clickableZones.some(zone => {
+            if (zone.videoId) return zone.videoId === videoAtIdx.id;
+            if (typeof zone.attachToIndex === "number") return zone.attachToIndex === idx;
+            return idx === videos.length - 1;
+        });
+    };
+
     const playVideo = (url, index, reversed = false, isInteriorVideo = false) => {
         // Block if already transitioning
         if (isTransitioning) return;
@@ -463,6 +473,10 @@ export default function VideoPlayer({ videos = [] }) {
                     }
                     setHasVideoEnded(true);
                     setShowClickableZones(true); // Show zones when video ends
+                } else if (hasZonesForIndex(index)) {
+                    // Non-final videos that have zones (mobile fallback)
+                    setHasVideoEnded(true);
+                    setShowClickableZones(true);
                 }
             };
         } else {
@@ -645,17 +659,7 @@ export default function VideoPlayer({ videos = [] }) {
                 setVideoTime(activeVideo.currentTime);
                 setVideoDuration(activeVideo.duration || 0);
                 
-                // Determine if current video has zones attached (by DB video id)
-                const currentVideo = videos[current];
-                const hasZonesForCurrentVideo = !!currentVideo && clickableZones.some(zone => {
-                    // If zone.videoId is set, it must match DB id
-                    if (zone.videoId) return zone.videoId === currentVideo.id;
-                    // If zone.attachToIndex is set, it must match current index
-                    if (typeof zone.attachToIndex === "number") return zone.attachToIndex === current;
-                    // Backwards-compat: zones without videoId/attachToIndex are treated as "last video" zones
-                    const isLastVideoFallback = current === videos.length - 1;
-                    return isLastVideoFallback;
-                });
+                const hasZonesForCurrentVideo = hasZonesForIndex(current);
 
                 // Check if we're on the last frame of the current video (within last 0.15 seconds)
                 const isLastFrame = activeVideo.duration && activeVideo.currentTime >= activeVideo.duration - 0.15;
