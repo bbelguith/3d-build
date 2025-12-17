@@ -450,6 +450,8 @@ export default function VideoPlayer({ videos = [] }) {
 
     const handleBackToExterior = () => {
         if (isTransitioning) return; // Block if transitioning
+        // If already exterior, avoid restarting
+        if (!isInterior) return;
         setIsInterior(false);
         playVideo(videos[current].src, current, false);
     };
@@ -570,7 +572,7 @@ export default function VideoPlayer({ videos = [] }) {
                 setVideoTime(activeVideo.currentTime);
                 setVideoDuration(activeVideo.duration || 0);
                 
-                const hasZonesForCurrentVideo = hasZonesForIndex(current);
+                const hasZonesForCurrentVideo = false;
 
                 // Zones disabled
             }
@@ -628,26 +630,16 @@ export default function VideoPlayer({ videos = [] }) {
 
     const isLastVideo = current === videos.length - 1;
 
-    // Zones attached to the currently playing video (by DB id / index / legacy last-video)
+    // Zones disabled (will be reintroduced later)
     const currentVideo = videos[current];
-    const zonesForCurrentVideo = currentVideo
-        ? clickableZones.filter(zone => {
-            if (zone.videoId) return zone.videoId === currentVideo.id;
-            if (typeof zone.attachToIndex === "number") return zone.attachToIndex === current;
-            // legacy zones without videoId/attachToIndex: treat them as last-video-only
-            return current === videos.length - 1;
-        })
-        : [];
-    const hasZonesForCurrentVideo = zonesForCurrentVideo.length > 0;
+    const zonesForCurrentVideo = [];
+    const hasZonesForCurrentVideo = false;
 
     // Jump helper: go to the video whose DB id is 5 (zones/peek video)
     const handleGoToZonesVideo = () => {
         if (!videos.length) return;
-        const targetIndex = findVideoIndexById(5);
-        if (targetIndex < 0 || !videos[targetIndex]) return;
-
-        setIsInterior(false);
-        playVideo(videos[targetIndex].src, targetIndex, false, false);
+        // Always jump to DB id 5
+        playVideoById(5);
     };
 
     // --- STYLES (Matching Navbar) ---
