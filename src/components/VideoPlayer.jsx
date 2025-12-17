@@ -1,15 +1,12 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import {
     ChevronLeft,
     ChevronRight,
     Play,
-    CheckCircle2,
     X
 } from "lucide-react";
 
 export default function VideoPlayer({ videos = [] }) {
-    const navigate = useNavigate();
     
     // --- STATE & REFS ---
     const [current, setCurrent] = useState(0);
@@ -20,233 +17,11 @@ export default function VideoPlayer({ videos = [] }) {
     const [isMobile, setIsMobile] = useState(false);
     const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
-    const [showClickableZones, setShowClickableZones] = useState(false);
-    const [videoTime, setVideoTime] = useState(0);
-    const [videoDuration, setVideoDuration] = useState(0);
-    const [hoveredZone, setHoveredZone] = useState(null);
-    // Visual feedback state for the special "SEE INTERIOR" button (zone id 4)
-    const [isPeekButtonHovered, setIsPeekButtonHovered] = useState(false);
-    const [isPeekButtonActive, setIsPeekButtonActive] = useState(false);
     const [showArrowHint, setShowArrowHint] = useState(true);
-    const [hasVideoEnded, setHasVideoEnded] = useState(false);
-    
-    // Advanced zone editor state (existing)
-    const [isZoneEditorMode, setIsZoneEditorMode] = useState(false);
-    const [editingZoneId, setEditingZoneId] = useState(null);
-    const [capturedPoints, setCapturedPoints] = useState({});
-    const [videoDisplayRect, setVideoDisplayRect] = useState(null);
-
-    // Simple ad‑hoc zone editor (for capturing raw coords) – kept for future use, disabled for now
-    const [isSimpleZoneEditor, setIsSimpleZoneEditor] = useState(false);
-    const [simplePoints, setSimplePoints] = useState([]);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
     const videoContainerRef = useRef(null);
-    const videoDisplayRef = useRef(null);
-    
-    // Original image dimensions from the image map (approximate based on coordinates)
-    // These are the dimensions of the frameplanmass.jpg image
-    const IMAGE_WIDTH = 3600; // Approximate max x coordinate
-    const IMAGE_HEIGHT = 1920; // Approximate max y coordinate
-    
-    // Clickable zones for blocs in a specific video frame
-    // Coordinates are in pixels from the image map (final adjusted coordinates)
-    // Format: { id, coords (pixel array), label, houseId, videoId? }
-    // - videoId (optional for now): DB id of the video this zone belongs to.
-    //   If omitted, the zone will be treated as attached to "the last video"
-    //   for backwards compatibility. For new zones, ALWAYS set videoId so
-    //   adding videos later won't break the mapping.
-    // Zones removed temporarily; will be recreated with the editor later
-    const clickableZones = [];
-    
-    // Convert pixel coordinates to percentage coordinates
-    const convertCoordsToPercent = (coords) => {
-        const points = [];
-        for (let i = 0; i < coords.length; i += 2) {
-            const x = (coords[i] / IMAGE_WIDTH) * 100;
-            const y = (coords[i + 1] / IMAGE_HEIGHT) * 100;
-            points.push(`${x}%`);
-            points.push(`${y}%`);
-        }
-        return points.join(',');
-    };
-    
-    // Handle zone click - hook for navigation / video jump
-    const handleZoneClick = (zone) => {
-        if (isZoneEditorMode) return; // Block during editor mode
-        // TEMP: disable all navigation until all videos are ready
-        console.log(`Zone ${zone.id} clicked (navigation disabled until all videos are configured).`);
-    };
-    
-    // Helper function to calculate video display area with object-cover
-    // With object-cover, video fills container and may be cropped
-    const calculateVideoDisplayArea = (videoElement) => {
-        if (!videoElement || !videoElement.videoWidth || !videoElement.videoHeight) return null;
-        
-        const rect = videoElement.getBoundingClientRect();
-        const videoAspect = videoElement.videoWidth / videoElement.videoHeight;
-        const containerAspect = rect.width / rect.height;
-        
-        let scaleX, scaleY, offsetX, offsetY, cropX, cropY;
-        
-        if (videoAspect > containerAspect) {
-            // Video is wider - fit to height, crop sides
-            scaleY = rect.height / videoElement.videoHeight;
-            scaleX = scaleY;
-            const scaledWidth = videoElement.videoWidth * scaleX;
-            offsetX = (rect.width - scaledWidth) / 2;
-            offsetY = 0;
-            cropX = (scaledWidth - rect.width) / 2 / scaleX; // How much is cropped on each side
-            cropY = 0;
-        } else {
-            // Video is taller - fit to width, crop top/bottom
-            scaleX = rect.width / videoElement.videoWidth;
-            scaleY = scaleX;
-            const scaledHeight = videoElement.videoHeight * scaleY;
-            offsetX = 0;
-            offsetY = (rect.height - scaledHeight) / 2;
-            cropX = 0;
-            cropY = (scaledHeight - rect.height) / 2 / scaleY; // How much is cropped on top/bottom
-        }
-        
-        return {
-            x: rect.left,
-            y: rect.top,
-            width: rect.width,
-            height: rect.height,
-            offsetX,
-            offsetY,
-            scaleX,
-            scaleY,
-            cropX,
-            cropY,
-            videoWidth: videoElement.videoWidth,
-            videoHeight: videoElement.videoHeight
-        };
-    };
-    
-    // Zone Editor Functions
-    const startEditingZone = (zoneId) => {
-        setEditingZoneId(zoneId);
-        setCapturedPoints(prev => ({ ...prev, [zoneId]: [] }));
-        // Get video display dimensions
-        const activeVideo = activeLayer === 0 ? v0.current : v1.current;
-        if (activeVideo) {
-            const displayArea = calculateVideoDisplayArea(activeVideo);
-            if (displayArea) {
-                setVideoDisplayRect(displayArea);
-            }
-        }
-    };
-    
-    const handleVideoClick = (e) => {
-        const activeVideo = activeLayer === 0 ? v0.current : v1.current;
-
-        // NOTE: Simple zone editor branch kept for future use but disabled in UI.
-        // if (isSimpleZoneEditor) { ... }
-
-        // Normal user clicks on the video surface should NOT restart or change playback.
-        // We only use this handler when the advanced zone editor is active.
-
-        // If not in editor mode, do nothing.
-        if (!isZoneEditorMode || !editingZoneId) return;
-
-        // Advanced editor mode: add points into capturedPoints[editingZoneId]
-        if (!activeVideo) return;
-        const displayArea = calculateVideoDisplayArea(activeVideo);
-        if (!displayArea) return;
-
-        const clickX = e.clientX - displayArea.x;
-        const clickY = e.clientY - displayArea.y;
-
-        if (clickX >= 0 && clickX <= displayArea.width && clickY >= 0 && clickY <= displayArea.height) {
-            const adjustedX = (clickX - displayArea.offsetX) / displayArea.scaleX;
-            const adjustedY = (clickY - displayArea.offsetY) / displayArea.scaleY;
-            const videoX = adjustedX + displayArea.cropX;
-            const videoY = adjustedY + displayArea.cropY;
-            const clampedX = Math.max(0, Math.min(activeVideo.videoWidth, videoX));
-            const clampedY = Math.max(0, Math.min(activeVideo.videoHeight, videoY));
-
-            setCapturedPoints(prev => ({
-                ...prev,
-                [editingZoneId]: [...(prev[editingZoneId] || []), clampedX, clampedY]
-            }));
-            setVideoDisplayRect(displayArea);
-        }
-    };
-    
-    const finishEditingZone = () => {
-        setEditingZoneId(null);
-    };
-    
-    const clearZonePoints = (zoneId) => {
-        setCapturedPoints(prev => ({ ...prev, [zoneId]: [] }));
-    };
-    
-    const calculateTransformation = () => {
-        // Calculate scale and offset to transform original coords to captured coords
-        // Using least squares approach for better accuracy
-        const transformations = {};
-        
-        clickableZones.forEach(zone => {
-            const original = zone.coords;
-            const captured = capturedPoints[zone.id] || [];
-            
-            if (captured.length >= 4 && original.length === captured.length) {
-                // Calculate average scale from all point pairs
-                let totalScaleX = 0;
-                let totalScaleY = 0;
-                let count = 0;
-                
-                // Calculate scales from differences between consecutive points
-                for (let i = 0; i < original.length - 2; i += 2) {
-                    const origDx = original[i + 2] - original[i];
-                    const origDy = original[i + 3] - original[i + 1];
-                    const capDx = captured[i + 2] - captured[i];
-                    const capDy = captured[i + 3] - captured[i + 1];
-                    
-                    if (Math.abs(origDx) > 0.1) {
-                        totalScaleX += capDx / origDx;
-                        count++;
-                    }
-                    if (Math.abs(origDy) > 0.1) {
-                        totalScaleY += capDy / origDy;
-                        count++;
-                    }
-                }
-                
-                const avgScaleX = count > 0 ? totalScaleX / count : 1;
-                const avgScaleY = count > 0 ? totalScaleY / count : 1;
-                const scale = (avgScaleX + avgScaleY) / 2; // Average scale
-                
-                // Calculate offset using first point
-                const offsetX = captured[0] - (original[0] * scale);
-                const offsetY = captured[1] - (original[1] * scale);
-                
-                transformations[zone.id] = { offsetX, offsetY, scale };
-            }
-        });
-        
-        return transformations;
-    };
-    
-    const applyTransformation = () => {
-        const pts = capturedPoints['custom'];
-        if (!pts || pts.length < 6) {
-            alert('Add at least 3 points before logging.');
-            return;
-        }
-
-        console.clear();
-        console.log('=== NEW AREA COORDINATES (video pixels) ===');
-        console.log(`coords: [${pts.join(',')}]`);
-        console.log('JSON:');
-        console.log(JSON.stringify({ id: 'custom', coords: pts }, null, 2));
-        console.log('===========================================');
-        
-        alert('New area coordinates logged to console.');
-    };
 
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
 
@@ -308,15 +83,11 @@ export default function VideoPlayer({ videos = [] }) {
     }, [videos, isInitialized]);
 
     // --- 2. VIDEO LOGIC ---
-    const hasZonesForIndex = () => false;
-
     const playVideo = (url, index, reversed = false, isInteriorVideo = false) => {
         // Block if already transitioning
         if (isTransitioning) return;
         
         setIsTransitioning(true);
-        setShowClickableZones(false);
-        setHasVideoEnded(false);
         
         const nextLayer = activeLayer === 0 ? 1 : 0;
         const showEl = nextLayer === 0 ? v0.current : v1.current;
@@ -386,8 +157,6 @@ export default function VideoPlayer({ videos = [] }) {
                     if (showEl.duration) {
                         showEl.currentTime = showEl.duration - 0.05;
                     }
-                    setHasVideoEnded(true);
-                    setShowClickableZones(true); // Show zones when last video ends
                 }
             };
         } else {
@@ -562,63 +331,6 @@ export default function VideoPlayer({ videos = [] }) {
         };
     }, [isMobileFullscreen]);
 
-    // Track video time to detect last frame and show clickable zones
-    useEffect(() => {
-        const activeVideo = activeLayer === 0 ? v0.current : v1.current;
-        if (!activeVideo) return;
-
-        const updateTime = () => {
-            if (activeVideo) {
-                setVideoTime(activeVideo.currentTime);
-                setVideoDuration(activeVideo.duration || 0);
-                
-                const hasZonesForCurrentVideo = false;
-
-                // Zones disabled
-            }
-        };
-
-        activeVideo.addEventListener('timeupdate', updateTime);
-        
-        return () => {
-            if (activeVideo) {
-                activeVideo.removeEventListener('timeupdate', updateTime);
-            }
-        };
-    }, [current, activeLayer, isInterior, videos.length, hasVideoEnded]);
-    
-    // Add/remove body class to hide navbar buttons when zone editor is active
-    useEffect(() => {
-        if (isZoneEditorMode) {
-            document.body.classList.add('zone-editor-active');
-        } else {
-            document.body.classList.remove('zone-editor-active');
-        }
-        
-        return () => {
-            document.body.classList.remove('zone-editor-active');
-        };
-    }, [isZoneEditorMode]);
-    
-    // Recalculate video display area on window resize for responsive zones
-    useEffect(() => {
-        const handleResize = () => {
-            // Force re-render of zones by updating state
-            // This will trigger recalculation of display area
-            if (showClickableZones || isZoneEditorMode) {
-                const activeVideo = activeLayer === 0 ? v0.current : v1.current;
-                if (activeVideo && isZoneEditorMode && editingZoneId) {
-                    const displayArea = calculateVideoDisplayArea(activeVideo);
-                    if (displayArea) {
-                        setVideoDisplayRect(displayArea);
-                    }
-                }
-            }
-        };
-        
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, [showClickableZones, isZoneEditorMode, editingZoneId, activeLayer]);
 
     const markArrowHintSeen = () => {
         if (showArrowHint) {
@@ -630,15 +342,9 @@ export default function VideoPlayer({ videos = [] }) {
 
     const isLastVideo = current === videos.length - 1;
 
-    // Zones disabled (will be reintroduced later)
-    const currentVideo = videos[current];
-    const zonesForCurrentVideo = [];
-    const hasZonesForCurrentVideo = false;
-
-    // Jump helper: go to the video whose DB id is 5 (zones/peek video)
-    const handleGoToZonesVideo = () => {
-        if (!videos.length) return;
-        // Always jump to DB id 5
+    // Jump helper: go to the video whose DB id is 5
+    const handlePeekHouse = () => {
+        if (isTransitioning) return;
         playVideoById(5);
     };
 
@@ -659,20 +365,6 @@ export default function VideoPlayer({ videos = [] }) {
     const separator = "w-[1px] h-5 bg-[#fcd34d]/40";
 
     return (
-        <>
-            <style>{`
-                @keyframes zoneBlink {
-                    0% { stroke-opacity: 0.2; }
-                    50% { stroke-opacity: 0.9; }
-                    100% { stroke-opacity: 0.2; }
-                }
-                @keyframes zonePulse {
-                    0% { fill-opacity: 0.25; stroke-opacity: 0.5; }
-                    50% { fill-opacity: 0.6; stroke-opacity: 1; }
-                    100% { fill-opacity: 0.25; stroke-opacity: 0.5; }
-                }
-            `}</style>
-
         <div 
             ref={videoContainerRef}
             className={`relative w-full bg-black overflow-hidden select-none font-sans ${
@@ -680,7 +372,7 @@ export default function VideoPlayer({ videos = [] }) {
             }`}
         >
             {/* Mobile overlay button - shown only on mobile when not in fullscreen */}
-            {isMobile && !isMobileFullscreen && !isZoneEditorMode && (
+            {isMobile && !isMobileFullscreen && (
                 <div 
                     className="absolute inset-0 flex items-center justify-center z-40 cursor-pointer bg-black/50"
                     onClick={enterMobileFullscreen}
@@ -696,7 +388,7 @@ export default function VideoPlayer({ videos = [] }) {
             )}
 
             {/* Close button for mobile fullscreen */}
-            {isMobile && isMobileFullscreen && !isZoneEditorMode && (
+            {isMobile && isMobileFullscreen && (
                 <button
                     onClick={exitMobileFullscreen}
                     className="absolute top-4 right-4 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/30 transition"
@@ -707,19 +399,9 @@ export default function VideoPlayer({ videos = [] }) {
             )}
 
 
-            {/* SIMPLE ZONE EDITOR PANEL & TOGGLE (kept for future use, currently disabled in UI) */}
-            {false && isSimpleZoneEditor && (
-                <div className="absolute top-4 left-4 z-50 bg-white/90 backdrop-blur-md rounded-lg p-3 shadow-lg border border-gray-300 text-xs text-gray-800 space-y-2">
-                    {/* ... existing simple editor panel content ... */}
-                </div>
-            )}
-
             {/* --- VIDEO LAYERS --- */}
             <div 
-                ref={videoDisplayRef}
                 className="absolute inset-0 w-full h-full bg-black overflow-hidden"
-                onClick={handleVideoClick}
-                style={{ cursor: isZoneEditorMode && editingZoneId ? 'crosshair' : 'default' }}
             >
                 <video 
                     ref={v0} 
@@ -737,313 +419,7 @@ export default function VideoPlayer({ videos = [] }) {
                     autoPlay 
                     preload="auto"
                 />
-                
-                {/* Zone Editor Overlay - Shows captured points (advanced editor) */}
-                {isZoneEditorMode && Object.keys(capturedPoints).length > 0 && (() => {
-                    const activeVideo = activeLayer === 0 ? v0.current : v1.current;
-                    if (!activeVideo) return null;
-                    
-                    const displayArea = calculateVideoDisplayArea(activeVideo);
-                    if (!displayArea) return null;
-                    
-                    return (
-                        <div className="absolute inset-0 z-40 pointer-events-none">
-                            <svg 
-                                className="absolute inset-0 w-full h-full"
-                                style={{ pointerEvents: 'none' }}
-                            >
-                                {Object.entries(capturedPoints).map(([zoneId, points]) => {
-                                    if (points.length < 4) return null;
-                                    
-                                    // Convert video coordinates to screen coordinates (with object-cover)
-                                    const screenPoints = [];
-                                    for (let i = 0; i < points.length; i += 2) {
-                                        // Account for cropping: adjust coordinates by crop offset
-                                        const adjustedX = points[i] - displayArea.cropX;
-                                        const adjustedY = points[i + 1] - displayArea.cropY;
-                                        
-                                        // Convert to screen coordinates
-                                        const x = (adjustedX * displayArea.scaleX) + displayArea.offsetX;
-                                        const y = (adjustedY * displayArea.scaleY) + displayArea.offsetY;
-                                        screenPoints.push(`${x},${y}`);
-                                    }
-                                    
-                                    if (screenPoints.length < 2) return null;
-                                    
-                                    return (
-                                        <g key={zoneId}>
-                                            <polygon
-                                                points={screenPoints.join(' ')}
-                                                fill={parseInt(zoneId) === editingZoneId ? 'rgba(34, 197, 94, 0.2)' : 'rgba(59, 130, 246, 0.2)'}
-                                                stroke={parseInt(zoneId) === editingZoneId ? '#22c55e' : '#3b82f6'}
-                                                strokeWidth="3"
-                                            />
-                                            {points.map((point, idx) => {
-                                                if (idx % 2 !== 0) return null;
-                                                // Account for cropping
-                                                const adjustedX = point - displayArea.cropX;
-                                                const adjustedY = points[idx + 1] - displayArea.cropY;
-                                                const x = (adjustedX * displayArea.scaleX) + displayArea.offsetX;
-                                                const y = (adjustedY * displayArea.scaleY) + displayArea.offsetY;
-                                                return (
-                                                    <circle
-                                                        key={idx}
-                                                        cx={x}
-                                                        cy={y}
-                                                        r="5"
-                                                        fill="#22c55e"
-                                                        stroke="white"
-                                                        strokeWidth="2"
-                                                    />
-                                                );
-                                            })}
-                                        </g>
-                                    );
-                                })}
-                            </svg>
-                        </div>
-                    );
-                })()}
-
-                {/* Clickable Zones Overlay - only when current video has zones (hidden in editor mode) */}
-                {false && showClickableZones && hasZonesForCurrentVideo && !isInterior && !isZoneEditorMode && (() => {
-                    const activeVideo = activeLayer === 0 ? v0.current : v1.current;
-                    if (!activeVideo) return null;
-
-                    // Use actual video dimensions when available; fallback to image dimensions
-                    const viewWidth = activeVideo.videoWidth || IMAGE_WIDTH;
-                    const viewHeight = activeVideo.videoHeight || IMAGE_HEIGHT;
-
-                    return (
-                        <div className="absolute inset-0 z-30 pointer-events-auto">
-                            <svg
-                                className="absolute inset-0 w-full h-full"
-                                viewBox={`0 0 ${viewWidth} ${viewHeight}`}
-                                preserveAspectRatio="xMidYMid slice" // match object-cover
-                                style={{ pointerEvents: 'none' }}
-                            >
-                                <defs>
-                                    <filter id="shadow-medium" x="-50%" y="-50%" width="200%" height="200%">
-                                        <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="rgba(0,0,0,0.25)" />
-                                    </filter>
-                                </defs>
-                                {zonesForCurrentVideo.map((zone) => {
-                                    // Optional per-zone offset for fine tuning (only used when defined)
-                                    const dx = typeof zone.offsetX === "number" ? zone.offsetX : 0;
-                                    const dy = typeof zone.offsetY === "number" ? zone.offsetY : 0;
-
-                                    const points = [];
-                                    for (let i = 0; i < zone.coords.length; i += 2) {
-                                        points.push(`${zone.coords[i] + dx},${zone.coords[i + 1] + dy}`);
-                                    }
-
-                                    // Calculate center for tooltip (in SVG coords)
-                                    const xCoords = [];
-                                    const yCoords = [];
-                                    for (let i = 0; i < zone.coords.length; i += 2) {
-                                        xCoords.push(zone.coords[i] + dx);
-                                        yCoords.push(zone.coords[i + 1] + dy);
-                                    }
-                                    const centerX = xCoords.reduce((a, b) => a + b, 0) / xCoords.length;
-                                    const centerY = yCoords.reduce((a, b) => a + b, 0) / yCoords.length;
-                                    const minY = Math.min(...yCoords);
-
-                                    const isHovered = hoveredZone === zone.id;
-                                    const isPeekZone = zone.id === 4 || zone.id === 5;
-                                    const buttonScale = isMobile ? 1.6 : 1;
-                                    const btnWidth = 280 * buttonScale;
-                                    const btnHeight = 72 * buttonScale;
-                                    const btnRx = 18 * buttonScale;
-                                    const btnYOffset = 88 * buttonScale;
-                                    const fontBase = isMobile ? 28 : 18;
-                                    const fontHover = fontBase + 2;
-                                    const fontActive = fontBase + 4;
-
-                                    return (
-                                        <g key={zone.id}>
-                                            <polygon
-                                                points={points.join(' ')}
-                                                className="cursor-pointer transition-all duration-300"
-                                                fill={isHovered || isPeekZone ? 'rgba(96, 165, 250, 0.55)' : 'rgba(96, 165, 250, 0.28)'}
-                                                stroke="#60a5fa"
-                                                strokeWidth={isHovered ? '3.5' : '2.5'}
-                                                style={{
-                                                    pointerEvents: 'all',
-                                                    animation: 'zonePulse 1.4s ease-in-out infinite'
-                                                }}
-                                                onMouseEnter={() => setHoveredZone(zone.id)}
-                                                onMouseLeave={() => setHoveredZone(null)}
-                                                onClick={() => {
-                                                    // TEMP: disable all navigation until all videos are configured
-                                                    console.log(`Zone ${zone.id} polygon clicked (navigation disabled until all videos are configured).`);
-                                                }}
-                                            />
-
-                                            {/* Label tooltip / button */}
-                                            {isPeekZone ? (
-                                                // Always-visible "See interior" button for this area, positioned above the zone
-                                                <g
-                                                    onClick={() => {
-                                                        // TEMP: disable all navigation until all videos are configured
-                                                        console.log("See Interior button clicked (navigation disabled until all videos are configured).");
-                                                    }}
-                                                    onMouseEnter={() => setIsPeekButtonHovered(true)}
-                                                    onMouseLeave={() => {
-                                                        setIsPeekButtonHovered(false);
-                                                        setIsPeekButtonActive(false);
-                                                    }}
-                                                    onMouseDown={() => setIsPeekButtonActive(true)}
-                                                    onMouseUp={() => setIsPeekButtonActive(false)}
-                                                    style={{ cursor: 'pointer', pointerEvents: 'all' }}
-                                                >
-                                                    <defs>
-                                                        <linearGradient id={`zone-button-${zone.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                                                            <stop offset="0%" stopColor="rgba(255,255,255,0.98)" />
-                                                            <stop offset="100%" stopColor="rgba(236, 245, 255, 0.94)" />
-                                                        </linearGradient>
-                                                    </defs>
-                                                    <rect
-                                                        x={centerX - btnWidth / 2}
-                                                        y={minY - btnYOffset}  // above the top edge of the zone
-                                                        width={btnWidth}
-                                                        height={btnHeight}
-                                                        rx={btnRx}
-                                                        fill={
-                                                            isPeekButtonActive
-                                                                ? "#f59e0b" // strong orange on click
-                                                                : isPeekButtonHovered
-                                                                    ? "#fef3c7" // warm highlight on hover
-                                                                    : `url(#zone-button-${zone.id})`
-                                                        }
-                                                        stroke={isPeekButtonActive ? "#b45309" : isPeekButtonHovered ? "#fbbf24" : "#fcd34d"}
-                                                        strokeWidth={isPeekButtonActive ? "4" : isPeekButtonHovered ? "3.2" : "2.8"}
-                                                        opacity={isPeekButtonActive ? "0.96" : isPeekButtonHovered ? "1" : "0.98"}
-                                                        transform={isPeekButtonActive ? "translate(0,3)" : isPeekButtonHovered ? "translate(0,-1)" : "translate(0,0)"}
-                                                        filter="url(#shadow-medium)`" />
-                                                    <text
-                                                        x={centerX}
-                                                        y={minY - btnYOffset + (btnHeight / 2) + 4}
-                                                        textAnchor="middle"
-                                                        fill="#0f172a"
-                                                        fontSize={isPeekButtonActive ? fontActive : isPeekButtonHovered ? fontHover : fontBase}
-                                                        fontWeight="900"
-                                                        className="pointer-events-none tracking-widest"
-                                                    >
-                                                        SEE INTERIOR
-                                                    </text>
-                                                </g>
-                                            ) : (
-                                                // Always-visible labels for the 3 main areas
-                                                <g>
-                                                    <defs>
-                                                        <linearGradient id={`zone-label-${zone.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                                                            <stop offset="0%" stopColor="rgba(255,255,255,0.98)" />
-                                                            <stop offset="100%" stopColor="rgba(236, 245, 255, 0.94)" />
-                                                        </linearGradient>
-                                                    </defs>
-                                                    <rect
-                                                        x={centerX - 160}
-                                                        y={centerY - 30}
-                                                        width="320"
-                                                        height="60"
-                                                        rx="20"
-                                                        fill={`url(#zone-label-${zone.id})`}
-                                                        stroke="#fcd34d"
-                                                        strokeWidth="3.2"
-                                                        opacity="0.98"
-                                                        filter="url(#shadow-medium)`" />
-                                                    <text
-                                                        x={centerX}
-                                                        y={centerY + 2}
-                                                        textAnchor="middle"
-                                                        fill="#0f172a"
-                                                        fontSize="28"
-                                                        fontWeight="900"
-                                                        className="pointer-events-none tracking-widest"
-                                                    >
-                                                        {zone.label.toUpperCase()}
-                                                    </text>
-                                                </g>
-                                            )}
-                                        </g>
-                                    );
-                                })}
-                            </svg>
-                        </div>
-                    );
-                })()}
             </div>
-
-            {/* --- ZONE EDITOR UI (Enabled for manual polygon capture) --- */}
-            {/* Hidden by default; set SHOW_ZONE_EDITOR = true to reveal in future */}
-            {false && !isSimpleZoneEditor && !isMobile && (
-                <div className="absolute top-4 right-4 z-50 bg-white/90 backdrop-blur-md rounded-lg p-4 shadow-lg border border-gray-300">
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-sm font-bold text-gray-800">Zone Editor</h3>
-                            <button
-                                onClick={() => {
-                                    setIsZoneEditorMode(!isZoneEditorMode);
-                                    setEditingZoneId(null);
-                                    setCapturedPoints({});
-                                }}
-                                className="px-3 py-1 text-xs font-semibold rounded bg-blue-500 text-white hover:bg-blue-600"
-                            >
-                                {isZoneEditorMode ? 'Exit Editor' : 'Enable Editor'}
-                            </button>
-                        </div>
-                        
-                        {isZoneEditorMode && (
-                            <>
-                                <div className="text-xs text-gray-600 mb-2">
-                                    Click “Start new area”, then click points on the video to outline it. When done, click “Finish & log” to output coordinates in the console.
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => {
-                                            const tempId = 'custom';
-                                            if (editingZoneId === tempId) {
-                                                finishEditingZone();
-                                            } else {
-                                                startEditingZone(tempId);
-                                            }
-                                        }}
-                                        className={`px-3 py-1 text-xs font-semibold rounded ${editingZoneId ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                                    >
-                                        {editingZoneId ? 'Finish & log' : 'Start new area'}
-                                    </button>
-                                    {capturedPoints['custom'] && capturedPoints['custom'].length > 0 && (
-                                        <>
-                                            <span className="text-xs text-gray-600">
-                                                ({capturedPoints['custom'].length / 2} points)
-                                            </span>
-                                            <button
-                                                onClick={() => clearZonePoints('custom')}
-                                                className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                                            >
-                                                Clear
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                                {editingZoneId && (
-                                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                                        Click on the video to mark points. Click “Finish & log” when done.
-                                    </div>
-                                )}
-                                
-                                <button
-                                    onClick={applyTransformation}
-                                    disabled={Object.keys(capturedPoints).length === 0 || Object.values(capturedPoints).some(p => p.length === 0)}
-                                    className="mt-2 px-4 py-2 text-sm font-bold bg-purple-500 text-white rounded hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                                >
-                                    Calculate & Log Adjusted Coordinates
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
-            )}
 
             {/* --- CONTROLS --- (hidden on mobile when not in fullscreen) */}
             {(!isMobile || isMobileFullscreen) && (
@@ -1061,12 +437,12 @@ export default function VideoPlayer({ videos = [] }) {
                         </button>
                     </div>
 
-                    {/* GROUP 1.5: PEEK A HOUSE (Jump to zones video) */}
+                    {/* GROUP 1.5: PEEK A HOUSE (Jump to video id 5) */}
                     <div className={`${glassContainer} rounded-full overflow-hidden`}>
                         <button
-                            onClick={handleGoToZonesVideo}
-                            disabled={isLastVideo || isTransitioning}
-                            className={`${btnBase} ${(isLastVideo || isTransitioning) ? btnDisabled : btnInactive}`}
+                            onClick={handlePeekHouse}
+                            disabled={isTransitioning}
+                            className={`${btnBase} ${isTransitioning ? btnDisabled : btnInactive}`}
                         >
                             Peek a house
                         </button>
@@ -1115,6 +491,5 @@ export default function VideoPlayer({ videos = [] }) {
             </div>
             )}
         </div>
-        </>
     );
 }
