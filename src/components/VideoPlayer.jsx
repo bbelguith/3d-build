@@ -462,21 +462,26 @@ export default function VideoPlayer({ videos = [] }) {
             }
 
             showEl.onended = () => {
+                const zonesExistForThisVideo = hasZonesForIndex(index);
+
                 if (isInteriorVideo) {
                     const lastIndex = videos.length - 1;
                     setIsInterior(false);
                     playVideo(videos[lastIndex].src, lastIndex, false, false);
+                } else if (zonesExistForThisVideo) {
+                    showEl.pause();
+                    if (showEl.duration) {
+                        showEl.currentTime = showEl.duration - 0.05;
+                    }
+                    setHasVideoEnded(true);
+                    setShowClickableZones(true); // Show zones when video ends (any video with zones, including id 2 and 5)
                 } else if (index === videos.length - 1) {
                     showEl.pause();
                     if (showEl.duration) {
                         showEl.currentTime = showEl.duration - 0.05;
                     }
                     setHasVideoEnded(true);
-                    setShowClickableZones(true); // Show zones when video ends
-                } else if (hasZonesForIndex(index)) {
-                    // Non-final videos that have zones (mobile fallback)
-                    setHasVideoEnded(true);
-                    setShowClickableZones(true);
+                    setShowClickableZones(true); // Show zones when last video ends
                 }
             };
         } else {
