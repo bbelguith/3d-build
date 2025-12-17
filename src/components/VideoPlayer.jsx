@@ -70,6 +70,7 @@ export default function VideoPlayer({ videos = [] }) {
             label: "Prime Villas", 
             houseId: 1,
             videoId: 5, // DB video id that shows this area
+            attachToIndex: 3, // fallback by order
             // targetVideoId: <videoId>, // set later to jump to a detail video
         },
         { 
@@ -79,6 +80,7 @@ export default function VideoPlayer({ videos = [] }) {
             label: "Commercial Hub", 
             houseId: 2,
             videoId: 5,
+            attachToIndex: 3, // fallback by order
             // targetVideoId: <videoId>,
         },
         { 
@@ -88,6 +90,7 @@ export default function VideoPlayer({ videos = [] }) {
             label: "Twin Villas", 
             houseId: 3,
             videoId: 5,
+            attachToIndex: 3, // fallback by order
             // targetVideoId: <videoId>,
         },
         { 
@@ -107,6 +110,7 @@ export default function VideoPlayer({ videos = [] }) {
             label: "", // no text label – we render a custom "SEE INTERIOR" button instead
             houseId: 1,
             videoId: 2, // DB video id that shows this single area with the SEE INTERIOR button
+            attachToIndex: 1, // fallback by order
             // Manual adjustment knobs for fine‑tuning position (in video pixels)
             offsetX: -2,  // + moves area to the right, - moves to the left
             offsetY: -128, // + moves area down, - moves up
@@ -132,6 +136,7 @@ export default function VideoPlayer({ videos = [] }) {
             label: "", // render SEE INTERIOR button
             houseId: 1,
             videoId: 3,
+            attachToIndex: 2, // fallback by order
             offsetX: CUSTOM_AREA_OFFSET_X,
             offsetY: CUSTOM_AREA_OFFSET_Y,
         },
