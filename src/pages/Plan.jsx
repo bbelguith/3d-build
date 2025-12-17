@@ -26,6 +26,7 @@ export default function Plan() {
     const [roomIndex, setRoomIndex] = useState(0);
     const [galleryIndex, setGalleryIndex] = useState(0);
     const [floorIndex, setFloorIndex] = useState(0);
+    const [primePlanIdx, setPrimePlanIdx] = useState(0);
 
     // 2. FETCH DATA
     useEffect(() => {
@@ -118,6 +119,11 @@ export default function Plan() {
     const currentRoomImages = roomImages.map((img) => img.src);
     const currentGalleryImages = galleryImages.map((img) => img.src);
     const currentFloorImages = floorPlanImages.map((img) => img.src);
+    const primePlanImages = useMemo(() => ([
+        "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986525/plan_rdc_villa_isolee_pyote8.png",
+        "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986610/plan_terrasse_villa_isolee_riz5mc.png",
+        "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986523/WhatsApp_Image_2025-12-17_at_15.49.21_krfpum.jpg"
+    ]), []);
 
     const handleHouseClick = (houseId) => {
         const house = houses.find((h) => h.id === houseId);
@@ -271,11 +277,11 @@ export default function Plan() {
                         {/* Center Card - Normal Scroll */}
                         <div
                             className="flex-1 min-h-[400px] md:min-h-[500px] lg:min-h-[600px] rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.1)] border border-white/50 bg-white relative group cursor-pointer transition-all hover:shadow-[0_30px_60px_rgb(0,0,0,0.15)] flex flex-col z-10"
-                            onClick={() => setPopupSrc("https://res.cloudinary.com/dzbmwlwra/image/upload/v1754778241/floor-plan_jvww4l.png")}
+                            onClick={() => setPopupSrc(primePlanImages[primePlanIdx])}
                         >
                             <div
                                 className="absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-6 md:p-8 lg:p-12"
-                                style={{ backgroundImage: "url(https://res.cloudinary.com/dzbmwlwra/image/upload/v1754778241/floor-plan_jvww4l.png)" }}
+                                style={{ backgroundImage: `url(${primePlanImages[primePlanIdx]})` }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />
                             <div className="mt-auto relative z-10 p-6 md:p-8 lg:p-10 text-white w-full">
@@ -284,6 +290,15 @@ export default function Plan() {
                                 </span>
                                 <p className="text-2xl md:text-3xl lg:text-4xl font-serif font-medium mb-2">Floor Plan Overview</p>
                                 <p className="text-white/80 text-xs md:text-sm font-light tracking-wide">Click to expand details</p>
+                                <div className="flex items-center gap-2 mt-4">
+                                    {primePlanImages.map((_, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={(e) => { e.stopPropagation(); setPrimePlanIdx(idx); }}
+                                            className={`h-2.5 rounded-full transition-all duration-300 shadow-sm ${idx === primePlanIdx ? "w-8 bg-white" : "w-3 bg-white/40 hover:bg-white/80"}`}
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         </div>
 

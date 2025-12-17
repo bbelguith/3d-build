@@ -165,7 +165,7 @@ export default function Navbar({ playVideo }) {
                         <div className="p-1.5 space-y-0.5">
                           <DropdownItem
                             to="/plan"
-                            label="Plan Type A"
+                            label="Plan Prime Villa"
                             subLabel="North View • 120m²"
                             currentPath={location.pathname}
                             close={() => setShowDropdown(false)}
@@ -173,7 +173,7 @@ export default function Navbar({ playVideo }) {
                           />
                           <DropdownItem
                             to="/planb"
-                            label="Plan Type B"
+                            label="Plan Twin Villa"
                             subLabel="Panoramic View • 165m²"
                             currentPath={location.pathname}
                             close={() => setShowDropdown(false)}
