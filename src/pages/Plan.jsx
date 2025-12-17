@@ -27,6 +27,8 @@ export default function Plan() {
     const [galleryIndex, setGalleryIndex] = useState(0);
     const [floorIndex, setFloorIndex] = useState(0);
     const [primePlanIdx, setPrimePlanIdx] = useState(0);
+    const [isPrimeRotating, setIsPrimeRotating] = useState(false);
+    const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0 });
 
     // 2. FETCH DATA
     useEffect(() => {
@@ -124,6 +126,17 @@ export default function Plan() {
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986610/plan_terrasse_villa_isolee_riz5mc.png",
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986523/WhatsApp_Image_2025-12-17_at_15.49.21_krfpum.jpg"
     ]), []);
+
+    const openLightbox = (images, index = 0) => setLightbox({ open: true, images, index });
+    const closeLightbox = () => setLightbox({ open: false, images: [], index: 0 });
+    const nextLightbox = () => setLightbox((p) => ({ ...p, index: (p.index + 1) % p.images.length }));
+    const prevLightbox = () => setLightbox((p) => ({ ...p, index: (p.index - 1 + p.images.length) % p.images.length }));
+
+    const handlePrimePlanClick = () => {
+        setIsPrimeRotating(true);
+        setTimeout(() => setIsPrimeRotating(false), 600);
+        openLightbox(primePlanImages, primePlanIdx);
+    };
 
     const handleHouseClick = (houseId) => {
         const house = houses.find((h) => h.id === houseId);
