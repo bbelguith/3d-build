@@ -21,6 +21,8 @@ export default function Plan() {
     const [galleryImages, setGalleryImages] = useState([]);
     const [floorPlanImages, setFloorPlanImages] = useState([]);
     const [twinPlanIdx, setTwinPlanIdx] = useState(0);
+    const [isTwinRotating, setIsTwinRotating] = useState(false);
+    const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0 });
     const [loading, setLoading] = useState(true);
 
     const [hoveredHouseId, setHoveredHouseId] = useState(null);
@@ -131,6 +133,17 @@ export default function Plan() {
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986531/1ER-villabande_zze0o3.png",
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986533/terrase-villabande_dman5u.png"
     ]), []);
+
+    const openLightbox = (images, index = 0) => setLightbox({ open: true, images, index });
+    const closeLightbox = () => setLightbox({ open: false, images: [], index: 0 });
+    const nextLightbox = () => setLightbox((p) => ({ ...p, index: (p.index + 1) % p.images.length }));
+    const prevLightbox = () => setLightbox((p) => ({ ...p, index: (p.index - 1 + p.images.length) % p.images.length }));
+
+    const handleTwinPlanClick = () => {
+        setIsTwinRotating(true);
+        setTimeout(() => setIsTwinRotating(false), 600);
+        openLightbox(twinPlanImages, twinPlanIdx);
+    };
 
     const handleHouseClick = (houseId) => {
         const house = houses.find((h) => h.id === houseId);
@@ -278,10 +291,10 @@ export default function Plan() {
 
                         <div
                             className="flex-1 min-h-[600px] rounded-[3rem] overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.1)] border border-white/50 bg-white relative group cursor-pointer transition-all hover:shadow-[0_30px_60px_rgb(0,0,0,0.15)] flex flex-col z-10"
-                            onClick={() => setPopupSrc(twinPlanImages[twinPlanIdx])}
+                            onClick={handleTwinPlanClick}
                         >
                             <div
-                                className="absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-12"
+                                className={`absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-12 ${isTwinRotating ? "-rotate-180" : "rotate-0"}`}
                                 style={{ backgroundImage: `url(${twinPlanImages[twinPlanIdx]})` }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />

@@ -290,10 +290,10 @@ export default function Plan() {
                         {/* Center Card - Normal Scroll */}
                         <div
                             className="flex-1 min-h-[400px] md:min-h-[500px] lg:min-h-[600px] rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.1)] border border-white/50 bg-white relative group cursor-pointer transition-all hover:shadow-[0_30px_60px_rgb(0,0,0,0.15)] flex flex-col z-10"
-                            onClick={() => setPopupSrc(primePlanImages[primePlanIdx])}
+                            onClick={handlePrimePlanClick}
                         >
                             <div
-                                className="absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-6 md:p-8 lg:p-12"
+                                className={`absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-6 md:p-8 lg:p-12 ${isPrimeRotating ? "-rotate-180" : "rotate-0"}`}
                                 style={{ backgroundImage: `url(${primePlanImages[primePlanIdx]})` }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />
@@ -393,6 +393,47 @@ export default function Plan() {
         @keyframes fadeIn { from { opacity: 0; transform: scale(1.02); } to { opacity: 1; transform: scale(1); } }
         @keyframes subtleZoom { from { transform: scale(1); } to { transform: scale(1.05); } }
       `}</style>
+
+            {lightbox.open && (
+                <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center px-4">
+                    <button
+                        onClick={closeLightbox}
+                        className="absolute top-6 right-6 text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-2 text-xs font-bold tracking-wide"
+                    >
+                        Close
+                    </button>
+                    <div className="relative max-w-5xl w-full flex items-center justify-center gap-4">
+                        <button
+                            onClick={prevLightbox}
+                            className="w-12 h-12 rounded-full bg-white/15 text-white border border-white/20 hover:bg-white/30 flex items-center justify-center text-xl"
+                        >
+                            ‹
+                        </button>
+                        <div className="relative w-full max-h-[80vh] flex items-center justify-center">
+                            <img
+                                src={lightbox.images[lightbox.index]}
+                                alt="Plan"
+                                className="max-h-[80vh] max-w-full object-contain rounded-2xl shadow-2xl transition-transform duration-500"
+                            />
+                        </div>
+                        <button
+                            onClick={nextLightbox}
+                            className="w-12 h-12 rounded-full bg-white/15 text-white border border-white/20 hover:bg-white/30 flex items-center justify-center text-xl"
+                        >
+                            ›
+                        </button>
+                    </div>
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                        {lightbox.images.map((_, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => setLightbox((p) => ({ ...p, index: idx }))}
+                                className={`h-2.5 rounded-full transition-all duration-300 ${idx === lightbox.index ? "w-8 bg-white" : "w-3 bg-white/40 hover:bg-white/70"}`}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
