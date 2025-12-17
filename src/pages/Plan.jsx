@@ -27,7 +27,6 @@ export default function Plan() {
     const [galleryIndex, setGalleryIndex] = useState(0);
     const [floorIndex, setFloorIndex] = useState(0);
     const [primePlanIdx, setPrimePlanIdx] = useState(0);
-    const [isPrimeRotating, setIsPrimeRotating] = useState(false);
     const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0 });
 
     // 2. FETCH DATA
@@ -133,8 +132,6 @@ export default function Plan() {
     const prevLightbox = () => setLightbox((p) => ({ ...p, index: (p.index - 1 + p.images.length) % p.images.length }));
 
     const handlePrimePlanClick = () => {
-        setIsPrimeRotating(true);
-        setTimeout(() => setIsPrimeRotating(false), 600);
         openLightbox(primePlanImages, primePlanIdx);
     };
 
@@ -293,7 +290,7 @@ export default function Plan() {
                             onClick={handlePrimePlanClick}
                         >
                             <div
-                                className={`absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-6 md:p-8 lg:p-12 ${isPrimeRotating ? "-rotate-180" : "rotate-0"}`}
+                                className="absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-6 md:p-8 lg:p-12 -rotate-90 origin-center"
                                 style={{ backgroundImage: `url(${primePlanImages[primePlanIdx]})` }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />

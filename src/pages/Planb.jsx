@@ -21,7 +21,6 @@ export default function Plan() {
     const [galleryImages, setGalleryImages] = useState([]);
     const [floorPlanImages, setFloorPlanImages] = useState([]);
     const [twinPlanIdx, setTwinPlanIdx] = useState(0);
-    const [isTwinRotating, setIsTwinRotating] = useState(false);
     const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0 });
     const [loading, setLoading] = useState(true);
 
@@ -140,8 +139,6 @@ export default function Plan() {
     const prevLightbox = () => setLightbox((p) => ({ ...p, index: (p.index - 1 + p.images.length) % p.images.length }));
 
     const handleTwinPlanClick = () => {
-        setIsTwinRotating(true);
-        setTimeout(() => setIsTwinRotating(false), 600);
         openLightbox(twinPlanImages, twinPlanIdx);
     };
 
@@ -294,7 +291,7 @@ export default function Plan() {
                             onClick={handleTwinPlanClick}
                         >
                             <div
-                                className={`absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-12 ${isTwinRotating ? "-rotate-180" : "rotate-0"}`}
+                                className="absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-12 -rotate-90 origin-center"
                                 style={{ backgroundImage: `url(${twinPlanImages[twinPlanIdx]})` }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />
@@ -385,6 +382,47 @@ export default function Plan() {
                     </div>
                 </div>
             </section>
+
+            {lightbox.open && (
+                <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center px-4">
+                    <button
+                        onClick={closeLightbox}
+                        className="absolute top-6 right-6 text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-2 text-xs font-bold tracking-wide"
+                    >
+                        Close
+                    </button>
+                    <div className="relative max-w-5xl w-full flex items-center justify-center gap-4">
+                        <button
+                            onClick={prevLightbox}
+                            className="w-12 h-12 rounded-full bg-white/15 text-white border border-white/20 hover:bg-white/30 flex items-center justify-center text-xl"
+                        >
+                            ‹
+                        </button>
+                        <div className="relative w-full max-h-[80vh] flex items-center justify-center">
+                            <img
+                                src={lightbox.images[lightbox.index]}
+                                alt="Plan"
+                                className="max-h-[80vh] max-w-full object-contain rounded-2xl shadow-2xl transition-transform duration-500"
+                            />
+                        </div>
+                        <button
+                            onClick={nextLightbox}
+                            className="w-12 h-12 rounded-full bg-white/15 text-white border border-white/20 hover:bg-white/30 flex items-center justify-center text-xl"
+                        >
+                            ›
+                        </button>
+                    </div>
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                        {lightbox.images.map((_, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => setLightbox((p) => ({ ...p, index: idx }))}
+                                className={`h-2.5 rounded-full transition-all duration-300 ${idx === lightbox.index ? "w-8 bg-white" : "w-3 bg-white/40 hover:bg-white/70"}`}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
