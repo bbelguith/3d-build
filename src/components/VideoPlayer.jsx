@@ -342,12 +342,6 @@ export default function VideoPlayer({ videos = [] }) {
 
     const isLastVideo = current === videos.length - 1;
 
-    // Jump helper: go to the video whose DB id is 5
-    const handlePeekHouse = () => {
-        if (isTransitioning) return;
-        playVideoById(5);
-    };
-
     // --- STYLES (Matching Navbar) ---
     // The "Glass" container
     const glassContainer = "bg-[#4a6fa5]/60 backdrop-blur-md border border-[#fcd34d]/60 shadow-lg flex items-center h-10";
@@ -434,17 +428,6 @@ export default function VideoPlayer({ videos = [] }) {
                             className={`rounded-full px-6 h-full text-xs font-bold tracking-wider uppercase transition-all ${!isInterior ? "bg-white text-slate-900 shadow-sm" : "text-white hover:bg-white/10"} ${isTransitioning ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             Exterior
-                        </button>
-                    </div>
-
-                    {/* GROUP 1.5: PEEK A HOUSE (Jump to video id 5) */}
-                    <div className={`${glassContainer} rounded-full overflow-hidden`}>
-                        <button
-                            onClick={handlePeekHouse}
-                            disabled={isTransitioning}
-                            className={`${btnBase} ${isTransitioning ? btnDisabled : btnInactive}`}
-                        >
-                            Peek a house
                         </button>
                     </div>
 
