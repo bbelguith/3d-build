@@ -388,7 +388,8 @@ export default function VideoPlayer({ videos = [] }) {
                         <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition">
                             <Play className="w-10 h-10 md:w-12 md:h-12 text-white ml-1" fill="white" />
                         </div>
-                        <p className="text-white text-lg md:text-xl font-semibold">Show Project</p>
+                        <p className="text-white text-lg md:text-xl font-semibold">Show Project full screen</p>
+                        
                         <p className="text-white/80 text-sm mt-2">Tap to view in fullscreen</p>
                     </div>
                 </div>
