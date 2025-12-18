@@ -36,6 +36,7 @@ export default function VideoPlayer({ videos = [] }) {
     const videoContainerRef = useRef(null);
     const preloadedVideosRef = useRef(new Map());
     const hotspotOverlayRef = useRef(null);
+    const importInputRef = useRef(null);
 
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
     const BASE_WIDTH = zonesData.baseWidth || 1920;
@@ -509,6 +510,10 @@ export default function VideoPlayer({ videos = [] }) {
 
     const handlePointPointerDown = (event, zoneId, pointIndex) => {
         if (!editZones) return;
+        if (zoneId !== selectedZoneId) {
+            setSelectedZoneId(zoneId);
+            return;
+        }
         if (event.altKey) {
             setZonesByVideo((prev) => {
                 const next = { ...prev };
@@ -596,6 +601,32 @@ export default function VideoPlayer({ videos = [] }) {
             baseHeight: BASE_HEIGHT,
             videos: zonesByVideo
         });
+    };
+
+    const handleImportZones = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const parsed = JSON.parse(reader.result);
+                const raw = parsed?.videos || {};
+                const normalized = {};
+                Object.keys(raw).forEach((key) => {
+                    const zones = (raw[key]?.zones || []).map((zone) => ({
+                        ...zone,
+                        visible: zone.visible !== false
+                    }));
+                    normalized[key] = { zones };
+                });
+                setZonesByVideo(normalized);
+                setSelectedZoneId(null);
+                setHoveredZoneId(null);
+            } catch (err) {
+                console.error("[VideoPlayer] Failed to import zones:", err);
+            }
+        };
+        reader.readAsText(file);
     };
 
     const downloadZones = () => {
@@ -717,57 +748,51 @@ export default function VideoPlayer({ videos = [] }) {
                                         <polygon
                                             points={pointList}
                                             fill={
-                                                isHovered
-                                                    ? "rgba(30,64,175,0.35)"
-                                                    : isSelected
-                                                        ? "rgba(16,185,129,0.25)"
+                                                isSelected
+                                                    ? "rgba(139,92,246,0.28)"
+                                                    : isHovered
+                                                        ? "rgba(30,64,175,0.35)"
                                                         : "rgba(16,185,129,0.12)"
                                             }
                                             stroke={
-                                                isHovered
-                                                    ? "rgba(30,64,175,0.9)"
-                                                    : isSelected
-                                                        ? "rgba(16,185,129,0.9)"
+                                                isSelected
+                                                    ? "rgba(139,92,246,0.95)"
+                                                    : isHovered
+                                                        ? "rgba(30,64,175,0.9)"
                                                         : "rgba(16,185,129,0.5)"
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
-                                            onPointerDown={() => {
-                                                if (!editZones) return;
-                                                setSelectedZoneId(zone.id);
-                                            }}
-                                            onPointerEnter={() => setHoveredZoneId(zone.id)}
-                                            onPointerLeave={() => setHoveredZoneId(null)}
+                                        onPointerDown={() => setSelectedZoneId(zone.id)}
+                                        onPointerEnter={() => setHoveredZoneId(zone.id)}
+                                        onPointerLeave={() => setHoveredZoneId(null)}
                                         />
                                     ) : (
                                         <polyline
                                             points={pointList}
                                             fill="none"
                                             stroke={
-                                                isHovered
-                                                    ? "rgba(30,64,175,0.9)"
-                                                    : isSelected
-                                                        ? "rgba(16,185,129,0.9)"
+                                                isSelected
+                                                    ? "rgba(139,92,246,0.95)"
+                                                    : isHovered
+                                                        ? "rgba(30,64,175,0.9)"
                                                         : "rgba(16,185,129,0.5)"
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             pointerEvents="stroke"
-                                            onPointerDown={() => {
-                                                if (!editZones) return;
-                                                setSelectedZoneId(zone.id);
-                                            }}
+                                            onPointerDown={() => setSelectedZoneId(zone.id)}
                                             onPointerEnter={() => setHoveredZoneId(zone.id)}
                                             onPointerLeave={() => setHoveredZoneId(null)}
                                         />
                                     )}
-                                    {editZones &&
+                                    {editZones && isSelected &&
                                         zone.points.map((pt, idx) => (
                                             <circle
                                                 key={`${zone.id}-${idx}`}
                                                 cx={pt.x}
                                                 cy={pt.y}
                                                 r={3}
-                                                fill={isSelected ? "#22c55e" : "#10b981"}
-                                                stroke="#064e3b"
+                                                fill={isSelected ? "#8b5cf6" : "#10b981"}
+                                                stroke={isSelected ? "#4c1d95" : "#064e3b"}
                                                 strokeWidth={2}
                                                 onPointerDown={(event) => handlePointPointerDown(event, zone.id, idx)}
                                             />
@@ -911,16 +936,34 @@ export default function VideoPlayer({ videos = [] }) {
                 >
                     Save JSON
                 </button>
-                    <span className="text-[11px] text-white/70 ml-auto">
-                        Selected: {selectedZoneId ?? "none"} | Click in video to add points
-                    </span>
-                </div>
+                <button
+                    type="button"
+                    onClick={() => importInputRef.current?.click()}
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                >
+                    Import JSON
+                </button>
+                <input
+                    ref={importInputRef}
+                    type="file"
+                    accept="application/json"
+                    onChange={handleImportZones}
+                    className="hidden"
+                />
+                <span className="text-[11px] text-white/70 ml-auto">
+                    Selected: {selectedZoneId ?? "none"} | Click in video to add points
+                </span>
+            </div>
                 {editZones && (
                     <div className="px-4 pb-4">
                         <div className="max-h-[260px] overflow-auto rounded-xl bg-black/50 text-white text-[11px] px-3 py-2 border border-white/10">
                             <div className="font-bold tracking-wider mb-2">Zones (px @ 1920x1080)</div>
                             {currentZones.map((zone) => (
-                                <div key={zone.id} className="font-mono mb-2">
+                                <div
+                                    key={zone.id}
+                                    className={`font-mono mb-2 rounded-lg px-2 py-1 ${selectedZoneId === zone.id ? "bg-violet-900/40 border border-violet-400/50" : ""}`}
+                                    onClick={() => setSelectedZoneId(zone.id)}
+                                >
                                     <div className="flex items-center gap-2 mb-1">
                                         <button
                                             type="button"
@@ -958,6 +1001,26 @@ export default function VideoPlayer({ videos = [] }) {
                                             className="bg-white/10 border border-white/10 rounded px-2 py-0.5 text-[11px] text-white w-32"
                                             placeholder="Label"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setZonesByVideo((prev) => {
+                                                    const next = { ...prev };
+                                                    const currentList = next[currentVideoKey]?.zones || [];
+                                                    next[currentVideoKey] = {
+                                                        zones: currentList.filter((z) => z.id !== zone.id)
+                                                    };
+                                                    return next;
+                                                });
+                                                if (selectedZoneId === zone.id) {
+                                                    setSelectedZoneId(null);
+                                                }
+                                            }}
+                                            className="zone-editor-button w-6 h-6 rounded bg-red-600/80 border border-red-400 text-[10px] flex items-center justify-center"
+                                            title="Delete zone"
+                                        >
+                                            ×
+                                        </button>
                                     </div>
                                     {zone.points.map((pt, idx) => (
                                         <div key={`${zone.id}-pt-${idx}`}>

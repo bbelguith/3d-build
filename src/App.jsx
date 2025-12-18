@@ -56,6 +56,7 @@ function AppContent() {
   const [connectionInfo, setConnectionInfo] = useState(null);
   const [currentVideoLoading, setCurrentVideoLoading] = useState(null);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [isZoneEditorActive, setIsZoneEditorActive] = useState(false);
 
   // --- NEW: SCROLL RESTORATION LOGIC ---
   // This ensures the page starts at the top whenever the route changes
@@ -88,6 +89,14 @@ function AppContent() {
       .then((res) => setVideos(res.data))
       .catch((err) => console.error("Failed to fetch videos:", err));
   }, [hideLayout]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      setIsZoneEditorActive(Boolean(event.detail?.active));
+    };
+    window.addEventListener("zone-editor-change", handler);
+    return () => window.removeEventListener("zone-editor-change", handler);
+  }, []);
 
   // Adaptive loader logic based on connection quality
   useEffect(() => {
@@ -187,12 +196,12 @@ function AppContent() {
       <div className="noise-overlay" />
 
       {/* 2. Scroll Progress Bar (Top) */}
-      {!hideLayout && <ScrollProgress />}
+      {!hideLayout && !isZoneEditorActive && <ScrollProgress />}
 
       {/* CustomCursor temporarily disabled to use default system cursor */}
       {/* {!hideLayout && <CustomCursor />} */}
 
-      {!hideLayout && <Navbar />}
+      {!hideLayout && !isZoneEditorActive && <Navbar />}
 
       <ToastContainer
         position="top-center"
@@ -207,6 +216,9 @@ function AppContent() {
       />
 
       <main className="flex-grow w-full">
+        {isZoneEditorActive ? (
+          <VideoPlayer videos={videos} />
+        ) : (
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             {/* HOME PAGE */}
@@ -277,14 +289,15 @@ function AppContent() {
             />
           </Routes>
         </AnimatePresence>
+        )}
       </main>
 
-      {!hideLayout && <Footer />}
+      {!hideLayout && !isZoneEditorActive && <Footer />}
       {/* Hide chat only on phone when on the home/video page */}
-      {!hideLayout && (!(isTouchDevice && isHome)) && <ChatBot />}
+      {!hideLayout && !isZoneEditorActive && (!(isTouchDevice && isHome)) && <ChatBot />}
 
       {/* 3. Scroll To Top Button (Bottom) */}
-      {!hideLayout && <ScrollToTop />}
+      {!hideLayout && !isZoneEditorActive && <ScrollToTop />}
     </div>
   );
 }
