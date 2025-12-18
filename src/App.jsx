@@ -35,6 +35,12 @@ import Dashboard from "./pages/Dashboard";
 import HouseCommentForm from "./pages/HouseCommentForm";
 import NotFound from "./pages/NotFound";
 import { ChatProvider } from "./context/ChatContext";
+import { 
+  detectConnectionQuality, 
+  getConnectionInfo, 
+  getPreloadStrategy,
+  onConnectionChange 
+} from "./utils/connectionDetector";
 
 function AppContent() {
   const location = useLocation();
@@ -46,6 +52,10 @@ function AppContent() {
   const [progress, setProgress] = useState(0);
   const [videos, setVideos] = useState([]);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [connectionQuality, setConnectionQuality] = useState(null);
+  const [connectionInfo, setConnectionInfo] = useState(null);
+  const [currentVideoLoading, setCurrentVideoLoading] = useState(null);
+  const [isBuffering, setIsBuffering] = useState(false);
 
   // --- NEW: SCROLL RESTORATION LOGIC ---
   // This ensures the page starts at the top whenever the route changes
@@ -53,6 +63,20 @@ function AppContent() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
   // -------------------------------------
+
+  // Detect connection quality on mount
+  useEffect(() => {
+    const quality = detectConnectionQuality();
+    const info = getConnectionInfo();
+    setConnectionQuality(quality);
+    setConnectionInfo(info);
+
+    // Monitor connection changes
+    onConnectionChange((newQuality, newInfo) => {
+      setConnectionQuality(newQuality);
+      setConnectionInfo(newInfo);
+    });
+  }, []);
 
   // Fetch videos from backend
   useEffect(() => {
@@ -65,49 +89,91 @@ function AppContent() {
       .catch((err) => console.error("Failed to fetch videos:", err));
   }, [hideLayout]);
 
-  // Loader logic - Only load first 2 videos initially
+  // Adaptive loader logic based on connection quality
   useEffect(() => {
-    if (hideLayout || videos.length === 0) return;
+    if (hideLayout || videos.length === 0 || !connectionQuality) return;
 
-    const initialVideos = videos.slice(0, 2); // Changed from 3 to 2
+    const strategy = getPreloadStrategy(connectionQuality);
+    const initialVideos = videos.slice(0, strategy.initialVideos);
     let loadedCount = 0;
+    let totalToLoad = initialVideos.length;
 
-    const preloadVideo = (video) =>
+    const preloadVideo = (video, index) =>
       new Promise((resolve) => {
+        setCurrentVideoLoading(`Video ${index + 1} of ${totalToLoad}`);
+        setIsBuffering(true);
+        
         const vid = document.createElement("video");
         vid.src = video.src;
-        vid.preload = "auto";
+        vid.preload = strategy.preloadType;
         vid.muted = true; // Mute for faster loading
         vid.playsInline = true; // iOS requirement
         vid.setAttribute("playsinline", "true"); // iOS fallback
-        vid.oncanplaythrough = () => {
+        
+        // For slow connections, only wait for metadata
+        const loadEvent = strategy.preloadType === 'metadata' ? 'loadedmetadata' : 'canplaythrough';
+        
+        const handleLoad = () => {
           loadedCount++;
-          setProgress(Math.round((loadedCount / initialVideos.length) * 100));
+          const newProgress = Math.round((loadedCount / totalToLoad) * 100);
+          setProgress(newProgress);
+          setIsBuffering(false);
           resolve();
         };
-        vid.onerror = resolve;
+
+        vid.addEventListener(loadEvent, handleLoad, { once: true });
+        vid.onerror = () => {
+          setIsBuffering(false);
+          resolve(); // Continue even if one video fails
+        };
+        
         vid.load();
+
+        // Timeout for slow connections
+        const timeout = strategy.preloadType === 'metadata' ? 5000 : 15000;
+        setTimeout(() => {
+          if (vid.readyState === 0) {
+            setIsBuffering(false);
+            resolve(); // Continue even if timeout
+          }
+        }, timeout);
       });
 
-    Promise.all(initialVideos.map(preloadVideo)).then(() => {
-      setTimeout(() => setIsReady(true), 200); // Reduced delay
+    // Load initial videos
+    Promise.all(initialVideos.map((video, index) => preloadVideo(video, index))).then(() => {
+      setCurrentVideoLoading(null);
+      setIsBuffering(false);
+      setTimeout(() => setIsReady(true), 300);
       
-      // Preload remaining videos in background (non-blocking)
-      setTimeout(() => {
-        videos.slice(2).forEach((video) => {
-          const bgVid = document.createElement("video");
-          bgVid.src = video.src;
-          bgVid.preload = "auto";
-          bgVid.muted = true;
-          bgVid.playsInline = true; // iOS requirement
-          bgVid.setAttribute("playsinline", "true"); // iOS fallback
-          bgVid.load();
-        });
-      }, 1000); // Start background loading after 1 second
+      // Background loading based on strategy
+      if (strategy.backgroundLoad && videos.length > strategy.initialVideos) {
+        setTimeout(() => {
+          videos.slice(strategy.initialVideos).forEach((video, index) => {
+            setTimeout(() => {
+              const bgVid = document.createElement("video");
+              bgVid.src = video.src;
+              bgVid.preload = strategy.preloadType;
+              bgVid.muted = true;
+              bgVid.playsInline = true;
+              bgVid.setAttribute("playsinline", "true");
+              bgVid.load();
+            }, index * strategy.staggerDelay);
+          });
+        }, 1000);
+      }
     });
-  }, [videos, hideLayout]);
+  }, [videos, hideLayout, connectionQuality]);
 
-  if (!isReady && !hideLayout) return <Loader progress={progress} />;
+  if (!isReady && !hideLayout) {
+    return (
+      <Loader 
+        progress={progress} 
+        currentVideo={currentVideoLoading}
+        connectionInfo={connectionInfo}
+        isBuffering={isBuffering}
+      />
+    );
+  }
 
   return (
     <div

@@ -1,8 +1,9 @@
 import React from "react";
 import logo from "../assets/Logo2-BNG.png";
 import { motion, AnimatePresence } from "framer-motion";
+import { Wifi, WifiOff, Loader2 } from "lucide-react";
 
-export default function Loader({ progress }) {
+export default function Loader({ progress, currentVideo = null, connectionInfo = null, isBuffering = false }) {
   // --- VARIANTS FOR ORCHESTRATION ---
 
   // 1. The Background Curtain (Wipes up after content is gone)
@@ -96,28 +97,87 @@ export default function Loader({ progress }) {
               </div>
             </motion.div>
 
-            {/* --- 4. Progress Bar --- */}
+            {/* --- 4. Connection Status --- */}
+            {connectionInfo && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="flex items-center justify-center gap-2 text-xs text-gray-400"
+              >
+                {connectionInfo.downlink !== 'unknown' ? (
+                  <>
+                    <Wifi className="w-4 h-4" />
+                    <span>{connectionInfo.downlink}</span>
+                    {connectionInfo.saveData && (
+                      <span className="text-yellow-500 ml-2">• Data Saver</span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-4 h-4" />
+                    <span>Checking connection...</span>
+                  </>
+                )}
+              </motion.div>
+            )}
+
+            {/* --- 5. Current Video Info --- */}
+            {currentVideo && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+                className="text-center space-y-1"
+              >
+                <p className="text-xs text-gray-500 uppercase tracking-wider">
+                  {currentVideo}
+                </p>
+              </motion.div>
+            )}
+
+            {/* --- 6. Progress Bar --- */}
             <div className="w-64 sm:w-80 space-y-3">
-              <div className="h-[2px] bg-gray-800 w-full relative overflow-hidden">
+              <div className="h-[3px] bg-gray-800/50 w-full relative overflow-hidden rounded-full">
                 <motion.div
-                  className="absolute top-0 left-0 h-full bg-[#FFD700]"
+                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#FFD700] to-[#FFA500]"
                   initial={{ width: "0%" }}
                   animate={{ width: `${progress}%` }}
                   transition={{ ease: "linear", duration: 0.2 }}
                 />
                 <motion.div
-                  className="absolute top-0 h-full w-[50px] bg-gradient-to-r from-transparent to-white opacity-60 blur-sm"
-                  initial={{ left: "-20%" }}
+                  className="absolute top-0 h-full w-[60px] bg-gradient-to-r from-transparent via-white to-transparent opacity-70 blur-sm"
+                  initial={{ left: "-30%" }}
                   animate={{ left: `${progress}%` }}
                   transition={{ ease: "linear", duration: 0.2 }}
                 />
               </div>
 
-              <div className="flex justify-between text-[10px] tracking-[0.2em] text-gray-600 font-mono uppercase">
-                <span>Loading Experience</span>
-                <span className="text-[#FFD700]">{Math.round(progress)}%</span>
+              <div className="flex justify-between items-center text-[10px] tracking-[0.2em] text-gray-500 font-mono uppercase">
+                <span className="flex items-center gap-2">
+                  {isBuffering && (
+                    <Loader2 className="w-3 h-3 animate-spin text-[#FFD700]" />
+                  )}
+                  <span>Loading Experience</span>
+                </span>
+                <span className="text-[#FFD700] font-bold">{Math.round(progress)}%</span>
               </div>
             </div>
+
+            {/* --- 7. Loading Tips (for slow connections) --- */}
+            {connectionInfo && connectionInfo.effectiveType && 
+             (connectionInfo.effectiveType === 'slow-2g' || connectionInfo.effectiveType === '2g') && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1, duration: 0.5 }}
+                className="mt-4 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg max-w-sm"
+              >
+                <p className="text-xs text-yellow-400/80 text-center">
+                  Slow connection detected. Optimizing for best experience...
+                </p>
+              </motion.div>
+            )}
           </motion.div>
         </motion.div>
       )}
