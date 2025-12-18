@@ -368,16 +368,18 @@ export default function VideoPlayer({ videos = [] }) {
                 isMobile && !isMobileFullscreen ? 'h-[60vh] md:h-screen' : 'h-screen'
             }`}
         >
-            {/* Button to play video with id=5 */}
-            <button
-                onClick={() => playVideoById(5)}
-                className={`fixed md:absolute top-1/2 right-4 z-50 -translate-y-1/2 ${btnArrow} font-bold text-xs md:text-sm lg:text-base`}
-                style={{minWidth: '48px', minHeight: '48px'}}
-                aria-label="Show Video 5"
-            >
-                <Play className="w-6 h-6 md:mr-2" />
-                <span className="hidden md:inline">Show Video 5</span>
-            </button>
+            {/* Button to play video with id=5 - hidden on mobile before fullscreen */}
+            {(!isMobile || isMobileFullscreen) && (
+                <button
+                    onClick={() => playVideoById(5)}
+                    className={`fixed md:absolute top-1/2 right-4 z-50 -translate-y-1/2 ${btnArrow} font-bold text-xs md:text-sm lg:text-base`}
+                    style={{minWidth: '48px', minHeight: '48px'}}
+                    aria-label="Show Video 5"
+                >
+                    <Play className="w-6 h-6 md:mr-2" />
+                    <span className="hidden md:inline">Show Video 5</span>
+                </button>
+            )}
             {/* Mobile overlay button - shown only on mobile when not in fullscreen */}
             {isMobile && !isMobileFullscreen && (
                 <div 
