@@ -355,8 +355,8 @@ export default function VideoPlayer({ videos = [] }) {
     const btnActive = "bg-white text-slate-900";
     const btnInactive = "text-white hover:bg-white/10 hover:text-[#fcd34d]";
     const btnDisabled = "text-white/30 cursor-not-allowed";
-    const btnArrow = "relative w-14 h-14 rounded-full bg-gradient-to-br from-white to-[#fcd34d]/90 text-slate-900 shadow-[0_10px_40px_rgba(0,0,0,0.35)] border border-white/70 transition-all duration-200 flex items-center justify-center hover:scale-110 hover:shadow-[0_12px_50px_rgba(252,211,77,0.6)]";
-    const btnArrowDisabled = "opacity-50 cursor-not-allowed hover:scale-100 hover:shadow-[0_10px_40px_rgba(0,0,0,0.35)]";
+    const btnArrow = "relative w-14 h-14 rounded-full bg-gradient-to-br from-[#fcd34d] to-[#f97316] text-slate-900 shadow-xl border-2 border-[#fcd34d] transition-all duration-200 flex items-center justify-center hover:scale-110 hover:shadow-[0_12px_50px_rgba(252,211,77,0.6)] focus:outline-none focus:ring-4 focus:ring-[#fcd34d]/40";
+    const btnArrowDisabled = "opacity-50 cursor-not-allowed hover:scale-100 hover:shadow-xl";
 
     // Dividers
     const separator = "w-[1px] h-5 bg-[#fcd34d]/40";
@@ -371,11 +371,12 @@ export default function VideoPlayer({ videos = [] }) {
             {/* Button to play video with id=5 */}
             <button
                 onClick={() => playVideoById(5)}
-                className="absolute top-4 right-4 z-50 px-4 py-2 rounded-full bg-gradient-to-br from-[#fcd34d] to-[#f97316] text-slate-900 font-bold shadow-lg hover:scale-105 transition-all text-xs md:text-sm lg:text-base"
-                style={{minWidth: '44px', minHeight: '44px'}}
-                aria-label="Peek a House"
+                className={`fixed md:absolute top-1/2 right-4 z-50 -translate-y-1/2 ${btnArrow} font-bold text-xs md:text-sm lg:text-base`}
+                style={{minWidth: '48px', minHeight: '48px'}}
+                aria-label="Show Video 5"
             >
-                Show Video 5
+                <Play className="w-6 h-6 md:mr-2" />
+                <span className="hidden md:inline">Show Video 5</span>
             </button>
             {/* Mobile overlay button - shown only on mobile when not in fullscreen */}
             {isMobile && !isMobileFullscreen && (
@@ -452,7 +453,7 @@ export default function VideoPlayer({ videos = [] }) {
                             className={`${btnArrow} ${((current === 0 && !isReversed) || isTransitioning) ? btnArrowDisabled : ""}`}
                             aria-label="Play previous video"
                         >
-                            <ChevronLeft className="w-5 h-5" />
+                            <ChevronLeft className="w-7 h-7 text-[#f97316] drop-shadow-[0_2px_6px_rgba(252,211,77,0.5)]" />
                         </button>
 
                         <div className={`${separator} h-8`}></div>
@@ -477,7 +478,7 @@ export default function VideoPlayer({ videos = [] }) {
                                 className={`${btnArrow} ${isTransitioning ? btnArrowDisabled : ""} ${showArrowHint ? "animate-pulse ring-4 ring-[#fcd34d]/40" : ""}`}
                                 aria-label="Play next video"
                             >
-                                <ChevronRight className="w-6 h-6" />
+                                <ChevronRight className="w-7 h-7 text-[#f97316] drop-shadow-[0_2px_6px_rgba(252,211,77,0.5)]" />
                             </button>
                         </div>
                     </div>
