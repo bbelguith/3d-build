@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     ChevronLeft,
     ChevronRight,
@@ -9,6 +10,7 @@ import {
 export default function VideoPlayer({ videos = [] }) {
     
     // --- STATE & REFS ---
+    const navigate = useNavigate();
     const [current, setCurrent] = useState(0);
     const [activeLayer, setActiveLayer] = useState(0);
     const [isReversed, setIsReversed] = useState(false);
@@ -24,6 +26,17 @@ export default function VideoPlayer({ videos = [] }) {
     const videoContainerRef = useRef(null);
 
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
+    const BASE_WIDTH = 1920;
+    const BASE_HEIGHT = 1080;
+    const houseHotspots = useMemo(
+        () => [
+            { id: 101, x: 1240, y: 620, w: 180, h: 120 },
+            { id: 102, x: 1030, y: 520, w: 170, h: 110 },
+            { id: 103, x: 840, y: 470, w: 160, h: 110 }
+        ],
+        []
+    );
+    const toPercent = (value, base) => (value / base) * 100;
 
     // Detect mobile device
     useEffect(() => {
@@ -344,6 +357,13 @@ export default function VideoPlayer({ videos = [] }) {
     if (videos.length === 0) return null;
 
     const isLastVideo = current === videos.length - 1;
+    const currentVideoId = Number(videos[current]?.id);
+    const currentVideoSrc = videos[current]?.src || "";
+    const showHouseHotspots = currentVideoSrc.includes("2_fqtpzq.mp4");
+    
+    useEffect(() => {
+        console.log("[VideoPlayer] current video id:", currentVideoId, "hotspots enabled:", showHouseHotspots);
+    }, [currentVideoId, showHouseHotspots]);
 
     // --- STYLES (Matching Navbar) ---
     // The "Glass" container
@@ -430,6 +450,31 @@ export default function VideoPlayer({ videos = [] }) {
                     preload="auto"
                 />
             </div>
+            
+            {showHouseHotspots && (
+                <div className="absolute inset-0 z-30">
+                    {houseHotspots.map((spot) => (
+                        <button
+                            key={spot.id}
+                            type="button"
+                            onClick={() => navigate(`/house/${spot.id}`)}
+                            title={`House ${spot.id}`}
+                            aria-label={`Open house ${spot.id}`}
+                            className="absolute rounded-xl border border-emerald-300/40 bg-emerald-400/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-400/40"
+                            style={{
+                                left: `${toPercent(spot.x, BASE_WIDTH)}%`,
+                                top: `${toPercent(spot.y, BASE_HEIGHT)}%`,
+                                width: `${toPercent(spot.w, BASE_WIDTH)}%`,
+                                height: `${toPercent(spot.h, BASE_HEIGHT)}%`
+                            }}
+                        >
+                            <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold tracking-wider text-emerald-100 bg-emerald-900/70 px-2 py-0.5 rounded-full border border-emerald-300/30">
+                                #{spot.id}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {/* --- CONTROLS --- (hidden on mobile when not in fullscreen) */}
             {(!isMobile || isMobileFullscreen) && (

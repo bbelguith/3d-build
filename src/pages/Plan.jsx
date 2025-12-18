@@ -382,14 +382,19 @@ export default function Plan() {
                                     <button
                                         key={house.id}
                                         onClick={() => { setCurrentIdx(i); handleHouseClick(house.id); }}
-                                        onMouseEnter={() => setCurrentIdx(i)}
+                                        onMouseEnter={() => {
+                                            if (isSold) return;
+                                            setHoveredHouseId(house.id);
+                                            setCurrentIdx(i);
+                                        }}
+                                        onMouseLeave={() => setHoveredHouseId(null)}
                                         className={`
                                             relative px-6 py-4 rounded-2xl font-bold transition-all duration-300 text-sm tracking-wide shadow-sm overflow-hidden group border
                                             ${isSold
                                                 ? "bg-white text-gray-300 border-gray-100 cursor-not-allowed"
                                                 : isActive
-                                                    ? "bg-gray-900 text-white shadow-2xl scale-110 border-gray-900 z-10 ring-4 ring-gray-100"
-                                                    : "bg-white text-gray-500 border-gray-200 hover:border-emerald-500 hover:text-emerald-600 hover:-translate-y-1 hover:shadow-md"
+                                                    ? "bg-gray-900 text-white shadow-2xl scale-110 border-gray-900 z-10 ring-4 ring-emerald-200/70 shadow-[0_0_0_3px_rgba(16,185,129,0.35),0_0_28px_rgba(16,185,129,0.35)]"
+                                                    : "bg-white text-gray-500 border-gray-200 hover:border-emerald-500 hover:text-emerald-600 hover:-translate-y-1 hover:shadow-md hover:bg-emerald-50/40 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.25),0_0_22px_rgba(16,185,129,0.35)]"
                                             }
                                         `}
                                     >
