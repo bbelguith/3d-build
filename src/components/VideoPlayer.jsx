@@ -365,6 +365,15 @@ export default function VideoPlayer({ videos = [] }) {
                 isMobile && !isMobileFullscreen ? 'h-[60vh] md:h-screen' : 'h-screen'
             }`}
         >
+            {/* Button to play video with id=5 */}
+            <button
+                onClick={() => playVideoById(5)}
+                className="absolute top-4 right-4 z-50 px-4 py-2 rounded-full bg-gradient-to-br from-[#fcd34d] to-[#f97316] text-slate-900 font-bold shadow-lg hover:scale-105 transition-all text-xs md:text-sm lg:text-base"
+                style={{minWidth: '44px', minHeight: '44px'}}
+                aria-label="Peek a House"
+            >
+                Show Video 5
+            </button>
             {/* Mobile overlay button - shown only on mobile when not in fullscreen */}
             {isMobile && !isMobileFullscreen && (
                 <div 
