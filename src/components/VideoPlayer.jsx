@@ -168,9 +168,12 @@ export default function VideoPlayer({ videos = [] }) {
     // Find a video by its DB id, fallback to the 2nd video, then the first
     const findVideoIndexById = (targetId) => {
         if (!videos || !videos.length) return -1;
+        // Try to find by id property (from DB)
         const normalizedId = Number(targetId);
         const matchById = videos.findIndex(v => Number(v.id) === normalizedId);
         if (matchById !== -1) return matchById;
+        // If no id property, fallback to index (id=5 means index 4)
+        if (videos.length >= 5 && normalizedId === 5) return 4;
         if (videos.length > 1) return 1; // fallback to video #2 when id is missing
         return 0;
     };
@@ -465,7 +468,7 @@ export default function VideoPlayer({ videos = [] }) {
                         <div className="relative">
                             {showArrowHint && (
                                 <span className="absolute -top-14 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-[#f97316] to-[#fcd34d] text-[11px] font-semibold text-slate-900 shadow-lg whitespace-nowrap">
-                                    Tap to play →
+                                    Tap to play
                                 </span>
                             )}
                             <button
