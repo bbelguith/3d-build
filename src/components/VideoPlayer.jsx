@@ -40,9 +40,20 @@ export default function VideoPlayer({ videos = [] }) {
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
     const BASE_WIDTH = zonesData.baseWidth || 1920;
     const BASE_HEIGHT = zonesData.baseHeight || 1080;
-    const [zones, setZones] = useState(zonesData.zones || []);
+    const [zonesByVideo, setZonesByVideo] = useState(() => {
+        const raw = zonesData.videos || {};
+        const normalized = {};
+        Object.keys(raw).forEach((key) => {
+            const zones = (raw[key]?.zones || []).map((zone) => ({
+                ...zone,
+                visible: zone.visible !== false
+            }));
+            normalized[key] = { zones };
+        });
+        return normalized;
+    });
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-    const showZoneToolbar = false;
+    const showZoneToolbar = true;
 
     // Detect mobile device and connection quality
     useEffect(() => {
@@ -447,11 +458,28 @@ export default function VideoPlayer({ videos = [] }) {
     const isLastVideo = current === videos.length - 1;
     const currentVideoId = Number(videos[current]?.id);
     const currentVideoSrc = videos[current]?.src || "";
-    const showHouseHotspots = currentVideoSrc.includes("2_fqtpzq.mp4");
+    const currentVideoKey = useMemo(() => {
+        if (!currentVideoSrc) return "unknown";
+        const clean = currentVideoSrc.split("?")[0];
+        const parts = clean.split("/");
+        return parts[parts.length - 1] || "unknown";
+    }, [currentVideoSrc]);
+    const currentZones = zonesByVideo[currentVideoKey]?.zones || [];
+    const showHouseHotspots = true;
 
     useEffect(() => {
-        console.log("[VideoPlayer] current video id:", currentVideoId, "hotspots enabled:", showHouseHotspots);
-    }, [currentVideoId, showHouseHotspots]);
+        console.log("[VideoPlayer] current video id:", currentVideoId, "key:", currentVideoKey);
+    }, [currentVideoId, currentVideoKey]);
+
+    useEffect(() => {
+        setSelectedZoneId(null);
+        setHoveredZoneId(null);
+    }, [currentVideoKey]);
+
+    useEffect(() => {
+        document.body.classList.toggle("edit-zones", editZones);
+        return () => document.body.classList.remove("edit-zones");
+    }, [editZones]);
 
     const getOverlayRect = () => hotspotOverlayRef.current?.getBoundingClientRect() || null;
 
@@ -467,16 +495,36 @@ export default function VideoPlayer({ videos = [] }) {
         if (!editZones || selectedZoneId == null) return;
         const basePoint = getBasePointFromEvent(event);
         if (!basePoint) return;
-        setZones((prev) =>
-            prev.map((zone) => {
+        setZonesByVideo((prev) => {
+            const next = { ...prev };
+            const currentList = next[currentVideoKey]?.zones || [];
+            const updated = currentList.map((zone) => {
                 if (zone.id !== selectedZoneId) return zone;
                 return { ...zone, points: [...zone.points, basePoint] };
-            })
-        );
+            });
+            next[currentVideoKey] = { zones: updated };
+            return next;
+        });
     };
 
     const handlePointPointerDown = (event, zoneId, pointIndex) => {
         if (!editZones) return;
+        if (event.altKey) {
+            setZonesByVideo((prev) => {
+                const next = { ...prev };
+                const currentList = next[currentVideoKey]?.zones || [];
+                const updated = currentList.map((zone) => {
+                    if (zone.id !== zoneId) return zone;
+                    return {
+                        ...zone,
+                        points: zone.points.filter((_, idx) => idx !== pointIndex)
+                    };
+                });
+                next[currentVideoKey] = { zones: updated };
+                return next;
+            });
+            return;
+        }
         setDraggingPoint({ zoneId, pointIndex });
         event.currentTarget.setPointerCapture(event.pointerId);
     };
@@ -486,8 +534,10 @@ export default function VideoPlayer({ videos = [] }) {
         const basePoint = getBasePointFromEvent(event);
         if (!basePoint) return;
 
-        setZones((prev) =>
-            prev.map((zone) => {
+        setZonesByVideo((prev) => {
+            const next = { ...prev };
+            const currentList = next[currentVideoKey]?.zones || [];
+            const updated = currentList.map((zone) => {
                 if (zone.id !== draggingPoint.zoneId) return zone;
                 const nextPoints = zone.points.map((pt, idx) => {
                     if (idx !== draggingPoint.pointIndex) return pt;
@@ -497,8 +547,10 @@ export default function VideoPlayer({ videos = [] }) {
                     };
                 });
                 return { ...zone, points: nextPoints };
-            })
-        );
+            });
+            next[currentVideoKey] = { zones: updated };
+            return next;
+        });
     };
 
     const handleOverlayPointerUp = (event) => {
@@ -512,18 +564,29 @@ export default function VideoPlayer({ videos = [] }) {
     };
 
     const addZone = () => {
-        const nextId = zones.length > 0 ? Math.max(...zones.map((z) => z.id)) + 1 : 1;
+        const nextId = currentZones.length > 0 ? Math.max(...currentZones.map((z) => z.id)) + 1 : 1;
         const newZone = {
             id: nextId,
+            label: `Zone ${nextId}`,
             points: []
         };
-        setZones((prev) => [...prev, newZone]);
+        setZonesByVideo((prev) => {
+            const next = { ...prev };
+            const currentList = next[currentVideoKey]?.zones || [];
+            next[currentVideoKey] = { zones: [...currentList, newZone] };
+            return next;
+        });
         setSelectedZoneId(nextId);
     };
 
     const deleteSelectedZone = () => {
         if (selectedZoneId == null) return;
-        setZones((prev) => prev.filter((zone) => zone.id !== selectedZoneId));
+        setZonesByVideo((prev) => {
+            const next = { ...prev };
+            const currentList = next[currentVideoKey]?.zones || [];
+            next[currentVideoKey] = { zones: currentList.filter((zone) => zone.id !== selectedZoneId) };
+            return next;
+        });
         setSelectedZoneId(null);
     };
 
@@ -531,8 +594,25 @@ export default function VideoPlayer({ videos = [] }) {
         console.log("[VideoPlayer] zones:", {
             baseWidth: BASE_WIDTH,
             baseHeight: BASE_HEIGHT,
-            zones
+            videos: zonesByVideo
         });
+    };
+
+    const downloadZones = () => {
+        const payload = {
+            baseWidth: BASE_WIDTH,
+            baseHeight: BASE_HEIGHT,
+            videos: zonesByVideo
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "zones.json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
     };
 
     // --- STYLES (Matching Navbar) ---
@@ -624,10 +704,13 @@ export default function VideoPlayer({ videos = [] }) {
                         viewBox={`0 0 ${BASE_WIDTH} ${BASE_HEIGHT}`}
                         preserveAspectRatio="none"
                     >
-                        {zones.map((zone) => {
+                        {currentZones.map((zone) => {
                             const isSelected = zone.id === selectedZoneId;
                             const isHovered = zone.id === hoveredZoneId;
                             const pointList = zone.points.map((pt) => `${pt.x},${pt.y}`).join(" ");
+                            if (zone.visible === false) {
+                                return null;
+                            }
                             return (
                                 <g key={zone.id}>
                                     {zone.points.length >= 3 ? (
@@ -682,7 +765,7 @@ export default function VideoPlayer({ videos = [] }) {
                                                 key={`${zone.id}-${idx}`}
                                                 cx={pt.x}
                                                 cy={pt.y}
-                                                r={6}
+                                                r={3}
                                                 fill={isSelected ? "#22c55e" : "#10b981"}
                                                 stroke="#064e3b"
                                                 strokeWidth={2}
@@ -695,18 +778,8 @@ export default function VideoPlayer({ videos = [] }) {
                     </svg>
 
                     {editZones && (
-                        <div className="absolute top-4 right-4 z-40 max-h-[70vh] overflow-auto rounded-2xl bg-black/60 text-white text-[11px] px-3 py-2 border border-white/10">
-                            <div className="font-bold tracking-wider mb-2">Zones (px @ 1920x1080)</div>
-                            {zones.map((zone) => (
-                                <div key={zone.id} className="font-mono mb-2">
-                                    <div>ID: {zone.id}</div>
-                                    {zone.points.map((pt, idx) => (
-                                        <div key={`${zone.id}-pt-${idx}`}>
-                                            {idx + 1}: x={pt.x} y={pt.y}
-                                        </div>
-                                    ))}
-                                </div>
-                            ))}
+                        <div className="absolute top-4 right-4 z-40 rounded-2xl bg-black/60 text-white text-[11px] px-3 py-2 border border-white/10">
+                            Zones editor visible below
                         </div>
                     )}
                 </div>
@@ -801,38 +874,101 @@ export default function VideoPlayer({ videos = [] }) {
             )}
         </div>
         {showHouseHotspots && showZoneToolbar && (
-            <div className="w-full bg-slate-900 text-white px-4 py-3 flex flex-wrap items-center gap-2 border-t border-white/10">
+            <div className="w-full bg-slate-900 text-white border-t border-white/10">
+                <div className="px-4 py-3 flex flex-wrap items-center gap-2">
                 <button
                     type="button"
                     onClick={() => setEditZones((v) => !v)}
-                    className="px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 hover:bg-white/20"
                 >
                     {editZones ? "Stop Edit" : "Edit Zones"}
                 </button>
                 <button
                     type="button"
                     onClick={addZone}
-                    className="px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 hover:bg-white/20"
                 >
                     Add Zone
                 </button>
                 <button
                     type="button"
                     onClick={deleteSelectedZone}
-                    className="px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-red-600/90 text-white border border-red-400 hover:bg-red-500"
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-red-600/90 text-white border border-red-400 hover:bg-red-500"
                 >
                     Delete Zone
                 </button>
                 <button
                     type="button"
                     onClick={logZones}
-                    className="px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-600/90 text-white border border-emerald-400 hover:bg-emerald-500"
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-600/90 text-white border border-emerald-400 hover:bg-emerald-500"
                 >
-                    Export Zones
+                    Log Zones
                 </button>
-                <span className="text-[11px] text-white/70 ml-auto">
-                    Selected: {selectedZoneId ?? "none"} | Click in video to add points
-                </span>
+                <button
+                    type="button"
+                    onClick={downloadZones}
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-blue-700/90 text-white border border-blue-500 hover:bg-blue-600"
+                >
+                    Save JSON
+                </button>
+                    <span className="text-[11px] text-white/70 ml-auto">
+                        Selected: {selectedZoneId ?? "none"} | Click in video to add points
+                    </span>
+                </div>
+                {editZones && (
+                    <div className="px-4 pb-4">
+                        <div className="max-h-[260px] overflow-auto rounded-xl bg-black/50 text-white text-[11px] px-3 py-2 border border-white/10">
+                            <div className="font-bold tracking-wider mb-2">Zones (px @ 1920x1080)</div>
+                            {currentZones.map((zone) => (
+                                <div key={zone.id} className="font-mono mb-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setZonesByVideo((prev) => {
+                                                    const next = { ...prev };
+                                                    const currentList = next[currentVideoKey]?.zones || [];
+                                                    const updated = currentList.map((z) =>
+                                                        z.id === zone.id ? { ...z, visible: !z.visible } : z
+                                                    );
+                                                    next[currentVideoKey] = { zones: updated };
+                                                    return next;
+                                                });
+                                            }}
+                                            className="zone-editor-button w-6 h-6 rounded bg-white/10 border border-white/10 text-[10px] flex items-center justify-center"
+                                            title={zone.visible === false ? "Show zone" : "Hide zone"}
+                                        >
+                                            {zone.visible === false ? "H" : "V"}
+                                        </button>
+                                        <span>ID: {zone.id}</span>
+                                        <input
+                                            value={zone.label || ""}
+                                            onChange={(event) => {
+                                                const nextLabel = event.target.value;
+                                                setZonesByVideo((prev) => {
+                                                    const next = { ...prev };
+                                                    const currentList = next[currentVideoKey]?.zones || [];
+                                                    const updated = currentList.map((z) =>
+                                                        z.id === zone.id ? { ...z, label: nextLabel } : z
+                                                    );
+                                                    next[currentVideoKey] = { zones: updated };
+                                                    return next;
+                                                });
+                                            }}
+                                            className="bg-white/10 border border-white/10 rounded px-2 py-0.5 text-[11px] text-white w-32"
+                                            placeholder="Label"
+                                        />
+                                    </div>
+                                    {zone.points.map((pt, idx) => (
+                                        <div key={`${zone.id}-pt-${idx}`}>
+                                            {idx + 1}: x={pt.x} y={pt.y}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         )}
         </div>
