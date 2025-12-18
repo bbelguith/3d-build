@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
     ChevronLeft,
@@ -13,7 +12,6 @@ import { detectConnectionQuality, getPreloadStrategy } from "../utils/connection
 export default function VideoPlayer({ videos = [] }) {
     
     // --- STATE & REFS ---
-    const navigate = useNavigate();
     const [current, setCurrent] = useState(0);
     const [activeLayer, setActiveLayer] = useState(0);
     const [isReversed, setIsReversed] = useState(false);
@@ -27,24 +25,21 @@ export default function VideoPlayer({ videos = [] }) {
     const [bufferingProgress, setBufferingProgress] = useState(0);
     const [loadedVideos, setLoadedVideos] = useState(new Set());
     const [connectionQuality, setConnectionQuality] = useState(null);
+    const [editZones, setEditZones] = useState(false);
+    const [selectedZoneId, setSelectedZoneId] = useState(null);
+    const [draggingPoint, setDraggingPoint] = useState(null);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
     const videoContainerRef = useRef(null);
     const preloadedVideosRef = useRef(new Map());
+    const hotspotOverlayRef = useRef(null);
 
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
     const BASE_WIDTH = 1920;
     const BASE_HEIGHT = 1080;
-    const houseHotspots = useMemo(
-        () => [
-            { id: 101, x: 1240, y: 620, w: 180, h: 120 },
-            { id: 102, x: 1030, y: 520, w: 170, h: 110 },
-            { id: 103, x: 840, y: 470, w: 160, h: 110 }
-        ],
-        []
-    );
-    const toPercent = (value, base) => (value / base) * 100;
+    const [zones, setZones] = useState([]);
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
     // Detect mobile device and connection quality
     useEffect(() => {
@@ -455,6 +450,88 @@ export default function VideoPlayer({ videos = [] }) {
         console.log("[VideoPlayer] current video id:", currentVideoId, "hotspots enabled:", showHouseHotspots);
     }, [currentVideoId, showHouseHotspots]);
 
+    const getOverlayRect = () => hotspotOverlayRef.current?.getBoundingClientRect() || null;
+
+    const getBasePointFromEvent = (event) => {
+        const rect = getOverlayRect();
+        if (!rect) return null;
+        const baseX = ((event.clientX - rect.left) / rect.width) * BASE_WIDTH;
+        const baseY = ((event.clientY - rect.top) / rect.height) * BASE_HEIGHT;
+        return { x: Math.round(baseX), y: Math.round(baseY) };
+    };
+
+    const handleOverlayClick = (event) => {
+        if (!editZones || selectedZoneId == null) return;
+        const basePoint = getBasePointFromEvent(event);
+        if (!basePoint) return;
+        setZones((prev) =>
+            prev.map((zone) => {
+                if (zone.id !== selectedZoneId) return zone;
+                return { ...zone, points: [...zone.points, basePoint] };
+            })
+        );
+    };
+
+    const handlePointPointerDown = (event, zoneId, pointIndex) => {
+        if (!editZones) return;
+        setDraggingPoint({ zoneId, pointIndex });
+        event.currentTarget.setPointerCapture(event.pointerId);
+    };
+
+    const handleOverlayPointerMove = (event) => {
+        if (!editZones || !draggingPoint) return;
+        const basePoint = getBasePointFromEvent(event);
+        if (!basePoint) return;
+
+        setZones((prev) =>
+            prev.map((zone) => {
+                if (zone.id !== draggingPoint.zoneId) return zone;
+                const nextPoints = zone.points.map((pt, idx) => {
+                    if (idx !== draggingPoint.pointIndex) return pt;
+                    return {
+                        x: clamp(basePoint.x, 0, BASE_WIDTH),
+                        y: clamp(basePoint.y, 0, BASE_HEIGHT)
+                    };
+                });
+                return { ...zone, points: nextPoints };
+            })
+        );
+    };
+
+    const handleOverlayPointerUp = (event) => {
+        if (!editZones || !draggingPoint) return;
+        setDraggingPoint(null);
+        try {
+            event.target.releasePointerCapture?.(event.pointerId);
+        } catch {
+            // Ignore if pointer capture isn't set on this target
+        }
+    };
+
+    const addZone = () => {
+        const nextId = zones.length > 0 ? Math.max(...zones.map((z) => z.id)) + 1 : 1;
+        const newZone = {
+            id: nextId,
+            points: []
+        };
+        setZones((prev) => [...prev, newZone]);
+        setSelectedZoneId(nextId);
+    };
+
+    const deleteSelectedZone = () => {
+        if (selectedZoneId == null) return;
+        setZones((prev) => prev.filter((zone) => zone.id !== selectedZoneId));
+        setSelectedZoneId(null);
+    };
+
+    const logZones = () => {
+        console.log("[VideoPlayer] zones:", {
+            baseWidth: BASE_WIDTH,
+            baseHeight: BASE_HEIGHT,
+            zones
+        });
+    };
+
     // --- STYLES (Matching Navbar) ---
     // The "Glass" container
     const glassContainer = "bg-[#4a6fa5]/60 backdrop-blur-md border border-[#fcd34d]/60 shadow-lg flex items-center h-10";
@@ -472,6 +549,7 @@ export default function VideoPlayer({ videos = [] }) {
     const separator = "w-[1px] h-5 bg-[#fcd34d]/40";
 
     return (
+        <div className="w-full bg-black">
         <div 
             ref={videoContainerRef}
             className={`relative w-full bg-black overflow-hidden select-none font-sans ${
@@ -531,27 +609,79 @@ export default function VideoPlayer({ videos = [] }) {
             </div>
 
             {showHouseHotspots && (
-                <div className="absolute inset-0 z-30">
-                    {houseHotspots.map((spot) => (
-                        <button
-                            key={spot.id}
-                            type="button"
-                            onClick={() => navigate(`/house/${spot.id}`)}
-                            title={`House ${spot.id}`}
-                            aria-label={`Open house ${spot.id}`}
-                            className="absolute rounded-xl border border-emerald-300/40 bg-emerald-400/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-400/40"
-                            style={{
-                                left: `${toPercent(spot.x, BASE_WIDTH)}%`,
-                                top: `${toPercent(spot.y, BASE_HEIGHT)}%`,
-                                width: `${toPercent(spot.w, BASE_WIDTH)}%`,
-                                height: `${toPercent(spot.h, BASE_HEIGHT)}%`
-                            }}
-                        >
-                            <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold tracking-wider text-emerald-100 bg-emerald-900/70 px-2 py-0.5 rounded-full border border-emerald-300/30">
-                                #{spot.id}
-                            </span>
-                        </button>
-                    ))}
+                <div
+                    ref={hotspotOverlayRef}
+                    className={`absolute inset-0 z-30 ${editZones ? "cursor-crosshair" : ""}`}
+                    onClick={handleOverlayClick}
+                    onPointerMove={handleOverlayPointerMove}
+                    onPointerUp={handleOverlayPointerUp}
+                >
+                    <svg
+                        className="absolute inset-0 w-full h-full"
+                        viewBox={`0 0 ${BASE_WIDTH} ${BASE_HEIGHT}`}
+                        preserveAspectRatio="none"
+                    >
+                        {zones.map((zone) => {
+                            const isSelected = zone.id === selectedZoneId;
+                            const pointList = zone.points.map((pt) => `${pt.x},${pt.y}`).join(" ");
+                            return (
+                                <g key={zone.id}>
+                                    {zone.points.length >= 3 ? (
+                                        <polygon
+                                            points={pointList}
+                                            fill={isSelected ? "rgba(16,185,129,0.25)" : "rgba(16,185,129,0.12)"}
+                                            stroke={isSelected ? "rgba(16,185,129,0.9)" : "rgba(16,185,129,0.5)"}
+                                            strokeWidth={isSelected ? 4 : 2}
+                                            onPointerDown={() => {
+                                                if (!editZones) return;
+                                                setSelectedZoneId(zone.id);
+                                            }}
+                                        />
+                                    ) : (
+                                        <polyline
+                                            points={pointList}
+                                            fill="none"
+                                            stroke={isSelected ? "rgba(16,185,129,0.9)" : "rgba(16,185,129,0.5)"}
+                                            strokeWidth={isSelected ? 4 : 2}
+                                            onPointerDown={() => {
+                                                if (!editZones) return;
+                                                setSelectedZoneId(zone.id);
+                                            }}
+                                        />
+                                    )}
+                                    {editZones &&
+                                        zone.points.map((pt, idx) => (
+                                            <circle
+                                                key={`${zone.id}-${idx}`}
+                                                cx={pt.x}
+                                                cy={pt.y}
+                                                r={6}
+                                                fill={isSelected ? "#22c55e" : "#10b981"}
+                                                stroke="#064e3b"
+                                                strokeWidth={2}
+                                                onPointerDown={(event) => handlePointPointerDown(event, zone.id, idx)}
+                                            />
+                                        ))}
+                                </g>
+                            );
+                        })}
+                    </svg>
+
+                    {editZones && (
+                        <div className="absolute top-4 right-4 z-40 max-h-[70vh] overflow-auto rounded-2xl bg-black/60 text-white text-[11px] px-3 py-2 border border-white/10">
+                            <div className="font-bold tracking-wider mb-2">Zones (px @ 1920x1080)</div>
+                            {zones.map((zone) => (
+                                <div key={zone.id} className="font-mono mb-2">
+                                    <div>ID: {zone.id}</div>
+                                    {zone.points.map((pt, idx) => (
+                                        <div key={`${zone.id}-pt-${idx}`}>
+                                            {idx + 1}: x={pt.x} y={pt.y}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -642,6 +772,42 @@ export default function VideoPlayer({ videos = [] }) {
                 </div>
             </div>
             )}
+        </div>
+        {showHouseHotspots && (
+            <div className="w-full bg-slate-900 text-white px-4 py-3 flex flex-wrap items-center gap-2 border-t border-white/10">
+                <button
+                    type="button"
+                    onClick={() => setEditZones((v) => !v)}
+                    className="px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                >
+                    {editZones ? "Stop Edit" : "Edit Zones"}
+                </button>
+                <button
+                    type="button"
+                    onClick={addZone}
+                    className="px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                >
+                    Add Zone
+                </button>
+                <button
+                    type="button"
+                    onClick={deleteSelectedZone}
+                    className="px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-red-600/90 text-white border border-red-400 hover:bg-red-500"
+                >
+                    Delete Zone
+                </button>
+                <button
+                    type="button"
+                    onClick={logZones}
+                    className="px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-600/90 text-white border border-emerald-400 hover:bg-emerald-500"
+                >
+                    Export Zones
+                </button>
+                <span className="text-[11px] text-white/70 ml-auto">
+                    Selected: {selectedZoneId ?? "none"} | Click in video to add points
+                </span>
+            </div>
+        )}
         </div>
     );
 }
