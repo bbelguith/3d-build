@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import zonesData from "../data/zones.json";
 import { motion } from "framer-motion";
 import {
     ChevronLeft,
@@ -28,6 +29,7 @@ export default function VideoPlayer({ videos = [] }) {
     const [editZones, setEditZones] = useState(false);
     const [selectedZoneId, setSelectedZoneId] = useState(null);
     const [draggingPoint, setDraggingPoint] = useState(null);
+    const [hoveredZoneId, setHoveredZoneId] = useState(null);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
@@ -36,10 +38,11 @@ export default function VideoPlayer({ videos = [] }) {
     const hotspotOverlayRef = useRef(null);
 
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
-    const BASE_WIDTH = 1920;
-    const BASE_HEIGHT = 1080;
-    const [zones, setZones] = useState([]);
+    const BASE_WIDTH = zonesData.baseWidth || 1920;
+    const BASE_HEIGHT = zonesData.baseHeight || 1080;
+    const [zones, setZones] = useState(zonesData.zones || []);
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    const showZoneToolbar = false;
 
     // Detect mobile device and connection quality
     useEffect(() => {
@@ -623,30 +626,54 @@ export default function VideoPlayer({ videos = [] }) {
                     >
                         {zones.map((zone) => {
                             const isSelected = zone.id === selectedZoneId;
+                            const isHovered = zone.id === hoveredZoneId;
                             const pointList = zone.points.map((pt) => `${pt.x},${pt.y}`).join(" ");
                             return (
                                 <g key={zone.id}>
                                     {zone.points.length >= 3 ? (
                                         <polygon
                                             points={pointList}
-                                            fill={isSelected ? "rgba(16,185,129,0.25)" : "rgba(16,185,129,0.12)"}
-                                            stroke={isSelected ? "rgba(16,185,129,0.9)" : "rgba(16,185,129,0.5)"}
-                                            strokeWidth={isSelected ? 4 : 2}
+                                            fill={
+                                                isHovered
+                                                    ? "rgba(30,64,175,0.35)"
+                                                    : isSelected
+                                                        ? "rgba(16,185,129,0.25)"
+                                                        : "rgba(16,185,129,0.12)"
+                                            }
+                                            stroke={
+                                                isHovered
+                                                    ? "rgba(30,64,175,0.9)"
+                                                    : isSelected
+                                                        ? "rgba(16,185,129,0.9)"
+                                                        : "rgba(16,185,129,0.5)"
+                                            }
+                                            strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={() => {
                                                 if (!editZones) return;
                                                 setSelectedZoneId(zone.id);
                                             }}
+                                            onPointerEnter={() => setHoveredZoneId(zone.id)}
+                                            onPointerLeave={() => setHoveredZoneId(null)}
                                         />
                                     ) : (
                                         <polyline
                                             points={pointList}
                                             fill="none"
-                                            stroke={isSelected ? "rgba(16,185,129,0.9)" : "rgba(16,185,129,0.5)"}
-                                            strokeWidth={isSelected ? 4 : 2}
+                                            stroke={
+                                                isHovered
+                                                    ? "rgba(30,64,175,0.9)"
+                                                    : isSelected
+                                                        ? "rgba(16,185,129,0.9)"
+                                                        : "rgba(16,185,129,0.5)"
+                                            }
+                                            strokeWidth={isSelected || isHovered ? 4 : 2}
+                                            pointerEvents="stroke"
                                             onPointerDown={() => {
                                                 if (!editZones) return;
                                                 setSelectedZoneId(zone.id);
                                             }}
+                                            onPointerEnter={() => setHoveredZoneId(zone.id)}
+                                            onPointerLeave={() => setHoveredZoneId(null)}
                                         />
                                     )}
                                     {editZones &&
@@ -773,7 +800,7 @@ export default function VideoPlayer({ videos = [] }) {
             </div>
             )}
         </div>
-        {showHouseHotspots && (
+        {showHouseHotspots && showZoneToolbar && (
             <div className="w-full bg-slate-900 text-white px-4 py-3 flex flex-wrap items-center gap-2 border-t border-white/10">
                 <button
                     type="button"
