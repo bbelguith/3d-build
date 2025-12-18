@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
     ChevronLeft,
     ChevronRight,
     Play,
-    X
+    X,
+    Loader2
 } from "lucide-react";
+import { detectConnectionQuality, getPreloadStrategy } from "../utils/connectionDetector";
 
 export default function VideoPlayer({ videos = [] }) {
     
@@ -20,10 +23,15 @@ export default function VideoPlayer({ videos = [] }) {
     const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [showArrowHint, setShowArrowHint] = useState(true);
+    const [isBuffering, setIsBuffering] = useState(false);
+    const [bufferingProgress, setBufferingProgress] = useState(0);
+    const [loadedVideos, setLoadedVideos] = useState(new Set());
+    const [connectionQuality, setConnectionQuality] = useState(null);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
     const videoContainerRef = useRef(null);
+    const preloadedVideosRef = useRef(new Map());
 
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
     const BASE_WIDTH = 1920;
@@ -38,7 +46,7 @@ export default function VideoPlayer({ videos = [] }) {
     );
     const toPercent = (value, base) => (value / base) * 100;
 
-    // Detect mobile device
+    // Detect mobile device and connection quality
     useEffect(() => {
         const checkMobile = () => {
             const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -47,15 +55,60 @@ export default function VideoPlayer({ videos = [] }) {
         
         checkMobile();
         window.addEventListener('resize', checkMobile);
+
+        // Detect connection quality
+        const quality = detectConnectionQuality();
+        setConnectionQuality(quality);
+
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    // Helper function to preload a video
+    const preloadVideo = (videoSrc, index) => {
+        if (preloadedVideosRef.current.has(videoSrc)) {
+            return; // Already preloaded
+        }
+
+        const strategy = connectionQuality ? getPreloadStrategy(connectionQuality) : { preloadType: 'auto' };
+        const bgVid = document.createElement("video");
+        bgVid.src = videoSrc;
+        bgVid.muted = true;
+        bgVid.preload = strategy.preloadType;
+        bgVid.playbackRate = 1.4;
+        bgVid.playsInline = true;
+        bgVid.setAttribute("playsinline", "true");
+
+        bgVid.addEventListener('canplaythrough', () => {
+            preloadedVideosRef.current.set(videoSrc, bgVid);
+            setLoadedVideos(prev => new Set([...prev, index]));
+        }, { once: true });
+
+        bgVid.load();
+    };
 
     // --- 1. INITIALIZE PLAYER ---
     useEffect(() => {
         if (videos.length > 0 && v0.current && !isInitialized) {
+            setIsBuffering(true);
             v0.current.src = videos[0].src;
-            v0.current.muted = true; // Ensure muted for autoplay
-            v0.current.playbackRate = 1.4; // Speed up playback
+            v0.current.muted = true;
+            v0.current.playbackRate = 1.4;
+
+            // Add buffering progress tracking
+            const updateBuffering = () => {
+                if (v0.current && v0.current.buffered.length > 0) {
+                    const bufferedEnd = v0.current.buffered.end(v0.current.buffered.length - 1);
+                    const duration = v0.current.duration || 1;
+                    const progress = (bufferedEnd / duration) * 100;
+                    setBufferingProgress(progress);
+                }
+            };
+
+            v0.current.addEventListener('progress', updateBuffering);
+            v0.current.addEventListener('canplay', () => setIsBuffering(false));
+            v0.current.addEventListener('waiting', () => setIsBuffering(true));
+            v0.current.addEventListener('playing', () => setIsBuffering(false));
+
             v0.current.play().catch(() => {
                 if (v0.current) {
                     v0.current.muted = true;
@@ -63,37 +116,39 @@ export default function VideoPlayer({ videos = [] }) {
                     v0.current.play();
                 }
             });
+
+            setLoadedVideos(prev => new Set([...prev, 0]));
             setIsInitialized(true);
             
-            // Preload next video in background
+            // Preload next video based on connection quality
             if (videos.length > 1 && v1.current) {
+                const strategy = connectionQuality ? getPreloadStrategy(connectionQuality) : { preloadType: 'auto' };
                 v1.current.src = videos[1].src;
                 v1.current.muted = true;
                 v1.current.playbackRate = 1.4;
-                v1.current.preload = "auto";
+                v1.current.preload = strategy.preloadType;
                 v1.current.load();
+                setLoadedVideos(prev => new Set([...prev, 1]));
             }
         }
-    }, [videos, isInitialized]);
+    }, [videos, isInitialized, connectionQuality]);
     
-    // Preload remaining videos in background
+    // Progressive preloading - only load videos when needed or on fast connections
     useEffect(() => {
-        if (videos.length > 2 && isInitialized) {
-            // Preload videos 2+ in background
-                    videos.slice(2).forEach((video, index) => {
-                        setTimeout(() => {
-                            const bgVid = document.createElement("video");
-                            bgVid.src = video.src;
-                            bgVid.muted = true;
-                            bgVid.preload = "auto";
-                            bgVid.playbackRate = 1.4;
-                            bgVid.playsInline = true; // iOS requirement
-                            bgVid.setAttribute("playsinline", "true"); // iOS fallback
-                            bgVid.load();
-                        }, (index + 1) * 500); // Stagger background loading
-            });
+        if (videos.length > 2 && isInitialized && connectionQuality) {
+            const strategy = getPreloadStrategy(connectionQuality);
+
+            // For fast connections, preload all videos
+            if (strategy.backgroundLoad) {
+                videos.slice(2).forEach((video, index) => {
+                    setTimeout(() => {
+                        preloadVideo(video.src, index + 2);
+                    }, (index + 1) * strategy.staggerDelay);
+                });
+            }
+            // For slow/medium connections, videos will be loaded on-demand
         }
-    }, [videos, isInitialized]);
+    }, [videos, isInitialized, connectionQuality]);
 
     // --- 2. VIDEO LOGIC ---
     const playVideo = (url, index, reversed = false, isInteriorVideo = false) => {
@@ -101,17 +156,38 @@ export default function VideoPlayer({ videos = [] }) {
         if (isTransitioning) return;
         
         setIsTransitioning(true);
-        
+        setIsBuffering(true);
+
         const nextLayer = activeLayer === 0 ? 1 : 0;
         const showEl = nextLayer === 0 ? v0.current : v1.current;
         const hideEl = activeLayer === 0 ? v0.current : v1.current;
 
         if (showEl) {
+            // Preload next video if not already loaded (progressive loading)
+            if (index + 1 < videos.length && !loadedVideos.has(index + 1)) {
+                preloadVideo(videos[index + 1].src, index + 1);
+            }
+
             const startPlaying = () => {
                 showEl.currentTime = 0;
-                showEl.playbackRate = 1.4; // Speed up playback for all transitions
-                showEl.play().catch(() => { 
-                    // If play fails, ensure muted and try again
+                showEl.playbackRate = 1.4;
+
+                // Add buffering listeners
+                const updateBuffering = () => {
+                    if (showEl && showEl.buffered.length > 0) {
+                        const bufferedEnd = showEl.buffered.end(showEl.buffered.length - 1);
+                        const duration = showEl.duration || 1;
+                        const progress = (bufferedEnd / duration) * 100;
+                        setBufferingProgress(progress);
+                    }
+                };
+
+                showEl.addEventListener('progress', updateBuffering);
+                showEl.addEventListener('canplay', () => setIsBuffering(false));
+                showEl.addEventListener('waiting', () => setIsBuffering(true));
+                showEl.addEventListener('playing', () => setIsBuffering(false));
+
+                showEl.play().catch(() => {
                     if (showEl) {
                         showEl.muted = !isInteriorVideo;
                         showEl.playbackRate = 1.4;
@@ -123,6 +199,11 @@ export default function VideoPlayer({ videos = [] }) {
                 if (hideEl) {
                     hideEl.classList.remove("opacity-100");
                     hideEl.classList.add("opacity-0");
+                    // Remove old listeners
+                    hideEl.removeEventListener('progress', updateBuffering);
+                    hideEl.removeEventListener('canplay', () => setIsBuffering(false));
+                    hideEl.removeEventListener('waiting', () => setIsBuffering(true));
+                    hideEl.removeEventListener('playing', () => setIsBuffering(false));
                 }
                 showEl.classList.remove("opacity-0");
                 showEl.classList.add("opacity-100");
@@ -132,32 +213,41 @@ export default function VideoPlayer({ videos = [] }) {
                 setIsReversed(reversed);
                 setIsInterior(isInteriorVideo);
                 
-                // Re-enable buttons immediately (no transition delay)
+                // Re-enable buttons
                 setIsTransitioning(false);
             };
 
-            showEl.src = url;
-            showEl.muted = !isInteriorVideo; // Ensure muted unless interior video
-            showEl.load();
-
-            const onCanPlay = () => {
+            // Check if video is already preloaded
+            const preloadedVideo = preloadedVideosRef.current.get(url);
+            if (preloadedVideo && preloadedVideo.readyState >= 3) {
+                showEl.src = url;
+                showEl.muted = !isInteriorVideo;
                 startPlaying();
-                showEl.removeEventListener("canplay", onCanPlay);
-            };
-
-            showEl.addEventListener("canplay", onCanPlay);
-            
-            // Fallback: if video is already loaded, play immediately
-            if (showEl.readyState >= 3) {
-                startPlaying();
-                showEl.removeEventListener("canplay", onCanPlay);
             } else {
-                // Safety timeout to re-enable if video fails to load
-                setTimeout(() => {
-                    if (isTransitioning) {
-                        setIsTransitioning(false);
-                    }
-                }, 5000);
+                showEl.src = url;
+                showEl.muted = !isInteriorVideo;
+                showEl.load();
+
+                const onCanPlay = () => {
+                    startPlaying();
+                    showEl.removeEventListener("canplay", onCanPlay);
+                };
+
+                showEl.addEventListener("canplay", onCanPlay);
+
+                // Fallback: if video is already loaded, play immediately
+                if (showEl.readyState >= 3) {
+                    startPlaying();
+                    showEl.removeEventListener("canplay", onCanPlay);
+                } else {
+                    // Safety timeout to re-enable if video fails to load
+                    setTimeout(() => {
+                        if (isTransitioning) {
+                            setIsTransitioning(false);
+                            setIsBuffering(false);
+                        }
+                    }, connectionQuality === 'slow' ? 10000 : 5000);
+                }
             }
 
             showEl.onended = () => {
@@ -360,7 +450,7 @@ export default function VideoPlayer({ videos = [] }) {
     const currentVideoId = Number(videos[current]?.id);
     const currentVideoSrc = videos[current]?.src || "";
     const showHouseHotspots = currentVideoSrc.includes("2_fqtpzq.mp4");
-    
+
     useEffect(() => {
         console.log("[VideoPlayer] current video id:", currentVideoId, "hotspots enabled:", showHouseHotspots);
     }, [currentVideoId, showHouseHotspots]);
@@ -388,18 +478,7 @@ export default function VideoPlayer({ videos = [] }) {
                 isMobile && !isMobileFullscreen ? 'h-[60vh] md:h-screen' : 'h-screen'
             }`}
         >
-            {/* Button to play video with id=5 - hidden on mobile before fullscreen */}
-            {(!isMobile || isMobileFullscreen) && (
-                <button
-                    onClick={() => playVideoById(5)}
-                    className={`fixed md:absolute top-1/2 right-4 z-50 -translate-y-1/2 ${btnArrow} font-bold text-xs md:text-sm lg:text-base`}
-                    style={{minWidth: '48px', minHeight: '48px'}}
-                    aria-label="Show Video 5"
-                >
-                    <Play className="w-6 h-6 md:mr-2" />
-                    <span className="hidden md:inline">Show Video 5</span>
-                </button>
-            )}
+
             {/* Mobile overlay button - shown only on mobile when not in fullscreen */}
             {isMobile && !isMobileFullscreen && (
                 <div 
@@ -450,7 +529,7 @@ export default function VideoPlayer({ videos = [] }) {
                     preload="auto"
                 />
             </div>
-            
+
             {showHouseHotspots && (
                 <div className="absolute inset-0 z-30">
                     {houseHotspots.map((spot) => (
@@ -473,6 +552,24 @@ export default function VideoPlayer({ videos = [] }) {
                             </span>
                         </button>
                     ))}
+                </div>
+            )}
+
+            {/* --- BUFFERING INDICATOR --- */}
+            {isBuffering && (
+                <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                    <div className="text-center space-y-4">
+                        <Loader2 className="w-12 h-12 text-[#fcd34d] animate-spin mx-auto" />
+                        <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
+                            <motion.div
+                                className="h-full bg-gradient-to-r from-[#fcd34d] to-[#f97316]"
+                                initial={{ width: "0%" }}
+                                animate={{ width: `${bufferingProgress}%` }}
+                                transition={{ ease: "linear", duration: 0.3 }}
+                            />
+                        </div>
+                        <p className="text-white text-sm">Buffering video...</p>
+                    </div>
                 </div>
             )}
 
@@ -508,7 +605,18 @@ export default function VideoPlayer({ videos = [] }) {
 
                         {/* Status / Middle Indicator */}
                         <div className="h-full px-4 flex items-center justify-center text-xs font-bold text-white tracking-widest min-w-[90px]">
-                            {isTransitioning ? "LOADING..." : isLastVideo ? "FINISHED" : "PLAYING"}
+                            {isBuffering ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <span>BUFFERING</span>
+                                </div>
+                            ) : isTransitioning ? (
+                                "LOADING..."
+                            ) : isLastVideo ? (
+                                "FINISHED"
+                            ) : (
+                                "PLAYING"
+                            )}
                         </div>
 
                         <div className={`${separator} h-8`}></div>
