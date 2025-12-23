@@ -704,21 +704,38 @@ export default function VideoPlayer({ videos = [] }) {
             <div 
                 className="absolute inset-0 w-full h-full bg-black overflow-hidden"
             >
+                {/* Primary graded video layer */}
                 <video 
                     ref={v0} 
-                    className="absolute inset-0 w-full h-full object-cover opacity-100" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-100 
+                               transition-[filter] duration-500
+                               filter contrast-[1.08] saturate-[1.12] brightness-[0.96]"
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
                     preload="auto"
                 />
+                {/* Secondary graded video layer for transitions */}
                 <video 
                     ref={v1} 
-                    className="absolute inset-0 w-full h-full object-cover opacity-0" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-0 
+                               transition-[filter] duration-500
+                               filter contrast-[1.08] saturate-[1.12] brightness-[0.96]"
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
                     preload="auto"
+                />
+
+                {/* Subtle vignette & tint overlay to make image more cinematic */}
+                <div
+                    className="pointer-events-none absolute inset-0 
+                               bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.35)_68%,rgba(0,0,0,0.8)_100%)]
+                               mix-blend-normal"
+                />
+                <div
+                    className="pointer-events-none absolute inset-0 
+                               bg-gradient-to-t from-black/45 via-transparent to-black/10"
                 />
             </div>
 
