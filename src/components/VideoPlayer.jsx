@@ -709,7 +709,7 @@ export default function VideoPlayer({ videos = [] }) {
                     ref={v0} 
                     className="absolute inset-0 w-full h-full object-cover opacity-100 
                                transition-[filter] duration-500
-                               filter contrast-[1.08] saturate-[1.12] brightness-[0.96]"
+                               filter contrast-[1.05] saturate-[1.08] brightness-[0.80]"
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
@@ -720,7 +720,7 @@ export default function VideoPlayer({ videos = [] }) {
                     ref={v1} 
                     className="absolute inset-0 w-full h-full object-cover opacity-0 
                                transition-[filter] duration-500
-                               filter contrast-[1.08] saturate-[1.12] brightness-[0.96]"
+                               filter contrast-[1.05] saturate-[1.08] brightness-[0.80]"
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
