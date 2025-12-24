@@ -930,7 +930,7 @@ export default function VideoPlayer({ videos = [] }) {
                 </div>
             </div>
             )}
-        </div>
+        </motion.div>
         {showHouseHotspots && showZoneToolbar && (
             <div className="w-full bg-slate-900 text-white border-t border-white/10">
                 <div className="px-4 py-3 flex flex-wrap items-center gap-2">
@@ -1067,6 +1067,6 @@ export default function VideoPlayer({ videos = [] }) {
                 )}
             </div>
         )}
-        </motion.div>
+        </div>
     );
 }
