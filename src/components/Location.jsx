@@ -1,5 +1,7 @@
 import React from "react";
 import { MapPin, Activity, Car, Leaf, Flag, ArrowUpRight } from "lucide-react";
+import ScrollReveal, { StaggerContainer } from "./ScrollReveal";
+import { BuildingShapes } from "./Architectural3D";
 
 export default function Location() {
     const locationItems = [
@@ -35,6 +37,8 @@ export default function Location() {
 
     return (
         <section id="location" className="relative py-12 md:py-16 lg:py-24 bg-[#fcfcfc] overflow-hidden">
+            {/* Architectural 3D Background Elements */}
+            <BuildingShapes />
 
             {/* --- Embedded Styles (Matches Navbar) --- */}
             <style>{`
@@ -62,19 +66,23 @@ export default function Location() {
 
                 {/* --- Header Section --- */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 md:mb-12 lg:mb-16 gap-4 md:gap-6">
-                    <div className="space-y-3 md:space-y-4">
-                        <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
-                            02 — Neighborhood
-                        </span>
-                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
-                            Strategic <span className="font-bold">Location</span>
-                        </h2>
-                    </div>
-                    <p className="max-w-md text-gray-500 text-xs md:text-sm leading-relaxed text-justify">
-                        Situated at the convergence of nature and urban convenience.
-                        Enjoy seamless connectivity while remaining secluded in a private,
-                        serene enclave.
-                    </p>
+                    <ScrollReveal direction="right" delay={0.1}>
+                        <div className="space-y-3 md:space-y-4">
+                            <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
+                                02 — Neighborhood
+                            </span>
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
+                                Strategic <span className="font-bold">Location</span>
+                            </h2>
+                        </div>
+                    </ScrollReveal>
+                    <ScrollReveal direction="left" delay={0.2}>
+                        <p className="max-w-md text-gray-500 text-xs md:text-sm leading-relaxed text-justify">
+                            Situated at the convergence of nature and urban convenience.
+                            Enjoy seamless connectivity while remaining secluded in a private,
+                            serene enclave.
+                        </p>
+                    </ScrollReveal>
                 </div>
 
                 {/* --- Content Grid --- */}
@@ -82,7 +90,7 @@ export default function Location() {
 
                     {/* Left: Specification List */}
                     <div className="lg:col-span-5 flex flex-col justify-center">
-                        <div className="border-t border-gray-200">
+                        <StaggerContainer className="border-t border-gray-200" staggerDelay={0.15}>
                             {locationItems.map((item, idx) => (
                                 <div
                                     key={idx}
@@ -118,19 +126,21 @@ export default function Location() {
                                     </div>
                                 </div>
                             ))}
-                        </div>
+                        </StaggerContainer>
 
-                        <div className="mt-8">
-                            <button className="flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-gray-900 hover:text-bronze transition-colors group">
-                                <MapPin className="w-4 h-4 text-bronze" />
-                                View on Google Maps
-                                <div className="h-px w-8 bg-gray-300 group-hover:w-12 group-hover:bg-bronze transition-all duration-300"></div>
-                            </button>
-                        </div>
+                        <ScrollReveal direction="up" delay={0.3}>
+                            <div className="mt-8">
+                                <button className="flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-gray-900 hover:text-bronze transition-colors group">
+                                    <MapPin className="w-4 h-4 text-bronze" />
+                                    View on Google Maps
+                                    <div className="h-px w-8 bg-gray-300 group-hover:w-12 group-hover:bg-bronze transition-all duration-300"></div>
+                                </button>
+                            </div>
+                        </ScrollReveal>
                     </div>
 
                     {/* Right: The Map Frame */}
-                    <div className="lg:col-span-7">
+                    <ScrollReveal direction="left" delay={0.2} className="lg:col-span-7">
                         <div className="map-wrapper relative w-full h-[300px] md:h-[400px] lg:h-[500px] xl:h-[600px] bg-gray-100 rounded-xl md:rounded-2xl overflow-hidden shadow-2xl shadow-gray-200/50 border border-white ring-1 ring-gray-200 group">
 
                             {/* Map Overlay Text (Visible before hover) */}
@@ -157,7 +167,7 @@ export default function Location() {
                             {/* Decorative Corner Lines */}
                             <div className="absolute bottom-6 right-6 w-16 h-16 border-r-2 border-b-2 border-gray-900/10 rounded-br-xl pointer-events-none"></div>
                         </div>
-                    </div>
+                    </ScrollReveal>
 
                 </div>
             </div>

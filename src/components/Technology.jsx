@@ -1,5 +1,7 @@
 import React from "react";
 import { Shield, Smartphone, Zap, Wifi, ArrowRight } from "lucide-react";
+import ScrollReveal, { StaggerContainer } from "./ScrollReveal";
+import { BuildingShapes } from "./Architectural3D";
 
 export default function Technology() {
     const features = [
@@ -54,6 +56,9 @@ export default function Technology() {
         }
       `}</style>
 
+            {/* Architectural 3D Background Elements */}
+            <BuildingShapes />
+
             {/* Background Decor */}
             <div className="absolute inset-0 tech-grid-bg pointer-events-none"></div>
             <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-gradient-to-b from-white to-transparent opacity-80 pointer-events-none"></div>
@@ -62,25 +67,29 @@ export default function Technology() {
 
                 {/* --- Header Section --- */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 md:mb-16 lg:mb-20 gap-6 md:gap-8">
-                    <div className="space-y-3 md:space-y-4">
-                        <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
-                            03 — Innovation
-                        </span>
-                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
-                            Smart <span className="font-bold">Ecosystem</span>
-                        </h2>
-                    </div>
+                    <ScrollReveal direction="right" delay={0.1}>
+                        <div className="space-y-3 md:space-y-4">
+                            <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
+                                03 — Innovation
+                            </span>
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
+                                Smart <span className="font-bold">Ecosystem</span>
+                            </h2>
+                        </div>
+                    </ScrollReveal>
 
-                    <div className="flex items-center gap-4">
-                        <div className="hidden md:block h-px w-16 md:w-24 bg-gray-300"></div>
-                        <p className="text-gray-500 text-xs md:text-sm max-w-xs text-right md:text-left">
-                            Future-proof infrastructure designed for seamless modern living.
-                        </p>
-                    </div>
+                    <ScrollReveal direction="left" delay={0.2}>
+                        <div className="flex items-center gap-4">
+                            <div className="hidden md:block h-px w-16 md:w-24 bg-gray-300"></div>
+                            <p className="text-gray-500 text-xs md:text-sm max-w-xs text-right md:text-left">
+                                Future-proof infrastructure designed for seamless modern living.
+                            </p>
+                        </div>
+                    </ScrollReveal>
                 </div>
 
                 {/* --- Feature Grid --- */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" staggerDelay={0.1}>
                     {features.map((item, index) => (
                         <div
                             key={index}
@@ -115,7 +124,7 @@ export default function Technology() {
                             <div className="absolute bottom-0 left-6 right-6 h-[2px] bg-bronze transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
                         </div>
                     ))}
-                </div>
+                </StaggerContainer>
             </div>
         </section>
     );

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import zonesData from "../data/zones.json";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
     ChevronLeft,
     ChevronRight,
@@ -22,6 +22,7 @@ export default function VideoPlayer({ videos = [] }) {
     const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [showArrowHint, setShowArrowHint] = useState(true);
+    const [showSwipeHint, setShowSwipeHint] = useState(true);
     const [isBuffering, setIsBuffering] = useState(false);
     const [bufferingProgress, setBufferingProgress] = useState(0);
     const [loadedVideos, setLoadedVideos] = useState(new Set());
@@ -37,6 +38,11 @@ export default function VideoPlayer({ videos = [] }) {
     const preloadedVideosRef = useRef(new Map());
     const hotspotOverlayRef = useRef(null);
     const importInputRef = useRef(null);
+    
+    // Swipe gesture handlers for mobile
+    const touchStartX = useRef(null);
+    const touchEndX = useRef(null);
+    const minSwipeDistance = 50; // Minimum distance for a swipe (px)
 
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
     const BASE_WIDTH = zonesData.baseWidth || 1920;
@@ -339,6 +345,38 @@ export default function VideoPlayer({ videos = [] }) {
         if (!isInterior) return;
         setIsInterior(false);
         playVideo(videos[current].src, current, false);
+    };
+
+    // Swipe gesture handlers
+    const onTouchStart = (e) => {
+        touchEndX.current = null;
+        touchStartX.current = e.targetTouches[0].clientX;
+    };
+
+    const onTouchMove = (e) => {
+        touchEndX.current = e.targetTouches[0].clientX;
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStartX.current || !touchEndX.current) return;
+        
+        const distance = touchStartX.current - touchEndX.current;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isRightSwipe) {
+            // Swipe right = next video
+            handleNext();
+            setShowSwipeHint(false);
+        } else if (isLeftSwipe) {
+            // Swipe left = previous video
+            handlePrev();
+            setShowSwipeHint(false);
+        }
+
+        // Reset touch values
+        touchStartX.current = null;
+        touchEndX.current = null;
     };
 
     const isIOS = useMemo(() => {
@@ -662,13 +700,32 @@ export default function VideoPlayer({ videos = [] }) {
     // Dividers
     const separator = "w-[1px] h-5 bg-[#fcd34d]/40";
 
+    // Subtle parallax scroll effect for video container (only when not in fullscreen)
+    // This ensures video controls and interactions remain unchanged
+    const { scrollYProgress } = useScroll({
+        offset: ["start start", "end start"]
+    });
+    
+    // Very subtle parallax - only apply when not in mobile fullscreen to preserve all interactions
+    const y = useTransform(scrollYProgress, [0, 1], ["0%", isMobileFullscreen ? "0%" : "15%"]);
+    const opacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 1, isMobileFullscreen ? 1 : 0.95]);
+    const scale = useTransform(scrollYProgress, [0, 1], [1, isMobileFullscreen ? 1 : 1.02]);
+
     return (
         <div className="w-full bg-black">
-        <div 
+        <motion.div 
             ref={videoContainerRef}
+            style={{ 
+                y: isMobileFullscreen ? 0 : y, 
+                opacity: isMobileFullscreen ? 1 : opacity, 
+                scale: isMobileFullscreen ? 1 : scale 
+            }}
             className={`relative w-full bg-black overflow-hidden select-none font-sans ${
                 isMobile && !isMobileFullscreen ? 'h-[60vh] md:h-screen' : 'h-screen'
             }`}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
         >
 
             {/* Mobile overlay button - shown only on mobile when not in fullscreen */}
@@ -684,6 +741,17 @@ export default function VideoPlayer({ videos = [] }) {
                         <p className="text-white text-lg md:text-xl font-semibold">Show Project full screen</p>
                         
                         <p className="text-white/80 text-sm mt-2">Tap to view in fullscreen</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Swipe Hint Indicator - shown on mobile (hides after first swipe) */}
+            {isMobile && showSwipeHint && (
+                <div className="absolute bottom-24 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/30 animate-pulse shadow-lg">
+                        <ChevronLeft className="w-4 h-4 text-white animate-pulse" />
+                        <span className="text-xs font-bold text-white tracking-wider uppercase">Swipe to navigate</span>
+                        <ChevronRight className="w-4 h-4 text-white animate-pulse" />
                     </div>
                 </div>
             )}
@@ -704,17 +772,19 @@ export default function VideoPlayer({ videos = [] }) {
             <div 
                 className="absolute inset-0 w-full h-full bg-black overflow-hidden"
             >
+                {/* Primary video layer - brightness filter removed */}
                 <video 
                     ref={v0} 
-                    className="absolute inset-0 w-full h-full object-cover opacity-100" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-100"
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
                     preload="auto"
                 />
+                {/* Secondary video layer for transitions - brightness filter removed */}
                 <video 
                     ref={v1} 
-                    className="absolute inset-0 w-full h-full object-cover opacity-0" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-0"
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
@@ -828,8 +898,8 @@ export default function VideoPlayer({ videos = [] }) {
                 </div>
             )}
 
-            {/* --- CONTROLS --- (hidden on mobile when not in fullscreen) */}
-            {(!isMobile || isMobileFullscreen) && (
+            {/* --- CONTROLS --- (hidden on mobile, only shown on desktop) */}
+            {!isMobile && (
             <div className="absolute bottom-4 md:bottom-8 left-0 right-0 z-50 flex justify-center px-4">
                 <div className="flex flex-wrap items-center justify-center gap-3">
 
@@ -897,7 +967,7 @@ export default function VideoPlayer({ videos = [] }) {
                 </div>
             </div>
             )}
-        </div>
+        </motion.div>
         {showHouseHotspots && showZoneToolbar && (
             <div className="w-full bg-slate-900 text-white border-t border-white/10">
                 <div className="px-4 py-3 flex flex-wrap items-center gap-2">
