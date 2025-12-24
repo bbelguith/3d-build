@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import zonesData from "../data/zones.json";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
     ChevronLeft,
     ChevronRight,
@@ -662,10 +662,26 @@ export default function VideoPlayer({ videos = [] }) {
     // Dividers
     const separator = "w-[1px] h-5 bg-[#fcd34d]/40";
 
+    // Subtle parallax scroll effect for video container (only when not in fullscreen)
+    // This ensures video controls and interactions remain unchanged
+    const { scrollYProgress } = useScroll({
+        offset: ["start start", "end start"]
+    });
+    
+    // Very subtle parallax - only apply when not in mobile fullscreen to preserve all interactions
+    const y = useTransform(scrollYProgress, [0, 1], ["0%", isMobileFullscreen ? "0%" : "15%"]);
+    const opacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 1, isMobileFullscreen ? 1 : 0.95]);
+    const scale = useTransform(scrollYProgress, [0, 1], [1, isMobileFullscreen ? 1 : 1.02]);
+
     return (
         <div className="w-full bg-black">
-        <div 
+        <motion.div 
             ref={videoContainerRef}
+            style={{ 
+                y: isMobileFullscreen ? 0 : y, 
+                opacity: isMobileFullscreen ? 1 : opacity, 
+                scale: isMobileFullscreen ? 1 : scale 
+            }}
             className={`relative w-full bg-black overflow-hidden select-none font-sans ${
                 isMobile && !isMobileFullscreen ? 'h-[60vh] md:h-screen' : 'h-screen'
             }`}
@@ -1051,6 +1067,6 @@ export default function VideoPlayer({ videos = [] }) {
                 )}
             </div>
         )}
-        </div>
+        </motion.div>
     );
 }
