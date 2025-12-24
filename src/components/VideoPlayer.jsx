@@ -37,6 +37,11 @@ export default function VideoPlayer({ videos = [] }) {
     const preloadedVideosRef = useRef(new Map());
     const hotspotOverlayRef = useRef(null);
     const importInputRef = useRef(null);
+    
+    // Swipe gesture handlers for mobile
+    const touchStartX = useRef(null);
+    const touchEndX = useRef(null);
+    const minSwipeDistance = 50; // Minimum distance for a swipe (px)
 
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
     const BASE_WIDTH = zonesData.baseWidth || 1920;
@@ -339,6 +344,36 @@ export default function VideoPlayer({ videos = [] }) {
         if (!isInterior) return;
         setIsInterior(false);
         playVideo(videos[current].src, current, false);
+    };
+
+    // Swipe gesture handlers
+    const onTouchStart = (e) => {
+        touchEndX.current = null;
+        touchStartX.current = e.targetTouches[0].clientX;
+    };
+
+    const onTouchMove = (e) => {
+        touchEndX.current = e.targetTouches[0].clientX;
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStartX.current || !touchEndX.current) return;
+        
+        const distance = touchStartX.current - touchEndX.current;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe) {
+            // Swipe left = next video
+            handleNext();
+        } else if (isRightSwipe) {
+            // Swipe right = previous video
+            handlePrev();
+        }
+
+        // Reset touch values
+        touchStartX.current = null;
+        touchEndX.current = null;
     };
 
     const isIOS = useMemo(() => {
@@ -685,6 +720,9 @@ export default function VideoPlayer({ videos = [] }) {
             className={`relative w-full bg-black overflow-hidden select-none font-sans ${
                 isMobile && !isMobileFullscreen ? 'h-[60vh] md:h-screen' : 'h-screen'
             }`}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
         >
 
             {/* Mobile overlay button - shown only on mobile when not in fullscreen */}
@@ -720,38 +758,23 @@ export default function VideoPlayer({ videos = [] }) {
             <div 
                 className="absolute inset-0 w-full h-full bg-black overflow-hidden"
             >
-                {/* Primary graded video layer */}
+                {/* Primary video layer - brightness filter removed */}
                 <video 
                     ref={v0} 
-                    className="absolute inset-0 w-full h-full object-cover opacity-100 
-                               transition-[filter] duration-500
-                               filter contrast-[1.02] saturate-[1.05] brightness-[0.65]"
+                    className="absolute inset-0 w-full h-full object-cover opacity-100"
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
                     preload="auto"
                 />
-                {/* Secondary graded video layer for transitions */}
+                {/* Secondary video layer for transitions - brightness filter removed */}
                 <video 
                     ref={v1} 
-                    className="absolute inset-0 w-full h-full object-cover opacity-0 
-                               transition-[filter] duration-500
-                               filter contrast-[1.02] saturate-[1.05] brightness-[0.65]"
+                    className="absolute inset-0 w-full h-full object-cover opacity-0"
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
                     preload="auto"
-                />
-
-                {/* Subtle vignette & tint overlay to make image more cinematic */}
-                <div
-                    className="pointer-events-none absolute inset-0 
-                               bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.35)_68%,rgba(0,0,0,0.8)_100%)]
-                               mix-blend-normal"
-                />
-                <div
-                    className="pointer-events-none absolute inset-0 
-                               bg-gradient-to-t from-black/45 via-transparent to-black/10"
                 />
             </div>
 
