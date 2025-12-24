@@ -22,6 +22,7 @@ export default function VideoPlayer({ videos = [] }) {
     const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [showArrowHint, setShowArrowHint] = useState(true);
+    const [showSwipeHint, setShowSwipeHint] = useState(true);
     const [isBuffering, setIsBuffering] = useState(false);
     const [bufferingProgress, setBufferingProgress] = useState(0);
     const [loadedVideos, setLoadedVideos] = useState(new Set());
@@ -363,12 +364,14 @@ export default function VideoPlayer({ videos = [] }) {
         const isLeftSwipe = distance > minSwipeDistance;
         const isRightSwipe = distance < -minSwipeDistance;
 
-        if (isLeftSwipe) {
-            // Swipe left = next video
+        if (isRightSwipe) {
+            // Swipe right = next video
             handleNext();
-        } else if (isRightSwipe) {
-            // Swipe right = previous video
+            setShowSwipeHint(false);
+        } else if (isLeftSwipe) {
+            // Swipe left = previous video
             handlePrev();
+            setShowSwipeHint(false);
         }
 
         // Reset touch values
@@ -742,6 +745,17 @@ export default function VideoPlayer({ videos = [] }) {
                 </div>
             )}
 
+            {/* Swipe Hint Indicator - shown on mobile (hides after first swipe) */}
+            {isMobile && showSwipeHint && (
+                <div className="absolute bottom-24 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/30 animate-pulse shadow-lg">
+                        <ChevronLeft className="w-4 h-4 text-white animate-pulse" />
+                        <span className="text-xs font-bold text-white tracking-wider uppercase">Swipe to navigate</span>
+                        <ChevronRight className="w-4 h-4 text-white animate-pulse" />
+                    </div>
+                </div>
+            )}
+
             {/* Close button for mobile fullscreen */}
             {isMobile && isMobileFullscreen && (
                 <button
@@ -884,8 +898,8 @@ export default function VideoPlayer({ videos = [] }) {
                 </div>
             )}
 
-            {/* --- CONTROLS --- (hidden on mobile when not in fullscreen) */}
-            {(!isMobile || isMobileFullscreen) && (
+            {/* --- CONTROLS --- (hidden on mobile, only shown on desktop) */}
+            {!isMobile && (
             <div className="absolute bottom-4 md:bottom-8 left-0 right-0 z-50 flex justify-center px-4">
                 <div className="flex flex-wrap items-center justify-center gap-3">
 
