@@ -30,7 +30,10 @@ export default function VideoPlayer({ videos = [] }) {
     const [editZones, setEditZones] = useState(false);
     const [selectedZoneId, setSelectedZoneId] = useState(null);
     const [draggingPoint, setDraggingPoint] = useState(null);
+    const [draggingZone, setDraggingZone] = useState(null);
     const [hoveredZoneId, setHoveredZoneId] = useState(null);
+    const [hoverPosition, setHoverPosition] = useState(null);
+    const [allowBackgroundPreload, setAllowBackgroundPreload] = useState(false);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
@@ -38,6 +41,7 @@ export default function VideoPlayer({ videos = [] }) {
     const preloadedVideosRef = useRef(new Map());
     const hotspotOverlayRef = useRef(null);
     const importInputRef = useRef(null);
+    const bufferingTimeoutRef = useRef(null);
     
     // Swipe gesture handlers for mobile
     const touchStartX = useRef(null);
@@ -61,6 +65,28 @@ export default function VideoPlayer({ videos = [] }) {
     });
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
     const showZoneToolbar = true;
+
+    const clearBufferingTimeout = () => {
+        if (bufferingTimeoutRef.current) {
+            clearTimeout(bufferingTimeoutRef.current);
+            bufferingTimeoutRef.current = null;
+        }
+    };
+
+    const scheduleBufferingCheck = (videoEl) => {
+        clearBufferingTimeout();
+        setIsBuffering(false);
+        if (!videoEl) return;
+        bufferingTimeoutRef.current = setTimeout(() => {
+            if (!videoEl || videoEl.readyState >= 3) return;
+            setIsBuffering(true);
+        }, 200);
+    };
+
+    const stopBufferingIndicator = () => {
+        clearBufferingTimeout();
+        setIsBuffering(false);
+    };
 
     // Detect mobile device and connection quality
     useEffect(() => {
@@ -105,10 +131,14 @@ export default function VideoPlayer({ videos = [] }) {
     // --- 1. INITIALIZE PLAYER ---
     useEffect(() => {
         if (videos.length > 0 && v0.current && !isInitialized) {
-            setIsBuffering(true);
+            scheduleBufferingCheck(v0.current);
+            const strategy = connectionQuality
+                ? getPreloadStrategy(connectionQuality)
+                : { initialVideos: 1, preloadType: "metadata" };
             v0.current.src = videos[0].src;
             v0.current.muted = true;
             v0.current.playbackRate = 1.4;
+            v0.current.preload = strategy.preloadType;
 
             // Add buffering progress tracking
             const updateBuffering = () => {
@@ -121,9 +151,9 @@ export default function VideoPlayer({ videos = [] }) {
             };
 
             v0.current.addEventListener('progress', updateBuffering);
-            v0.current.addEventListener('canplay', () => setIsBuffering(false));
+            v0.current.addEventListener('canplay', () => stopBufferingIndicator());
             v0.current.addEventListener('waiting', () => setIsBuffering(true));
-            v0.current.addEventListener('playing', () => setIsBuffering(false));
+            v0.current.addEventListener('playing', () => stopBufferingIndicator());
 
             v0.current.play().catch(() => {
                 if (v0.current) {
@@ -137,8 +167,7 @@ export default function VideoPlayer({ videos = [] }) {
             setIsInitialized(true);
             
             // Preload next video based on connection quality
-            if (videos.length > 1 && v1.current) {
-                const strategy = connectionQuality ? getPreloadStrategy(connectionQuality) : { preloadType: 'auto' };
+            if (videos.length > 1 && v1.current && strategy.initialVideos >= 2) {
                 v1.current.src = videos[1].src;
                 v1.current.muted = true;
                 v1.current.playbackRate = 1.4;
@@ -148,9 +177,18 @@ export default function VideoPlayer({ videos = [] }) {
             }
         }
     }, [videos, isInitialized, connectionQuality]);
-    
+
+    useEffect(() => {
+        if (!isInitialized) return;
+        const timeoutId = setTimeout(() => {
+            setAllowBackgroundPreload(true);
+        }, 2000);
+        return () => clearTimeout(timeoutId);
+    }, [isInitialized]);
+
     // Progressive preloading - only load videos when needed or on fast connections
     useEffect(() => {
+        if (!allowBackgroundPreload) return;
         if (videos.length > 2 && isInitialized && connectionQuality) {
             const strategy = getPreloadStrategy(connectionQuality);
 
@@ -172,7 +210,7 @@ export default function VideoPlayer({ videos = [] }) {
         if (isTransitioning) return;
         
         setIsTransitioning(true);
-        setIsBuffering(true);
+        scheduleBufferingCheck(activeLayer === 0 ? v1.current : v0.current);
 
         const nextLayer = activeLayer === 0 ? 1 : 0;
         const showEl = nextLayer === 0 ? v0.current : v1.current;
@@ -199,9 +237,9 @@ export default function VideoPlayer({ videos = [] }) {
                 };
 
                 showEl.addEventListener('progress', updateBuffering);
-                showEl.addEventListener('canplay', () => setIsBuffering(false));
+                showEl.addEventListener('canplay', () => stopBufferingIndicator());
                 showEl.addEventListener('waiting', () => setIsBuffering(true));
-                showEl.addEventListener('playing', () => setIsBuffering(false));
+                showEl.addEventListener('playing', () => stopBufferingIndicator());
 
                 showEl.play().catch(() => {
                     if (showEl) {
@@ -211,18 +249,21 @@ export default function VideoPlayer({ videos = [] }) {
                     }
                 });
 
-                // Instant switch - no opacity transitions since videos are linked/continuous
-                if (hideEl) {
-                    hideEl.classList.remove("opacity-100");
-                    hideEl.classList.add("opacity-0");
-                    // Remove old listeners
-                    hideEl.removeEventListener('progress', updateBuffering);
-                    hideEl.removeEventListener('canplay', () => setIsBuffering(false));
-                    hideEl.removeEventListener('waiting', () => setIsBuffering(true));
-                    hideEl.removeEventListener('playing', () => setIsBuffering(false));
-                }
-                showEl.classList.remove("opacity-0");
-                showEl.classList.add("opacity-100");
+                const swapLayers = () => {
+                    if (hideEl) {
+                        hideEl.classList.remove("opacity-100");
+                        hideEl.classList.add("opacity-0");
+                        // Remove old listeners
+                        hideEl.removeEventListener('progress', updateBuffering);
+                        hideEl.removeEventListener('canplay', () => setIsBuffering(false));
+                        hideEl.removeEventListener('waiting', () => setIsBuffering(true));
+                        hideEl.removeEventListener('playing', () => setIsBuffering(false));
+                    }
+                    showEl.classList.remove("opacity-0");
+                    showEl.classList.add("opacity-100");
+                };
+
+                showEl.addEventListener("playing", swapLayers, { once: true });
 
                 setActiveLayer(nextLayer);
                 setCurrent(index);
@@ -260,7 +301,7 @@ export default function VideoPlayer({ videos = [] }) {
                     setTimeout(() => {
                         if (isTransitioning) {
                             setIsTransitioning(false);
-                            setIsBuffering(false);
+                            stopBufferingIndicator();
                         }
                     }, connectionQuality === 'slow' ? 10000 : 5000);
                 }
@@ -505,6 +546,7 @@ export default function VideoPlayer({ videos = [] }) {
     }, [currentVideoSrc]);
     const currentZones = zonesByVideo[currentVideoKey]?.zones || [];
     const showHouseHotspots = true;
+    const hoveredZone = currentZones.find((zone) => zone.id === hoveredZoneId);
 
     useEffect(() => {
         console.log("[VideoPlayer] current video id:", currentVideoId, "key:", currentVideoKey);
@@ -514,6 +556,12 @@ export default function VideoPlayer({ videos = [] }) {
         setSelectedZoneId(null);
         setHoveredZoneId(null);
     }, [currentVideoKey]);
+
+    useEffect(() => {
+        if (!hoveredZoneId || editZones) {
+            setHoverPosition(null);
+        }
+    }, [hoveredZoneId, editZones]);
 
     useEffect(() => {
         document.body.classList.toggle("edit-zones", editZones);
@@ -532,6 +580,10 @@ export default function VideoPlayer({ videos = [] }) {
 
     const handleOverlayClick = (event) => {
         if (!editZones || selectedZoneId == null) return;
+        const targetTag = event.target?.tagName?.toLowerCase();
+        if (targetTag === "polygon" || targetTag === "polyline" || targetTag === "circle") {
+            return;
+        }
         const basePoint = getBasePointFromEvent(event);
         if (!basePoint) return;
         setZonesByVideo((prev) => {
@@ -548,6 +600,7 @@ export default function VideoPlayer({ videos = [] }) {
 
     const handlePointPointerDown = (event, zoneId, pointIndex) => {
         if (!editZones) return;
+        event.stopPropagation();
         if (zoneId !== selectedZoneId) {
             setSelectedZoneId(zoneId);
             return;
@@ -572,8 +625,31 @@ export default function VideoPlayer({ videos = [] }) {
         event.currentTarget.setPointerCapture(event.pointerId);
     };
 
+    const handleZonePointerDown = (event, zone) => {
+        if (!editZones) return;
+        event.stopPropagation();
+        setSelectedZoneId(zone.id);
+        const startPoint = getBasePointFromEvent(event);
+        if (!startPoint) return;
+        setDraggingZone({
+            zoneId: zone.id,
+            startPoint,
+            startPoints: zone.points.map((pt) => ({ ...pt }))
+        });
+        event.currentTarget.setPointerCapture(event.pointerId);
+    };
+
     const handleOverlayPointerMove = (event) => {
-        if (!editZones || !draggingPoint) return;
+        if (!editZones && hoveredZoneId) {
+            const rect = getOverlayRect();
+            if (rect) {
+                setHoverPosition({
+                    x: event.clientX - rect.left,
+                    y: event.clientY - rect.top
+                });
+            }
+        }
+        if (!editZones || (!draggingPoint && !draggingZone)) return;
         const basePoint = getBasePointFromEvent(event);
         if (!basePoint) return;
 
@@ -581,15 +657,26 @@ export default function VideoPlayer({ videos = [] }) {
             const next = { ...prev };
             const currentList = next[currentVideoKey]?.zones || [];
             const updated = currentList.map((zone) => {
-                if (zone.id !== draggingPoint.zoneId) return zone;
-                const nextPoints = zone.points.map((pt, idx) => {
-                    if (idx !== draggingPoint.pointIndex) return pt;
-                    return {
-                        x: clamp(basePoint.x, 0, BASE_WIDTH),
-                        y: clamp(basePoint.y, 0, BASE_HEIGHT)
-                    };
-                });
-                return { ...zone, points: nextPoints };
+                if (draggingPoint && zone.id === draggingPoint.zoneId) {
+                    const nextPoints = zone.points.map((pt, idx) => {
+                        if (idx !== draggingPoint.pointIndex) return pt;
+                        return {
+                            x: clamp(basePoint.x, 0, BASE_WIDTH),
+                            y: clamp(basePoint.y, 0, BASE_HEIGHT)
+                        };
+                    });
+                    return { ...zone, points: nextPoints };
+                }
+                if (draggingZone && zone.id === draggingZone.zoneId) {
+                    const deltaX = basePoint.x - draggingZone.startPoint.x;
+                    const deltaY = basePoint.y - draggingZone.startPoint.y;
+                    const nextPoints = draggingZone.startPoints.map((pt) => ({
+                        x: clamp(pt.x + deltaX, 0, BASE_WIDTH),
+                        y: clamp(pt.y + deltaY, 0, BASE_HEIGHT)
+                    }));
+                    return { ...zone, points: nextPoints };
+                }
+                return zone;
             });
             next[currentVideoKey] = { zones: updated };
             return next;
@@ -597,8 +684,9 @@ export default function VideoPlayer({ videos = [] }) {
     };
 
     const handleOverlayPointerUp = (event) => {
-        if (!editZones || !draggingPoint) return;
+        if (!editZones || (!draggingPoint && !draggingZone)) return;
         setDraggingPoint(null);
+        setDraggingZone(null);
         try {
             event.target.releasePointerCapture?.(event.pointerId);
         } catch {
@@ -808,6 +896,7 @@ export default function VideoPlayer({ videos = [] }) {
                         {currentZones.map((zone) => {
                             const isSelected = zone.id === selectedZoneId;
                             const isHovered = zone.id === hoveredZoneId;
+                            const showHoverOnly = !editZones;
                             const pointList = zone.points.map((pt) => `${pt.x},${pt.y}`).join(" ");
                             if (zone.visible === false) {
                                 return null;
@@ -817,22 +906,31 @@ export default function VideoPlayer({ videos = [] }) {
                                     {zone.points.length >= 3 ? (
                                         <polygon
                                             points={pointList}
+                                            pointerEvents={showHoverOnly ? "all" : "visiblePainted"}
                                             fill={
-                                                isSelected
-                                                    ? "rgba(139,92,246,0.28)"
-                                                    : isHovered
+                                                showHoverOnly
+                                                    ? isHovered
                                                         ? "rgba(30,64,175,0.35)"
-                                                        : "rgba(16,185,129,0.12)"
+                                                        : "rgba(16,185,129,0)"
+                                                    : isSelected
+                                                        ? "rgba(139,92,246,0.28)"
+                                                        : isHovered
+                                                            ? "rgba(30,64,175,0.35)"
+                                                            : "rgba(16,185,129,0.12)"
                                             }
                                             stroke={
-                                                isSelected
-                                                    ? "rgba(139,92,246,0.95)"
-                                                    : isHovered
+                                                showHoverOnly
+                                                    ? isHovered
                                                         ? "rgba(30,64,175,0.9)"
-                                                        : "rgba(16,185,129,0.5)"
+                                                        : "rgba(16,185,129,0)"
+                                                    : isSelected
+                                                        ? "rgba(139,92,246,0.95)"
+                                                        : isHovered
+                                                            ? "rgba(30,64,175,0.9)"
+                                                            : "rgba(16,185,129,0.5)"
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
-                                        onPointerDown={() => setSelectedZoneId(zone.id)}
+                                            onPointerDown={(event) => handleZonePointerDown(event, zone)}
                                         onPointerEnter={() => setHoveredZoneId(zone.id)}
                                         onPointerLeave={() => setHoveredZoneId(null)}
                                         />
@@ -840,16 +938,21 @@ export default function VideoPlayer({ videos = [] }) {
                                         <polyline
                                             points={pointList}
                                             fill="none"
+                                            pointerEvents={showHoverOnly ? "all" : "visiblePainted"}
                                             stroke={
-                                                isSelected
-                                                    ? "rgba(139,92,246,0.95)"
-                                                    : isHovered
+                                                showHoverOnly
+                                                    ? isHovered
                                                         ? "rgba(30,64,175,0.9)"
-                                                        : "rgba(16,185,129,0.5)"
+                                                        : "rgba(16,185,129,0)"
+                                                    : isSelected
+                                                        ? "rgba(139,92,246,0.95)"
+                                                        : isHovered
+                                                            ? "rgba(30,64,175,0.9)"
+                                                            : "rgba(16,185,129,0.5)"
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             pointerEvents="stroke"
-                                            onPointerDown={() => setSelectedZoneId(zone.id)}
+                                            onPointerDown={(event) => handleZonePointerDown(event, zone)}
                                             onPointerEnter={() => setHoveredZoneId(zone.id)}
                                             onPointerLeave={() => setHoveredZoneId(null)}
                                         />
@@ -871,6 +974,21 @@ export default function VideoPlayer({ videos = [] }) {
                             );
                         })}
                     </svg>
+
+                    {!editZones && hoveredZone && hoveredZone.label && hoverPosition && (
+                        <div
+                            className="absolute z-40 pointer-events-none"
+                            style={{
+                                left: hoverPosition.x + 12,
+                                top: hoverPosition.y + 12
+                            }}
+                        >
+                            <div className="rounded-xl border border-white/20 bg-slate-900/90 px-3 py-2 text-[12px] text-white shadow-lg backdrop-blur">
+                                <div className="text-[10px] uppercase tracking-widest text-white/60">Maison</div>
+                                <div className="font-semibold">{hoveredZone.label}</div>
+                            </div>
+                        </div>
+                    )}
 
                     {editZones && (
                         <div className="absolute top-4 right-4 z-40 rounded-2xl bg-black/60 text-white text-[11px] px-3 py-2 border border-white/10">
