@@ -1,5 +1,7 @@
 import React from "react";
 import { ArrowUpRight, Building2 } from "lucide-react";
+import ScrollReveal, { StaggerContainer } from "./ScrollReveal";
+import { BuildingShapes } from "./Architectural3D";
 
 export default function Projects() {
     const projects = [
@@ -31,6 +33,8 @@ export default function Projects() {
 
     return (
         <section id="projects" className="relative py-12 md:py-16 lg:py-24 bg-[#f9f9f9] overflow-hidden">
+            {/* Architectural 3D Background Elements */}
+            <BuildingShapes />
 
             {/* --- Embedded Styles --- */}
             <style>{`
@@ -54,20 +58,24 @@ export default function Projects() {
 
                 {/* --- Header --- */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 md:mb-16 lg:mb-20 gap-6 md:gap-8">
-                    <div className="space-y-3 md:space-y-4">
-                        <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
-                            05 — Portfolio
-                        </span>
-                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
-                            Previous <span className="font-bold">Developments</span>
-                        </h2>
-                    </div>
+                    <ScrollReveal direction="right" delay={0.1}>
+                        <div className="space-y-3 md:space-y-4">
+                            <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
+                                05 — Portfolio
+                            </span>
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
+                                Previous <span className="font-bold">Developments</span>
+                            </h2>
+                        </div>
+                    </ScrollReveal>
 
-                    <div className="hidden md:block">
-                        <p className="text-gray-500 text-xs md:text-sm max-w-xs text-right">
-                            A track record of excellence across Tunisia's most prestigious districts.
-                        </p>
-                    </div>
+                    <ScrollReveal direction="left" delay={0.2}>
+                        <div className="hidden md:block">
+                            <p className="text-gray-500 text-xs md:text-sm max-w-xs text-right">
+                                A track record of excellence across Tunisia's most prestigious districts.
+                            </p>
+                        </div>
+                    </ScrollReveal>
                 </div>
 
                 {/* --- Project Index Table --- */}
@@ -81,7 +89,7 @@ export default function Projects() {
                     </div>
 
                     {/* Table Rows */}
-                    <div className="border-t border-gray-200">
+                    <StaggerContainer className="border-t border-gray-200" staggerDelay={0.1}>
                         {projects.map((project, idx) => (
                             <div
                                 key={idx}
@@ -122,15 +130,17 @@ export default function Projects() {
 
                             </div>
                         ))}
-                    </div>
+                    </StaggerContainer>
 
                     {/* --- Bottom CTA --- */}
-                    <div className="mt-12 flex justify-center">
-                        <button className="group flex items-center gap-3 px-6 py-3 bg-white border border-gray-200 rounded-full hover:border-bronze transition-all duration-300">
-                            <Building2 className="w-4 h-4 text-gray-400 group-hover:text-bronze transition-colors" />
-                            <span className="text-xs font-bold uppercase tracking-widest text-gray-900">View Full Archive</span>
-                        </button>
-                    </div>
+                    <ScrollReveal direction="up" delay={0.3}>
+                        <div className="mt-12 flex justify-center">
+                            <button className="group flex items-center gap-3 px-6 py-3 bg-white border border-gray-200 rounded-full hover:border-bronze transition-all duration-300">
+                                <Building2 className="w-4 h-4 text-gray-400 group-hover:text-bronze transition-colors" />
+                                <span className="text-xs font-bold uppercase tracking-widest text-gray-900">View Full Archive</span>
+                            </button>
+                        </div>
+                    </ScrollReveal>
 
                 </div>
             </div>

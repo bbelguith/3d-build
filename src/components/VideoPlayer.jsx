@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { motion } from "framer-motion";
+import zonesData from "../data/final_zones.json";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
     ChevronLeft,
     ChevronRight,
@@ -21,17 +22,71 @@ export default function VideoPlayer({ videos = [] }) {
     const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [showArrowHint, setShowArrowHint] = useState(true);
+    const [showSwipeHint, setShowSwipeHint] = useState(true);
     const [isBuffering, setIsBuffering] = useState(false);
     const [bufferingProgress, setBufferingProgress] = useState(0);
     const [loadedVideos, setLoadedVideos] = useState(new Set());
     const [connectionQuality, setConnectionQuality] = useState(null);
+    const [editZones, setEditZones] = useState(false);
+    const [selectedZoneId, setSelectedZoneId] = useState(null);
+    const [draggingPoint, setDraggingPoint] = useState(null);
+    const [draggingZone, setDraggingZone] = useState(null);
+    const [hoveredZoneId, setHoveredZoneId] = useState(null);
+    const [hoverPosition, setHoverPosition] = useState(null);
+    const [allowBackgroundPreload, setAllowBackgroundPreload] = useState(false);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
     const videoContainerRef = useRef(null);
     const preloadedVideosRef = useRef(new Map());
+    const hotspotOverlayRef = useRef(null);
+    const importInputRef = useRef(null);
+    const bufferingTimeoutRef = useRef(null);
+    
+    // Swipe gesture handlers for mobile
+    const touchStartX = useRef(null);
+    const touchEndX = useRef(null);
+    const minSwipeDistance = 50; // Minimum distance for a swipe (px)
 
     ///const INTERIOR_VIDEO = "https://res.cloudinary.com/dzbmwlwra/video/upload/f_auto,q_auto,vc_auto/v1762343546/1105_pyem6p.mp4";
+    const BASE_WIDTH = zonesData.baseWidth || 1920;
+    const BASE_HEIGHT = zonesData.baseHeight || 1080;
+    const [zonesByVideo, setZonesByVideo] = useState(() => {
+        const raw = zonesData.videos || {};
+        const normalized = {};
+        Object.keys(raw).forEach((key) => {
+            const zones = (raw[key]?.zones || []).map((zone) => ({
+                ...zone,
+                visible: zone.visible !== false
+            }));
+            normalized[key] = { zones };
+        });
+        return normalized;
+    });
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    const showZoneToolbar = false;
+
+    const clearBufferingTimeout = () => {
+        if (bufferingTimeoutRef.current) {
+            clearTimeout(bufferingTimeoutRef.current);
+            bufferingTimeoutRef.current = null;
+        }
+    };
+
+    const scheduleBufferingCheck = (videoEl) => {
+        clearBufferingTimeout();
+        setIsBuffering(false);
+        if (!videoEl) return;
+        bufferingTimeoutRef.current = setTimeout(() => {
+            if (!videoEl || videoEl.readyState >= 3) return;
+            setIsBuffering(true);
+        }, 200);
+    };
+
+    const stopBufferingIndicator = () => {
+        clearBufferingTimeout();
+        setIsBuffering(false);
+    };
 
     // Detect mobile device and connection quality
     useEffect(() => {
@@ -42,11 +97,11 @@ export default function VideoPlayer({ videos = [] }) {
         
         checkMobile();
         window.addEventListener('resize', checkMobile);
-        
+
         // Detect connection quality
         const quality = detectConnectionQuality();
         setConnectionQuality(quality);
-        
+
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
@@ -64,23 +119,27 @@ export default function VideoPlayer({ videos = [] }) {
         bgVid.playbackRate = 1.4;
         bgVid.playsInline = true;
         bgVid.setAttribute("playsinline", "true");
-        
+
         bgVid.addEventListener('canplaythrough', () => {
             preloadedVideosRef.current.set(videoSrc, bgVid);
             setLoadedVideos(prev => new Set([...prev, index]));
         }, { once: true });
-        
+
         bgVid.load();
     };
 
     // --- 1. INITIALIZE PLAYER ---
     useEffect(() => {
         if (videos.length > 0 && v0.current && !isInitialized) {
-            setIsBuffering(true);
+            scheduleBufferingCheck(v0.current);
+            const strategy = connectionQuality
+                ? getPreloadStrategy(connectionQuality)
+                : { initialVideos: 1, preloadType: "metadata" };
             v0.current.src = videos[0].src;
             v0.current.muted = true;
             v0.current.playbackRate = 1.4;
-            
+            v0.current.preload = strategy.preloadType;
+
             // Add buffering progress tracking
             const updateBuffering = () => {
                 if (v0.current && v0.current.buffered.length > 0) {
@@ -90,12 +149,12 @@ export default function VideoPlayer({ videos = [] }) {
                     setBufferingProgress(progress);
                 }
             };
-            
+
             v0.current.addEventListener('progress', updateBuffering);
-            v0.current.addEventListener('canplay', () => setIsBuffering(false));
+            v0.current.addEventListener('canplay', () => stopBufferingIndicator());
             v0.current.addEventListener('waiting', () => setIsBuffering(true));
-            v0.current.addEventListener('playing', () => setIsBuffering(false));
-            
+            v0.current.addEventListener('playing', () => stopBufferingIndicator());
+
             v0.current.play().catch(() => {
                 if (v0.current) {
                     v0.current.muted = true;
@@ -103,13 +162,12 @@ export default function VideoPlayer({ videos = [] }) {
                     v0.current.play();
                 }
             });
-            
+
             setLoadedVideos(prev => new Set([...prev, 0]));
             setIsInitialized(true);
             
             // Preload next video based on connection quality
-            if (videos.length > 1 && v1.current) {
-                const strategy = connectionQuality ? getPreloadStrategy(connectionQuality) : { preloadType: 'auto' };
+            if (videos.length > 1 && v1.current && strategy.initialVideos >= 2) {
                 v1.current.src = videos[1].src;
                 v1.current.muted = true;
                 v1.current.playbackRate = 1.4;
@@ -119,12 +177,21 @@ export default function VideoPlayer({ videos = [] }) {
             }
         }
     }, [videos, isInitialized, connectionQuality]);
-    
+
+    useEffect(() => {
+        if (!isInitialized) return;
+        const timeoutId = setTimeout(() => {
+            setAllowBackgroundPreload(true);
+        }, 2000);
+        return () => clearTimeout(timeoutId);
+    }, [isInitialized]);
+
     // Progressive preloading - only load videos when needed or on fast connections
     useEffect(() => {
+        if (!allowBackgroundPreload) return;
         if (videos.length > 2 && isInitialized && connectionQuality) {
             const strategy = getPreloadStrategy(connectionQuality);
-            
+
             // For fast connections, preload all videos
             if (strategy.backgroundLoad) {
                 videos.slice(2).forEach((video, index) => {
@@ -143,8 +210,8 @@ export default function VideoPlayer({ videos = [] }) {
         if (isTransitioning) return;
         
         setIsTransitioning(true);
-        setIsBuffering(true);
-        
+        scheduleBufferingCheck(activeLayer === 0 ? v1.current : v0.current);
+
         const nextLayer = activeLayer === 0 ? 1 : 0;
         const showEl = nextLayer === 0 ? v0.current : v1.current;
         const hideEl = activeLayer === 0 ? v0.current : v1.current;
@@ -158,7 +225,7 @@ export default function VideoPlayer({ videos = [] }) {
             const startPlaying = () => {
                 showEl.currentTime = 0;
                 showEl.playbackRate = 1.4;
-                
+
                 // Add buffering listeners
                 const updateBuffering = () => {
                     if (showEl && showEl.buffered.length > 0) {
@@ -168,13 +235,13 @@ export default function VideoPlayer({ videos = [] }) {
                         setBufferingProgress(progress);
                     }
                 };
-                
+
                 showEl.addEventListener('progress', updateBuffering);
-                showEl.addEventListener('canplay', () => setIsBuffering(false));
+                showEl.addEventListener('canplay', () => stopBufferingIndicator());
                 showEl.addEventListener('waiting', () => setIsBuffering(true));
-                showEl.addEventListener('playing', () => setIsBuffering(false));
-                
-                showEl.play().catch(() => { 
+                showEl.addEventListener('playing', () => stopBufferingIndicator());
+
+                showEl.play().catch(() => {
                     if (showEl) {
                         showEl.muted = !isInteriorVideo;
                         showEl.playbackRate = 1.4;
@@ -182,18 +249,21 @@ export default function VideoPlayer({ videos = [] }) {
                     }
                 });
 
-                // Instant switch - no opacity transitions since videos are linked/continuous
-                if (hideEl) {
-                    hideEl.classList.remove("opacity-100");
-                    hideEl.classList.add("opacity-0");
-                    // Remove old listeners
-                    hideEl.removeEventListener('progress', updateBuffering);
-                    hideEl.removeEventListener('canplay', () => setIsBuffering(false));
-                    hideEl.removeEventListener('waiting', () => setIsBuffering(true));
-                    hideEl.removeEventListener('playing', () => setIsBuffering(false));
-                }
-                showEl.classList.remove("opacity-0");
-                showEl.classList.add("opacity-100");
+                const swapLayers = () => {
+                    if (hideEl) {
+                        hideEl.classList.remove("opacity-100");
+                        hideEl.classList.add("opacity-0");
+                        // Remove old listeners
+                        hideEl.removeEventListener('progress', updateBuffering);
+                        hideEl.removeEventListener('canplay', () => setIsBuffering(false));
+                        hideEl.removeEventListener('waiting', () => setIsBuffering(true));
+                        hideEl.removeEventListener('playing', () => setIsBuffering(false));
+                    }
+                    showEl.classList.remove("opacity-0");
+                    showEl.classList.add("opacity-100");
+                };
+
+                showEl.addEventListener("playing", swapLayers, { once: true });
 
                 setActiveLayer(nextLayer);
                 setCurrent(index);
@@ -221,7 +291,7 @@ export default function VideoPlayer({ videos = [] }) {
                 };
 
                 showEl.addEventListener("canplay", onCanPlay);
-                
+
                 // Fallback: if video is already loaded, play immediately
                 if (showEl.readyState >= 3) {
                     startPlaying();
@@ -231,7 +301,7 @@ export default function VideoPlayer({ videos = [] }) {
                     setTimeout(() => {
                         if (isTransitioning) {
                             setIsTransitioning(false);
-                            setIsBuffering(false);
+                            stopBufferingIndicator();
                         }
                     }, connectionQuality === 'slow' ? 10000 : 5000);
                 }
@@ -316,6 +386,38 @@ export default function VideoPlayer({ videos = [] }) {
         if (!isInterior) return;
         setIsInterior(false);
         playVideo(videos[current].src, current, false);
+    };
+
+    // Swipe gesture handlers
+    const onTouchStart = (e) => {
+        touchEndX.current = null;
+        touchStartX.current = e.targetTouches[0].clientX;
+    };
+
+    const onTouchMove = (e) => {
+        touchEndX.current = e.targetTouches[0].clientX;
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStartX.current || !touchEndX.current) return;
+        
+        const distance = touchStartX.current - touchEndX.current;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isRightSwipe) {
+            // Swipe right = next video
+            handleNext();
+            setShowSwipeHint(false);
+        } else if (isLeftSwipe) {
+            // Swipe left = previous video
+            handlePrev();
+            setShowSwipeHint(false);
+        }
+
+        // Reset touch values
+        touchStartX.current = null;
+        touchEndX.current = null;
     };
 
     const isIOS = useMemo(() => {
@@ -434,6 +536,241 @@ export default function VideoPlayer({ videos = [] }) {
     if (videos.length === 0) return null;
 
     const isLastVideo = current === videos.length - 1;
+    const currentVideoId = Number(videos[current]?.id);
+    const currentVideoSrc = videos[current]?.src || "";
+    const currentVideoKey = useMemo(() => {
+        if (!currentVideoSrc) return "unknown";
+        const clean = currentVideoSrc.split("?")[0];
+        const parts = clean.split("/");
+        return parts[parts.length - 1] || "unknown";
+    }, [currentVideoSrc]);
+    const currentZones = zonesByVideo[currentVideoKey]?.zones || [];
+    const showHouseHotspots = true;
+    const hoveredZone = currentZones.find((zone) => zone.id === hoveredZoneId);
+
+    useEffect(() => {
+        console.log("[VideoPlayer] current video id:", currentVideoId, "key:", currentVideoKey);
+    }, [currentVideoId, currentVideoKey]);
+
+    useEffect(() => {
+        setSelectedZoneId(null);
+        setHoveredZoneId(null);
+    }, [currentVideoKey]);
+
+    useEffect(() => {
+        if (!hoveredZoneId || editZones) {
+            setHoverPosition(null);
+        }
+    }, [hoveredZoneId, editZones]);
+
+    useEffect(() => {
+        document.body.classList.toggle("edit-zones", editZones);
+        return () => document.body.classList.remove("edit-zones");
+    }, [editZones]);
+
+    const getOverlayRect = () => hotspotOverlayRef.current?.getBoundingClientRect() || null;
+
+    const getBasePointFromEvent = (event) => {
+        const rect = getOverlayRect();
+        if (!rect) return null;
+        const baseX = ((event.clientX - rect.left) / rect.width) * BASE_WIDTH;
+        const baseY = ((event.clientY - rect.top) / rect.height) * BASE_HEIGHT;
+        return { x: Math.round(baseX), y: Math.round(baseY) };
+    };
+
+    const handleOverlayClick = (event) => {
+        if (!editZones || selectedZoneId == null) return;
+        const targetTag = event.target?.tagName?.toLowerCase();
+        if (targetTag === "polygon" || targetTag === "polyline" || targetTag === "circle") {
+            return;
+        }
+        const basePoint = getBasePointFromEvent(event);
+        if (!basePoint) return;
+        setZonesByVideo((prev) => {
+            const next = { ...prev };
+            const currentList = next[currentVideoKey]?.zones || [];
+            const updated = currentList.map((zone) => {
+                if (zone.id !== selectedZoneId) return zone;
+                return { ...zone, points: [...zone.points, basePoint] };
+            });
+            next[currentVideoKey] = { zones: updated };
+            return next;
+        });
+    };
+
+    const handlePointPointerDown = (event, zoneId, pointIndex) => {
+        if (!editZones) return;
+        event.stopPropagation();
+        if (zoneId !== selectedZoneId) {
+            setSelectedZoneId(zoneId);
+            return;
+        }
+        if (event.altKey) {
+            setZonesByVideo((prev) => {
+                const next = { ...prev };
+                const currentList = next[currentVideoKey]?.zones || [];
+                const updated = currentList.map((zone) => {
+                    if (zone.id !== zoneId) return zone;
+                    return {
+                        ...zone,
+                        points: zone.points.filter((_, idx) => idx !== pointIndex)
+                    };
+                });
+                next[currentVideoKey] = { zones: updated };
+                return next;
+            });
+            return;
+        }
+        setDraggingPoint({ zoneId, pointIndex });
+        event.currentTarget.setPointerCapture(event.pointerId);
+    };
+
+    const handleZonePointerDown = (event, zone) => {
+        if (!editZones) return;
+        event.stopPropagation();
+        setSelectedZoneId(zone.id);
+        const startPoint = getBasePointFromEvent(event);
+        if (!startPoint) return;
+        setDraggingZone({
+            zoneId: zone.id,
+            startPoint,
+            startPoints: zone.points.map((pt) => ({ ...pt }))
+        });
+        event.currentTarget.setPointerCapture(event.pointerId);
+    };
+
+    const handleOverlayPointerMove = (event) => {
+        if (!editZones && hoveredZoneId) {
+            const rect = getOverlayRect();
+            if (rect) {
+                setHoverPosition({
+                    x: event.clientX - rect.left,
+                    y: event.clientY - rect.top
+                });
+            }
+        }
+        if (!editZones || (!draggingPoint && !draggingZone)) return;
+        const basePoint = getBasePointFromEvent(event);
+        if (!basePoint) return;
+
+        setZonesByVideo((prev) => {
+            const next = { ...prev };
+            const currentList = next[currentVideoKey]?.zones || [];
+            const updated = currentList.map((zone) => {
+                if (draggingPoint && zone.id === draggingPoint.zoneId) {
+                    const nextPoints = zone.points.map((pt, idx) => {
+                        if (idx !== draggingPoint.pointIndex) return pt;
+                        return {
+                            x: clamp(basePoint.x, 0, BASE_WIDTH),
+                            y: clamp(basePoint.y, 0, BASE_HEIGHT)
+                        };
+                    });
+                    return { ...zone, points: nextPoints };
+                }
+                if (draggingZone && zone.id === draggingZone.zoneId) {
+                    const deltaX = basePoint.x - draggingZone.startPoint.x;
+                    const deltaY = basePoint.y - draggingZone.startPoint.y;
+                    const nextPoints = draggingZone.startPoints.map((pt) => ({
+                        x: clamp(pt.x + deltaX, 0, BASE_WIDTH),
+                        y: clamp(pt.y + deltaY, 0, BASE_HEIGHT)
+                    }));
+                    return { ...zone, points: nextPoints };
+                }
+                return zone;
+            });
+            next[currentVideoKey] = { zones: updated };
+            return next;
+        });
+    };
+
+    const handleOverlayPointerUp = (event) => {
+        if (!editZones || (!draggingPoint && !draggingZone)) return;
+        setDraggingPoint(null);
+        setDraggingZone(null);
+        try {
+            event.target.releasePointerCapture?.(event.pointerId);
+        } catch {
+            // Ignore if pointer capture isn't set on this target
+        }
+    };
+
+    const addZone = () => {
+        const nextId = currentZones.length > 0 ? Math.max(...currentZones.map((z) => z.id)) + 1 : 1;
+        const newZone = {
+            id: nextId,
+            label: `Zone ${nextId}`,
+            points: []
+        };
+        setZonesByVideo((prev) => {
+            const next = { ...prev };
+            const currentList = next[currentVideoKey]?.zones || [];
+            next[currentVideoKey] = { zones: [...currentList, newZone] };
+            return next;
+        });
+        setSelectedZoneId(nextId);
+    };
+
+    const deleteSelectedZone = () => {
+        if (selectedZoneId == null) return;
+        setZonesByVideo((prev) => {
+            const next = { ...prev };
+            const currentList = next[currentVideoKey]?.zones || [];
+            next[currentVideoKey] = { zones: currentList.filter((zone) => zone.id !== selectedZoneId) };
+            return next;
+        });
+        setSelectedZoneId(null);
+    };
+
+    const logZones = () => {
+        console.log("[VideoPlayer] zones:", {
+            baseWidth: BASE_WIDTH,
+            baseHeight: BASE_HEIGHT,
+            videos: zonesByVideo
+        });
+    };
+
+    const handleImportZones = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const parsed = JSON.parse(reader.result);
+                const raw = parsed?.videos || {};
+                const normalized = {};
+                Object.keys(raw).forEach((key) => {
+                    const zones = (raw[key]?.zones || []).map((zone) => ({
+                        ...zone,
+                        visible: zone.visible !== false
+                    }));
+                    normalized[key] = { zones };
+                });
+                setZonesByVideo(normalized);
+                setSelectedZoneId(null);
+                setHoveredZoneId(null);
+            } catch (err) {
+                console.error("[VideoPlayer] Failed to import zones:", err);
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    const downloadZones = () => {
+        const payload = {
+            baseWidth: BASE_WIDTH,
+            baseHeight: BASE_HEIGHT,
+            videos: zonesByVideo
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "zones.json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
 
     // --- STYLES (Matching Navbar) ---
     // The "Glass" container
@@ -451,14 +788,34 @@ export default function VideoPlayer({ videos = [] }) {
     // Dividers
     const separator = "w-[1px] h-5 bg-[#fcd34d]/40";
 
+    // Subtle parallax scroll effect for video container (only when not in fullscreen)
+    // This ensures video controls and interactions remain unchanged
+    const { scrollYProgress } = useScroll({
+        offset: ["start start", "end start"]
+    });
+    
+    // Very subtle parallax - only apply when not in mobile fullscreen to preserve all interactions
+    const y = useTransform(scrollYProgress, [0, 1], ["0%", isMobileFullscreen ? "0%" : "15%"]);
+    const opacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 1, isMobileFullscreen ? 1 : 0.95]);
+    const scale = useTransform(scrollYProgress, [0, 1], [1, isMobileFullscreen ? 1 : 1.02]);
+
     return (
-        <div 
+        <div className="w-full bg-black">
+        <motion.div 
             ref={videoContainerRef}
+            style={{ 
+                y: isMobileFullscreen ? 0 : y, 
+                opacity: isMobileFullscreen ? 1 : opacity, 
+                scale: isMobileFullscreen ? 1 : scale 
+            }}
             className={`relative w-full bg-black overflow-hidden select-none font-sans ${
                 isMobile && !isMobileFullscreen ? 'h-[60vh] md:h-screen' : 'h-screen'
             }`}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
         >
-          
+
             {/* Mobile overlay button - shown only on mobile when not in fullscreen */}
             {isMobile && !isMobileFullscreen && (
                 <div 
@@ -472,6 +829,17 @@ export default function VideoPlayer({ videos = [] }) {
                         <p className="text-white text-lg md:text-xl font-semibold">Show Project full screen</p>
                         
                         <p className="text-white/80 text-sm mt-2">Tap to view in fullscreen</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Swipe Hint Indicator - shown on mobile (hides after first swipe) */}
+            {isMobile && showSwipeHint && (
+                <div className="absolute bottom-24 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/30 animate-pulse shadow-lg">
+                        <ChevronLeft className="w-4 h-4 text-white animate-pulse" />
+                        <span className="text-xs font-bold text-white tracking-wider uppercase">Swipe to navigate</span>
+                        <ChevronRight className="w-4 h-4 text-white animate-pulse" />
                     </div>
                 </div>
             )}
@@ -492,23 +860,143 @@ export default function VideoPlayer({ videos = [] }) {
             <div 
                 className="absolute inset-0 w-full h-full bg-black overflow-hidden"
             >
+                {/* Primary video layer - brightness filter removed */}
                 <video 
                     ref={v0} 
-                    className="absolute inset-0 w-full h-full object-cover opacity-100" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-100"
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
                     preload="auto"
                 />
+                {/* Secondary video layer for transitions - brightness filter removed */}
                 <video 
                     ref={v1} 
-                    className="absolute inset-0 w-full h-full object-cover opacity-0" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-0"
                     playsInline 
                     muted={!isInterior} 
                     autoPlay 
                     preload="auto"
                 />
             </div>
+
+            {showHouseHotspots && (
+                <div
+                    ref={hotspotOverlayRef}
+                    className={`absolute inset-0 z-30 ${editZones ? "cursor-crosshair" : ""}`}
+                    onClick={handleOverlayClick}
+                    onPointerMove={handleOverlayPointerMove}
+                    onPointerUp={handleOverlayPointerUp}
+                >
+                    <svg
+                        className="absolute inset-0 w-full h-full"
+                        viewBox={`0 0 ${BASE_WIDTH} ${BASE_HEIGHT}`}
+                        preserveAspectRatio="none"
+                    >
+                        {currentZones.map((zone) => {
+                            const isSelected = zone.id === selectedZoneId;
+                            const isHovered = zone.id === hoveredZoneId;
+                            const showHoverOnly = !editZones;
+                            const pointList = zone.points.map((pt) => `${pt.x},${pt.y}`).join(" ");
+                            if (zone.visible === false) {
+                                return null;
+                            }
+                            return (
+                                <g key={zone.id}>
+                                    {zone.points.length >= 3 ? (
+                                        <polygon
+                                            points={pointList}
+                                            pointerEvents={showHoverOnly ? "all" : "visiblePainted"}
+                                            fill={
+                                                showHoverOnly
+                                                    ? isHovered
+                                                        ? "rgba(30,64,175,0.35)"
+                                                        : "rgba(16,185,129,0)"
+                                                    : isSelected
+                                                        ? "rgba(139,92,246,0.28)"
+                                                        : isHovered
+                                                            ? "rgba(30,64,175,0.35)"
+                                                            : "rgba(16,185,129,0.12)"
+                                            }
+                                            stroke={
+                                                showHoverOnly
+                                                    ? isHovered
+                                                        ? "rgba(30,64,175,0.9)"
+                                                        : "rgba(16,185,129,0)"
+                                                    : isSelected
+                                                        ? "rgba(139,92,246,0.95)"
+                                                        : isHovered
+                                                            ? "rgba(30,64,175,0.9)"
+                                                            : "rgba(16,185,129,0.5)"
+                                            }
+                                            strokeWidth={isSelected || isHovered ? 4 : 2}
+                                            onPointerDown={(event) => handleZonePointerDown(event, zone)}
+                                        onPointerEnter={() => setHoveredZoneId(zone.id)}
+                                        onPointerLeave={() => setHoveredZoneId(null)}
+                                        />
+                                    ) : (
+                                        <polyline
+                                            points={pointList}
+                                            fill="none"
+                                            pointerEvents={showHoverOnly ? "all" : "visiblePainted"}
+                                            stroke={
+                                                showHoverOnly
+                                                    ? isHovered
+                                                        ? "rgba(30,64,175,0.9)"
+                                                        : "rgba(16,185,129,0)"
+                                                    : isSelected
+                                                        ? "rgba(139,92,246,0.95)"
+                                                        : isHovered
+                                                            ? "rgba(30,64,175,0.9)"
+                                                            : "rgba(16,185,129,0.5)"
+                                            }
+                                            strokeWidth={isSelected || isHovered ? 4 : 2}
+                                            pointerEvents="stroke"
+                                            onPointerDown={(event) => handleZonePointerDown(event, zone)}
+                                            onPointerEnter={() => setHoveredZoneId(zone.id)}
+                                            onPointerLeave={() => setHoveredZoneId(null)}
+                                        />
+                                    )}
+                                    {editZones && isSelected &&
+                                        zone.points.map((pt, idx) => (
+                                            <circle
+                                                key={`${zone.id}-${idx}`}
+                                                cx={pt.x}
+                                                cy={pt.y}
+                                                r={3}
+                                                fill={isSelected ? "#8b5cf6" : "#10b981"}
+                                                stroke={isSelected ? "#4c1d95" : "#064e3b"}
+                                                strokeWidth={2}
+                                                onPointerDown={(event) => handlePointPointerDown(event, zone.id, idx)}
+                                            />
+                                        ))}
+                                </g>
+                            );
+                        })}
+                    </svg>
+
+                    {!editZones && hoveredZone && hoveredZone.label && hoverPosition && (
+                        <div
+                            className="absolute z-40 pointer-events-none"
+                            style={{
+                                left: hoverPosition.x + 12,
+                                top: hoverPosition.y + 12
+                            }}
+                        >
+                            <div className="rounded-xl border border-white/20 bg-slate-900/90 px-3 py-2 text-[12px] text-white shadow-lg backdrop-blur">
+                                <div className="text-[10px] uppercase tracking-widest text-white/60">Maison</div>
+                                <div className="font-semibold">{hoveredZone.label}</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {editZones && (
+                        <div className="absolute top-4 right-4 z-40 rounded-2xl bg-black/60 text-white text-[11px] px-3 py-2 border border-white/10">
+                            Zones editor visible below
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* --- BUFFERING INDICATOR --- */}
             {isBuffering && (
@@ -528,8 +1016,8 @@ export default function VideoPlayer({ videos = [] }) {
                 </div>
             )}
 
-            {/* --- CONTROLS --- (hidden on mobile when not in fullscreen) */}
-            {(!isMobile || isMobileFullscreen) && (
+            {/* --- CONTROLS --- (hidden on mobile, only shown on desktop) */}
+            {!isMobile && (
             <div className="absolute bottom-4 md:bottom-8 left-0 right-0 z-50 flex justify-center px-4">
                 <div className="flex flex-wrap items-center justify-center gap-3">
 
@@ -597,6 +1085,143 @@ export default function VideoPlayer({ videos = [] }) {
                 </div>
             </div>
             )}
+        </motion.div>
+        {showHouseHotspots && showZoneToolbar && (
+            <div className="w-full bg-slate-900 text-white border-t border-white/10">
+                <div className="px-4 py-3 flex flex-wrap items-center gap-2">
+                <button
+                    type="button"
+                    onClick={() => setEditZones((v) => !v)}
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                >
+                    {editZones ? "Stop Edit" : "Edit Zones"}
+                </button>
+                <button
+                    type="button"
+                    onClick={addZone}
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                >
+                    Add Zone
+                </button>
+                <button
+                    type="button"
+                    onClick={deleteSelectedZone}
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-red-600/90 text-white border border-red-400 hover:bg-red-500"
+                >
+                    Delete Zone
+                </button>
+                <button
+                    type="button"
+                    onClick={logZones}
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-600/90 text-white border border-emerald-400 hover:bg-emerald-500"
+                >
+                    Log Zones
+                </button>
+                <button
+                    type="button"
+                    onClick={downloadZones}
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-blue-700/90 text-white border border-blue-500 hover:bg-blue-600"
+                >
+                    Save JSON
+                </button>
+                <button
+                    type="button"
+                    onClick={() => importInputRef.current?.click()}
+                    className="zone-editor-button px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                >
+                    Import JSON
+                </button>
+                <input
+                    ref={importInputRef}
+                    type="file"
+                    accept="application/json"
+                    onChange={handleImportZones}
+                    className="hidden"
+                />
+                <span className="text-[11px] text-white/70 ml-auto">
+                    Selected: {selectedZoneId ?? "none"} | Click in video to add points
+                </span>
+            </div>
+                {editZones && (
+                    <div className="px-4 pb-4">
+                        <div className="max-h-[260px] overflow-auto rounded-xl bg-black/50 text-white text-[11px] px-3 py-2 border border-white/10">
+                            <div className="font-bold tracking-wider mb-2">Zones (px @ 1920x1080)</div>
+                            {currentZones.map((zone) => (
+                                <div
+                                    key={zone.id}
+                                    className={`font-mono mb-2 rounded-lg px-2 py-1 ${selectedZoneId === zone.id ? "bg-violet-900/40 border border-violet-400/50" : ""}`}
+                                    onClick={() => setSelectedZoneId(zone.id)}
+                                >
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setZonesByVideo((prev) => {
+                                                    const next = { ...prev };
+                                                    const currentList = next[currentVideoKey]?.zones || [];
+                                                    const updated = currentList.map((z) =>
+                                                        z.id === zone.id ? { ...z, visible: !z.visible } : z
+                                                    );
+                                                    next[currentVideoKey] = { zones: updated };
+                                                    return next;
+                                                });
+                                            }}
+                                            className="zone-editor-button w-6 h-6 rounded bg-white/10 border border-white/10 text-[10px] flex items-center justify-center"
+                                            title={zone.visible === false ? "Show zone" : "Hide zone"}
+                                        >
+                                            {zone.visible === false ? "H" : "V"}
+                                        </button>
+                                        <span>ID: {zone.id}</span>
+                                        <input
+                                            value={zone.label || ""}
+                                            onChange={(event) => {
+                                                const nextLabel = event.target.value;
+                                                setZonesByVideo((prev) => {
+                                                    const next = { ...prev };
+                                                    const currentList = next[currentVideoKey]?.zones || [];
+                                                    const updated = currentList.map((z) =>
+                                                        z.id === zone.id ? { ...z, label: nextLabel } : z
+                                                    );
+                                                    next[currentVideoKey] = { zones: updated };
+                                                    return next;
+                                                });
+                                            }}
+                                            className="bg-white/10 border border-white/10 rounded px-2 py-0.5 text-[11px] text-white w-32"
+                                            placeholder="Label"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setZonesByVideo((prev) => {
+                                                    const next = { ...prev };
+                                                    const currentList = next[currentVideoKey]?.zones || [];
+                                                    next[currentVideoKey] = {
+                                                        zones: currentList.filter((z) => z.id !== zone.id)
+                                                    };
+                                                    return next;
+                                                });
+                                                if (selectedZoneId === zone.id) {
+                                                    setSelectedZoneId(null);
+                                                }
+                                            }}
+                                            className="zone-editor-button w-6 h-6 rounded bg-red-600/80 border border-red-400 text-[10px] flex items-center justify-center"
+                                            title="Delete zone"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                    {zone.points.map((pt, idx) => (
+                                        <div key={`${zone.id}-pt-${idx}`}>
+                                            {idx + 1}: x={pt.x} y={pt.y}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        )}
         </div>
     );
 }

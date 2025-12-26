@@ -2,6 +2,8 @@ import React, { useRef, useState, useEffect } from "react";
 import emailjs from "emailjs-com";
 import { Mail, Phone, MapPin, ArrowRight, Copy, Check } from "lucide-react";
 import { Toaster, toast } from "sonner";
+import ScrollReveal, { StaggerContainer } from "./ScrollReveal";
+import { BuildingShapes } from "./Architectural3D";
 
 export default function Contact() {
     const formRef = useRef();
@@ -114,6 +116,8 @@ export default function Contact() {
 
     return (
         <section id="contact" className="relative py-12 md:py-16 lg:py-24 bg-white overflow-hidden">
+            {/* Architectural 3D Background Elements */}
+            <BuildingShapes />
 
             {/* --- Embedded Styles --- */}
             <style>{`
@@ -161,21 +165,25 @@ export default function Contact() {
 
                 {/* --- Header --- */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 md:mb-16 lg:mb-20 gap-6 md:gap-8">
-                    <div className="space-y-3 md:space-y-4">
-                        <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
-                            04 — Inquiries
-                        </span>
-                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
-                            Get in <span className="font-bold">Touch</span>
-                        </h2>
-                    </div>
-                    <div className="hidden md:block h-px w-full max-w-xs bg-gray-200 mb-2"></div>
+                    <ScrollReveal direction="right" delay={0.1}>
+                        <div className="space-y-3 md:space-y-4">
+                            <span className="text-bronze text-xs md:text-sm font-bold tracking-[0.2em] uppercase">
+                                04 — Inquiries
+                            </span>
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
+                                Get in <span className="font-bold">Touch</span>
+                            </h2>
+                        </div>
+                    </ScrollReveal>
+                    <ScrollReveal direction="left" delay={0.2}>
+                        <div className="hidden md:block h-px w-full max-w-xs bg-gray-200 mb-2"></div>
+                    </ScrollReveal>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 md:gap-12 lg:gap-16 xl:gap-24">
 
                     {/* --- Left: Architectural Form --- */}
-                    <div className="lg:col-span-7">
+                    <ScrollReveal direction="right" delay={0.2} className="lg:col-span-7">
                         <form ref={formRef} onSubmit={sendEmail} className="space-y-8 md:space-y-10 lg:space-y-12" noValidate>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-10">
@@ -238,10 +246,10 @@ export default function Contact() {
                             </div>
 
                         </form>
-                    </div>
+                    </ScrollReveal>
 
                     {/* --- Right: Contact Info (Spec Sheet Style) --- */}
-                    <div className="lg:col-span-5 space-y-8 md:space-y-10 lg:space-y-12">
+                    <ScrollReveal direction="left" delay={0.3} className="lg:col-span-5 space-y-8 md:space-y-10 lg:space-y-12">
 
                         <div className="bg-gray-50 p-6 md:p-8 lg:p-10 border border-gray-100">
                             <h3 className="text-xl font-light text-gray-900 mb-8">
@@ -301,7 +309,7 @@ export default function Contact() {
                             </div>
                         </div>
 
-                    </div>
+                    </ScrollReveal>
 
                 </div>
             </div>

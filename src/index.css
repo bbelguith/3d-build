@@ -3,3 +3,7 @@
 html {
     scroll-behavior: smooth;
 }
+
+body.edit-zones button:not(.zone-editor-button) {
+    display: none;
+}
