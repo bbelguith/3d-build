@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import zonesData from "../data/zones.json";
+import zonesData from "../data/final_zones.json";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
     ChevronLeft,
@@ -64,7 +64,7 @@ export default function VideoPlayer({ videos = [] }) {
         return normalized;
     });
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-    const showZoneToolbar = true;
+    const showZoneToolbar = false;
 
     const clearBufferingTimeout = () => {
         if (bufferingTimeoutRef.current) {
