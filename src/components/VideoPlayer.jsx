@@ -56,6 +56,7 @@ export default function VideoPlayer({ videos = [] }) {
     const popupHideTimeoutRef = useRef(null);
     const [videoCurrentTime, setVideoCurrentTime] = useState(0);
     const [videoDuration, setVideoDuration] = useState(0);
+    const [showMobileIndicator, setShowMobileIndicator] = useState(false);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
@@ -129,6 +130,25 @@ export default function VideoPlayer({ videos = [] }) {
 
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+    
+    // Show indicator when video reaches end on mobile
+    useEffect(() => {
+        if (isMobile && currentZones.length > 0 && isVideoAtEnd && !editZones) {
+            const indicatorDismissed = localStorage.getItem('mobileZoneIndicatorDismissed');
+            if (!indicatorDismissed) {
+                setShowMobileIndicator(true);
+            } else {
+                setShowMobileIndicator(false);
+            }
+        } else {
+            setShowMobileIndicator(false);
+        }
+    }, [isMobile, currentZones.length, isVideoAtEnd, editZones, currentVideoKey]);
+    
+    const handleDismissIndicator = () => {
+        setShowMobileIndicator(false);
+        localStorage.setItem('mobileZoneIndicatorDismissed', 'true');
+    };
 
     // Helper function to preload a video
     const preloadVideo = (videoSrc, index) => {
@@ -1129,9 +1149,7 @@ export default function VideoPlayer({ videos = [] }) {
                                                 showHoverOnly || isMobile
                                                     ? isHovered
                                                         ? "rgba(30,64,175,0.35)"
-                                                        : isMobile
-                                                            ? "rgba(16,185,129,0.15)"
-                                                            : "rgba(16,185,129,0)"
+                                                        : "rgba(16,185,129,0)"
                                                     : isSelected
                                                         ? "rgba(139,92,246,0.28)"
                                                         : isHovered
@@ -1139,7 +1157,7 @@ export default function VideoPlayer({ videos = [] }) {
                                                             : "rgba(16,185,129,0.12)"
                                             }
                                             stroke={
-                                                showHoverOnly
+                                                showHoverOnly || isMobile
                                                     ? isHovered
                                                         ? "rgba(30,64,175,0.9)"
                                                         : "rgba(16,185,129,0)"
@@ -1174,9 +1192,7 @@ export default function VideoPlayer({ videos = [] }) {
                                                 showHoverOnly || isMobile
                                                     ? isHovered
                                                         ? "rgba(30,64,175,0.9)"
-                                                        : isMobile
-                                                            ? "rgba(16,185,129,0.6)"
-                                                            : "rgba(16,185,129,0)"
+                                                        : "rgba(16,185,129,0)"
                                                     : isSelected
                                                         ? "rgba(139,92,246,0.95)"
                                                         : isHovered
@@ -1322,6 +1338,35 @@ export default function VideoPlayer({ videos = [] }) {
                         <div className="absolute top-4 right-4 z-40 rounded-2xl bg-black/60 text-white text-[11px] px-3 py-2 border border-white/10">
                             Zones editor visible below
                         </div>
+                    )}
+                    
+                    {/* Mobile Indicator - Click to see house details */}
+                    {isMobile && showMobileIndicator && !editZones && isVideoAtEnd && currentZones.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 pointer-events-auto"
+                        >
+                            <div className="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-[#fcd34d]/30 rounded-2xl shadow-2xl px-4 py-3 max-w-[90vw] mx-auto">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-1">
+                                        <p className="text-white text-sm font-semibold mb-1">
+                                            Click a house to see more details
+                                        </p>
+                                        <p className="text-white/70 text-xs">
+                                            Tap on any house area to view floor plans
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleDismissIndicator}
+                                        className="px-4 py-2 bg-[#fcd34d] text-slate-900 font-bold text-xs rounded-lg hover:bg-[#fbbf24] transition-colors whitespace-nowrap"
+                                    >
+                                        OK
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
                     )}
                 </div>
             )}
