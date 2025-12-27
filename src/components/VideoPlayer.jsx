@@ -217,9 +217,18 @@ export default function VideoPlayer({ videos = [] }) {
         if (!activeVideo) return;
 
         const updateTime = () => {
-            if (activeVideo) {
-                setVideoCurrentTime(activeVideo.currentTime || 0);
-                setVideoDuration(activeVideo.duration || 0);
+            try {
+                if (activeVideo && !activeVideo.ended) {
+                    const currentTime = activeVideo.currentTime || 0;
+                    const duration = activeVideo.duration || 0;
+                    if (duration > 0) {
+                        setVideoCurrentTime(currentTime);
+                        setVideoDuration(duration);
+                    }
+                }
+            } catch (error) {
+                // Silently handle any errors in time tracking
+                console.warn('[VideoPlayer] Error updating video time:', error);
             }
         };
 
@@ -227,12 +236,26 @@ export default function VideoPlayer({ videos = [] }) {
         activeVideo.addEventListener('timeupdate', updateTime);
         // Update on loadedmetadata to get duration
         activeVideo.addEventListener('loadedmetadata', updateTime);
+        // Update on ended to reset time
+        const handleEnded = () => {
+            try {
+                if (activeVideo.duration) {
+                    setVideoCurrentTime(activeVideo.duration);
+                    setVideoDuration(activeVideo.duration);
+                }
+            } catch (error) {
+                console.warn('[VideoPlayer] Error handling video end:', error);
+            }
+        };
+        activeVideo.addEventListener('ended', handleEnded);
+        
         // Initial update
         updateTime();
 
         return () => {
             activeVideo.removeEventListener('timeupdate', updateTime);
             activeVideo.removeEventListener('loadedmetadata', updateTime);
+            activeVideo.removeEventListener('ended', handleEnded);
         };
     }, [activeLayer, current, isInitialized]);
 
