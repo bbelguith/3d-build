@@ -619,6 +619,52 @@ export default function VideoPlayer({ videos = [] }) {
     const planImage = houseType ? planImages[houseType]?.[0] : null;
     const planPath = houseType === "a" ? "/plan" : houseType === "b" ? "/planb" : null;
     
+    // Get house ID from zone label (e.g., "VP 1" -> find house with number "VP 1")
+    const getHouseIdFromLabel = (label) => {
+        if (!label) return null;
+        // Import houses data - we'll need to fetch this or pass it as prop
+        // For now, parse the label to extract house number and match with houses
+        // This is a simplified approach - in production, you might want to fetch from API
+        const match = label.match(/(VP|VT)\s*(\d+)/i);
+        if (!match) return null;
+        const prefix = match[1].toUpperCase();
+        const number = parseInt(match[2]);
+        // VP houses have id 1-22, VT houses have id 23-109
+        if (prefix === "VP") {
+            return number >= 1 && number <= 22 ? number : null;
+        } else if (prefix === "VT") {
+            return number >= 1 && number <= 87 ? (22 + number) : null;
+        }
+        return null;
+    };
+    
+    const houseId = hoveredZone ? getHouseIdFromLabel(hoveredZone.label) : null;
+    
+    // Handle interior video play
+    const handleInteriorVideo = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        // Close popup
+        setIsPopupHovered(false);
+        setHoveredZoneId(null);
+        // Play interior video - using the first video as interior
+        // Note: If you have a specific interior video, replace videos[0] with that video
+        if (videos.length > 0 && videos[0]) {
+            playVideo(videos[0].src, 0, false, true);
+        }
+    };
+    
+    // Handle inquiry button
+    const handleInquiry = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (houseId) {
+            setIsPopupHovered(false);
+            setHoveredZoneId(null);
+            navigate(`/house/${houseId}`);
+        }
+    };
+    
     const handlePlanClick = (e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -1304,52 +1350,50 @@ export default function VideoPlayer({ videos = [] }) {
                                     {/* Decorative gradient overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-br from-[#fcd34d]/10 via-transparent to-[#f97316]/10 pointer-events-none"></div>
                                     
-                                    {/* Plan Image Section - Clickable */}
-                                    {planImage && (
-                                        <div 
-                                            onClick={handlePlanClick}
-                                            className="relative w-full bg-slate-800/50 cursor-pointer group overflow-hidden flex items-center justify-center"
-                                            style={{ height: '190px', minHeight: '190px' }}
-                                        >
-                                            <img 
-                                                src={planImage} 
-                                                alt="Floor Plan"
-                                                className="max-w-full max-h-full object-contain transition-transform duration-300"
-                                                style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }}
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                <span className="bg-[#fcd34d]/90 text-slate-900 text-[13px] font-bold px-4 py-1.5 rounded-full border border-[#fcd34d] tracking-wider uppercase">
-                                                    View Plan
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    
                                     {/* Content container */}
                                     <div className="relative px-7 py-5 min-w-[260px]">
-                                        {/* Header section */}
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-[#fcd34d] animate-pulse"></div>
-                                            <div className="text-[13px] uppercase tracking-widest text-[#fcd34d]/80 font-bold">
-                                                Maison
-                                            </div>
-                                        </div>
-                                        
-                                        {/* House label/name */}
-                                        <div className="text-xl font-bold text-white mb-2 tracking-tight">
+                                        {/* House Title - at the top */}
+                                        <div className="text-xl font-bold text-white mb-4 tracking-tight">
                                             {hoveredZone.label}
                                         </div>
                                         
-                                        {/* Additional info section */}
-                                        <div className="mt-4 pt-4 border-t border-white/10">
-                                            <div className="text-sm text-white/70">
-                                                {planImage && (
-                                                    <div className="text-[#fcd34d]/80 font-medium">
-                                                        Click house to view details
-                                                    </div>
-                                                )}
+                                        {/* Plan Image Section - Below title */}
+                                        {planImage && (
+                                            <div 
+                                                onClick={handlePlanClick}
+                                                className="relative w-full bg-slate-800/50 cursor-pointer group overflow-hidden flex items-center justify-center mb-4 rounded-lg"
+                                                style={{ height: '190px', minHeight: '190px' }}
+                                            >
+                                                <img 
+                                                    src={planImage} 
+                                                    alt="Floor Plan"
+                                                    className="max-w-full max-h-full object-contain transition-transform duration-300"
+                                                    style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }}
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
                                             </div>
+                                        )}
+                                        
+                                        {/* Buttons Section */}
+                                        <div className="space-y-3">
+                                            {/* See Interior Button */}
+                                            <button
+                                                onClick={handleInteriorVideo}
+                                                className="w-full px-4 py-3 bg-gradient-to-r from-[#fcd34d] to-[#f97316] text-slate-900 font-bold text-sm rounded-lg hover:from-[#fbbf24] hover:to-[#fb923c] transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                                            >
+                                                <Play className="w-4 h-4" fill="currentColor" />
+                                                See Interior
+                                            </button>
+                                            
+                                            {/* Make a Request Button */}
+                                            {houseId && (
+                                                <button
+                                                    onClick={handleInquiry}
+                                                    className="w-full px-4 py-3 bg-slate-800 border-2 border-[#fcd34d]/50 text-[#fcd34d] font-bold text-sm rounded-lg hover:bg-slate-700 hover:border-[#fcd34d] transition-all duration-200 flex items-center justify-center gap-2"
+                                                >
+                                                    Make a Request
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                     
