@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import zonesData from "../data/final_zones.json";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
@@ -12,23 +11,6 @@ import {
 import { detectConnectionQuality, getPreloadStrategy } from "../utils/connectionDetector";
 
 export default function VideoPlayer({ videos = [] }) {
-    const navigate = useNavigate();
-    
-    // Plan images - same as used in Plan pages
-    const planImages = useMemo(() => ({
-        // Type "a" (VP houses) - from Plan.jsx
-        a: [
-            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986525/plan_rdc_villa_isolee_pyote8.png",
-            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986610/plan_terrasse_villa_isolee_riz5mc.png",
-            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986523/WhatsApp_Image_2025-12-17_at_15.49.21_krfpum.jpg"
-        ],
-        // Type "b" (VT houses) - from Planb.jsx
-        b: [
-            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986532/rdc-villabande_pqwwts.png",
-            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986531/1ER-villabande_zze0o3.png",
-            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986533/terrase-villabande_dman5u.png"
-        ]
-    }), []);
     
     // --- STATE & REFS ---
     const [current, setCurrent] = useState(0);
@@ -52,8 +34,6 @@ export default function VideoPlayer({ videos = [] }) {
     const [hoveredZoneId, setHoveredZoneId] = useState(null);
     const [hoverPosition, setHoverPosition] = useState(null);
     const [allowBackgroundPreload, setAllowBackgroundPreload] = useState(false);
-    const [isPopupHovered, setIsPopupHovered] = useState(false);
-    const popupHideTimeoutRef = useRef(null);
     const [videoCurrentTime, setVideoCurrentTime] = useState(0);
     const [videoDuration, setVideoDuration] = useState(0);
 
@@ -217,18 +197,9 @@ export default function VideoPlayer({ videos = [] }) {
         if (!activeVideo) return;
 
         const updateTime = () => {
-            try {
-                if (activeVideo && !activeVideo.ended) {
-                    const currentTime = activeVideo.currentTime || 0;
-                    const duration = activeVideo.duration || 0;
-                    if (duration > 0) {
-                        setVideoCurrentTime(currentTime);
-                        setVideoDuration(duration);
-                    }
-                }
-            } catch (error) {
-                // Silently handle any errors in time tracking
-                console.warn('[VideoPlayer] Error updating video time:', error);
+            if (activeVideo) {
+                setVideoCurrentTime(activeVideo.currentTime || 0);
+                setVideoDuration(activeVideo.duration || 0);
             }
         };
 
@@ -236,26 +207,12 @@ export default function VideoPlayer({ videos = [] }) {
         activeVideo.addEventListener('timeupdate', updateTime);
         // Update on loadedmetadata to get duration
         activeVideo.addEventListener('loadedmetadata', updateTime);
-        // Update on ended to reset time
-        const handleEnded = () => {
-            try {
-                if (activeVideo.duration) {
-                    setVideoCurrentTime(activeVideo.duration);
-                    setVideoDuration(activeVideo.duration);
-                }
-            } catch (error) {
-                console.warn('[VideoPlayer] Error handling video end:', error);
-            }
-        };
-        activeVideo.addEventListener('ended', handleEnded);
-        
         // Initial update
         updateTime();
 
         return () => {
             activeVideo.removeEventListener('timeupdate', updateTime);
             activeVideo.removeEventListener('loadedmetadata', updateTime);
-            activeVideo.removeEventListener('ended', handleEnded);
         };
     }, [activeLayer, current, isInitialized]);
 
@@ -386,16 +343,9 @@ export default function VideoPlayer({ videos = [] }) {
                     setIsInterior(false);
                     playVideo(videos[lastIndex].src, lastIndex, false, false);
                 } else if (index === videos.length - 1) {
-                    // Last video - pause at the end to show zones
                     showEl.pause();
                     if (showEl.duration) {
                         showEl.currentTime = showEl.duration - 0.05;
-                    }
-                } else {
-                    // Not the last video - automatically play next video
-                    const nextIndex = index + 1;
-                    if (nextIndex < videos.length && videos[nextIndex]) {
-                        playVideo(videos[nextIndex].src, nextIndex, false, false);
                     }
                 }
             };
@@ -627,27 +577,6 @@ export default function VideoPlayer({ videos = [] }) {
     const currentZones = zonesByVideo[currentVideoKey]?.zones || [];
     const showHouseHotspots = true;
     const hoveredZone = currentZones.find((zone) => zone.id === hoveredZoneId);
-    
-    // Determine house type from label (VT = type "b", VP = type "a")
-    const getHouseType = (label) => {
-        if (!label) return null;
-        const upperLabel = label.toUpperCase().trim();
-        if (upperLabel.startsWith("VT")) return "b";
-        if (upperLabel.startsWith("VP")) return "a";
-        return null;
-    };
-    
-    // Get plan image and navigation path for hovered zone
-    const houseType = hoveredZone ? getHouseType(hoveredZone.label) : null;
-    const planImage = houseType ? planImages[houseType]?.[0] : null;
-    const planPath = houseType === "a" ? "/plan" : houseType === "b" ? "/planb" : null;
-    
-    const handlePlanClick = (e) => {
-        e.stopPropagation();
-        if (planPath) {
-            navigate(planPath);
-        }
-    };
     
     // Calculate if video is at the end (for zone visibility)
     const isVideoAtEnd = useMemo(() => {
@@ -1043,8 +972,8 @@ export default function VideoPlayer({ videos = [] }) {
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
-                                        onPointerEnter={() => handleZoneEnter(zone.id)}
-                                        onPointerLeave={handleZoneLeave}
+                                        onPointerEnter={() => setHoveredZoneId(zone.id)}
+                                        onPointerLeave={() => setHoveredZoneId(null)}
                                         />
                                     ) : (
                                         <polyline
@@ -1064,8 +993,8 @@ export default function VideoPlayer({ videos = [] }) {
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
-                                            onPointerEnter={() => handleZoneEnter(zone.id)}
-                                            onPointerLeave={handleZoneLeave}
+                                            onPointerEnter={() => setHoveredZoneId(zone.id)}
+                                            onPointerLeave={() => setHoveredZoneId(null)}
                                         />
                                     )}
                                     {editZones && isSelected &&
@@ -1088,14 +1017,12 @@ export default function VideoPlayer({ videos = [] }) {
 
                     {!editZones && hoveredZone && hoveredZone.label && hoverPosition && (
                         <div
-                            className="absolute z-40"
+                            className="absolute z-40 pointer-events-none"
                             style={{
                                 left: hoverPosition.x + 16,
                                 top: hoverPosition.y - 8,
                                 transform: 'translateY(-100%)'
                             }}
-                            onMouseEnter={handlePopupEnter}
-                            onMouseLeave={handlePopupLeave}
                         >
                             {/* Popup Container with modern design */}
                             <motion.div
@@ -1115,26 +1042,6 @@ export default function VideoPlayer({ videos = [] }) {
                                     {/* Decorative gradient overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-br from-[#fcd34d]/10 via-transparent to-[#f97316]/10 pointer-events-none"></div>
                                     
-                                    {/* Plan Image Section - Clickable */}
-                                    {planImage && (
-                                        <div 
-                                            onClick={handlePlanClick}
-                                            className="relative w-full h-32 bg-slate-800/50 cursor-pointer group overflow-hidden"
-                                        >
-                                            <img 
-                                                src={planImage} 
-                                                alt="Floor Plan"
-                                                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                <span className="bg-[#fcd34d]/90 text-slate-900 text-[10px] font-bold px-3 py-1 rounded-full border border-[#fcd34d] tracking-wider uppercase">
-                                                    View Plan
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    
                                     {/* Content container */}
                                     <div className="relative px-5 py-4 min-w-[200px]">
                                         {/* Header section */}
@@ -1150,14 +1057,11 @@ export default function VideoPlayer({ videos = [] }) {
                                             {hoveredZone.label}
                                         </div>
                                         
-                                        {/* Additional info section */}
+                                        {/* Additional info section - ready for customization */}
                                         <div className="mt-3 pt-3 border-t border-white/10">
+                                            {/* Placeholder for additional information */}
                                             <div className="text-xs text-white/70">
-                                                {planImage && (
-                                                    <div className="text-[#fcd34d]/80 font-medium">
-                                                        Click plan to view details
-                                                    </div>
-                                                )}
+                                                {/* Add your custom content here */}
                                             </div>
                                         </div>
                                     </div>
