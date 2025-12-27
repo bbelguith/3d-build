@@ -1247,31 +1247,28 @@ export default function VideoPlayer({ videos = [] }) {
                         <div
                             className="absolute z-40 pointer-events-auto"
                             style={{
-                                left: isMobile 
-                                    ? (() => {
-                                        const popupWidth = Math.min(350, window.innerWidth - 32);
-                                        const leftPos = (hoverPosition?.x || 0) + 16;
-                                        return Math.min(Math.max(leftPos, 16), window.innerWidth - popupWidth - 16);
-                                    })()
-                                    : (() => {
-                                        const popupWidth = 350;
-                                        const leftPos = (hoverPosition?.x || 0) + 16;
-                                        if (leftPos + popupWidth > window.innerWidth - 16) {
-                                            return window.innerWidth - popupWidth - 16;
-                                        }
-                                        return Math.max(leftPos, 16);
-                                    })(),
-                                top: isMobile
-                                    ? Math.max((hoverPosition?.y || 0) - 8, 10)
-                                    : (() => {
-                                        const topPos = (hoverPosition?.y || 0) - 8;
-                                        const popupHeight = 400;
-                                        if (topPos + popupHeight > window.innerHeight - 16) {
-                                            return window.innerHeight - popupHeight - 16;
-                                        }
-                                        return Math.max(topPos, 10);
-                                    })(),
-                                transform: isMobile && (hoverPosition?.y || 0) < 200 ? 'translateY(0)' : 'translateY(-100%)',
+                                left: (() => {
+                                    const rect = getOverlayRect();
+                                    if (!rect || !hoverPosition) return 16;
+                                    const popupWidth = isMobile ? Math.min(350, rect.width - 32) : 350;
+                                    const mouseX = hoverPosition.x;
+                                    let leftPos = mouseX + 16;
+                                    if (leftPos + popupWidth > rect.width - 16) {
+                                        leftPos = mouseX - popupWidth - 16;
+                                    }
+                                    return Math.max(16, Math.min(leftPos, rect.width - popupWidth - 16));
+                                })(),
+                                top: (() => {
+                                    const rect = getOverlayRect();
+                                    if (!rect || !hoverPosition) return 16;
+                                    const popupHeight = 400;
+                                    const mouseY = hoverPosition.y;
+                                    let topPos = mouseY + 16;
+                                    if (topPos + popupHeight > rect.height - 16) {
+                                        topPos = mouseY - popupHeight - 16;
+                                    }
+                                    return Math.max(16, Math.min(topPos, rect.height - popupHeight - 16));
+                                })(),
                                 maxWidth: isMobile ? 'calc(100vw - 32px)' : '350px'
                             }}
                             onMouseEnter={handlePopupEnter}
@@ -1287,9 +1284,9 @@ export default function VideoPlayer({ videos = [] }) {
                                 transition={{ duration: 0.2, ease: "easeOut" }}
                                 className="relative"
                             >
-                                {/* Arrow pointer */}
-                                <div className="absolute bottom-0 left-8 transform translate-y-full">
-                                    <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[10px] border-l-transparent border-r-transparent border-t-[#1e293b]/95"></div>
+                                {/* Arrow pointer - positioned at top pointing up */}
+                                <div className="absolute top-0 left-8 transform -translate-y-full">
+                                    <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-b-[10px] border-l-transparent border-r-transparent border-b-[#1e293b]/95"></div>
                                 </div>
                                 
                                 {/* Main popup card */}
@@ -1349,7 +1346,7 @@ export default function VideoPlayer({ videos = [] }) {
                                             <div className="text-sm text-white/70">
                                                 {planImage && (
                                                     <div className="text-[#fcd34d]/80 font-medium">
-                                                        Click plan to view details
+                                                        Click house to view details
                                                     </div>
                                                 )}
                                             </div>
