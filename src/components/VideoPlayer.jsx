@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import zonesData from "../data/final_zones.json";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
@@ -57,6 +58,7 @@ export default function VideoPlayer({ videos = [] }) {
     const [videoCurrentTime, setVideoCurrentTime] = useState(0);
     const [videoDuration, setVideoDuration] = useState(0);
     const [showMobileIndicator, setShowMobileIndicator] = useState(false);
+    const [houses, setHouses] = useState([]);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
@@ -129,6 +131,20 @@ export default function VideoPlayer({ videos = [] }) {
         setConnectionQuality(quality);
 
         return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+    
+    // Fetch houses data
+    useEffect(() => {
+        const apiBase = import.meta.env.VITE_API_BASE || "";
+        const fetchHouses = async () => {
+            try {
+                const response = await axios.get(`${apiBase}/api/houses`);
+                setHouses(response.data);
+            } catch (error) {
+                console.error("Error fetching houses:", error);
+            }
+        };
+        fetchHouses();
     }, []);
     
     
@@ -640,6 +656,15 @@ export default function VideoPlayer({ videos = [] }) {
     
     const houseId = hoveredZone ? getHouseIdFromLabel(hoveredZone.label) : null;
     
+    // Get house state (actif/inactif)
+    const houseState = useMemo(() => {
+        if (!houseId || !houses.length) return null;
+        const house = houses.find(h => h.id === houseId);
+        return house ? house.state : null;
+    }, [houseId, houses]);
+    
+    const isHouseActive = houseState === "actif";
+    
     // Handle interior video play
     const handleInteriorVideo = (e) => {
         e.stopPropagation();
@@ -720,6 +745,17 @@ export default function VideoPlayer({ videos = [] }) {
     const handleZoneClick = (e, zoneId) => {
         if (editZones) return;
         e.stopPropagation();
+        
+        // Check if zone is active
+        const clickedZone = currentZones.find(z => z.id === zoneId);
+        if (clickedZone) {
+            const clickedHouseId = getHouseIdFromLabel(clickedZone.label);
+            const clickedHouse = houses.find(h => h.id === clickedHouseId);
+            if (clickedHouse && clickedHouse.state !== "actif") {
+                return; // Don't show popup for inactive houses
+            }
+        }
+        
         // On mobile, set hovered zone and lock popup immediately
         if (isMobile) {
             setHoveredZoneId(zoneId);
@@ -756,6 +792,17 @@ export default function VideoPlayer({ videos = [] }) {
     const handleZoneTouchStart = (e, zoneId) => {
         if (editZones || !isMobile) return;
         e.stopPropagation();
+        
+        // Check if zone is active
+        const touchedZone = currentZones.find(z => z.id === zoneId);
+        if (touchedZone) {
+            const touchedHouseId = getHouseIdFromLabel(touchedZone.label);
+            const touchedHouse = houses.find(h => h.id === touchedHouseId);
+            if (touchedHouse && touchedHouse.state !== "actif") {
+                return; // Don't show popup for inactive houses
+            }
+        }
+        
         // Set hovered zone and show popup
         setHoveredZoneId(zoneId);
         setIsPopupHovered(true);
@@ -1194,38 +1241,61 @@ export default function VideoPlayer({ videos = [] }) {
                             if (zone.visible === false) {
                                 return null;
                             }
+                            
+                            // Get house state for this zone
+                            const zoneHouseId = getHouseIdFromLabel(zone.label);
+                            const zoneHouse = houses.find(h => h.id === zoneHouseId);
+                            const isZoneActive = zoneHouse ? zoneHouse.state === "actif" : true; // Default to active if not found
+                            
                             return (
                                 <g key={zone.id}>
                                     {zone.points.length >= 3 ? (
                                         <polygon
                                             points={pointList}
                                             pointerEvents={showHoverOnly || isMobile ? "all" : "visiblePainted"}
+                                            style={{ cursor: !isZoneActive ? "not-allowed" : "pointer" }}
                                             fill={
-                                                showHoverOnly || isMobile
-                                                    ? isHovered
-                                                        ? "rgba(30,64,175,0.35)"
-                                                        : "rgba(16,185,129,0)"
-                                                    : isSelected
-                                                        ? "rgba(139,92,246,0.28)"
-                                                        : isHovered
+                                                !isZoneActive && isHovered
+                                                    ? "rgba(220,38,38,0.35)" // Red for inactive
+                                                    : showHoverOnly || isMobile
+                                                        ? isHovered
                                                             ? "rgba(30,64,175,0.35)"
-                                                            : "rgba(16,185,129,0.12)"
+                                                            : "rgba(16,185,129,0)"
+                                                        : isSelected
+                                                            ? "rgba(139,92,246,0.28)"
+                                                            : isHovered
+                                                                ? "rgba(30,64,175,0.35)"
+                                                                : "rgba(16,185,129,0.12)"
                                             }
                                             stroke={
-                                                showHoverOnly || isMobile
-                                                    ? isHovered
-                                                        ? "rgba(30,64,175,0.9)"
-                                                        : "rgba(16,185,129,0)"
-                                                    : isSelected
-                                                        ? "rgba(139,92,246,0.95)"
-                                                        : isHovered
+                                                !isZoneActive && isHovered
+                                                    ? "rgba(220,38,38,0.9)" // Red for inactive
+                                                    : showHoverOnly || isMobile
+                                                        ? isHovered
                                                             ? "rgba(30,64,175,0.9)"
-                                                            : "rgba(16,185,129,0.5)"
+                                                            : "rgba(16,185,129,0)"
+                                                        : isSelected
+                                                            ? "rgba(139,92,246,0.95)"
+                                                            : isHovered
+                                                                ? "rgba(30,64,175,0.9)"
+                                                                : "rgba(16,185,129,0.5)"
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
-                                        onClick={(e) => handleZoneClick(e, zone.id)}
-                                        onTouchStart={(e) => handleZoneTouchStart(e, zone.id)}
+                                        onClick={(e) => {
+                                            if (!isZoneActive) {
+                                                e.stopPropagation();
+                                                return;
+                                            }
+                                            handleZoneClick(e, zone.id);
+                                        }}
+                                        onTouchStart={(e) => {
+                                            if (!isZoneActive) {
+                                                e.stopPropagation();
+                                                return;
+                                            }
+                                            handleZoneTouchStart(e, zone.id);
+                                        }}
                                         onPointerEnter={() => {
                                             if (!isMobile && !isPopupHovered) {
                                                 setHoveredZoneId(zone.id);
@@ -1243,23 +1313,38 @@ export default function VideoPlayer({ videos = [] }) {
                                             points={pointList}
                                             fill="none"
                                             pointerEvents={showHoverOnly || isMobile ? "all" : "visiblePainted"}
+                                            style={{ cursor: !isZoneActive ? "not-allowed" : "pointer" }}
                                             stroke={
-                                                showHoverOnly || isMobile
-                                                    ? isHovered
-                                                        ? "rgba(30,64,175,0.9)"
-                                                        : "rgba(16,185,129,0)"
-                                                    : isSelected
-                                                        ? "rgba(139,92,246,0.95)"
-                                                        : isHovered
+                                                !isZoneActive && isHovered
+                                                    ? "rgba(220,38,38,0.9)" // Red for inactive
+                                                    : showHoverOnly || isMobile
+                                                        ? isHovered
                                                             ? "rgba(30,64,175,0.9)"
-                                                            : "rgba(16,185,129,0.5)"
+                                                            : "rgba(16,185,129,0)"
+                                                        : isSelected
+                                                            ? "rgba(139,92,246,0.95)"
+                                                            : isHovered
+                                                                ? "rgba(30,64,175,0.9)"
+                                                                : "rgba(16,185,129,0.5)"
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
-                                            onClick={(e) => handleZoneClick(e, zone.id)}
-                                            onTouchStart={(e) => handleZoneTouchStart(e, zone.id)}
+                                            onClick={(e) => {
+                                                if (!isZoneActive) {
+                                                    e.stopPropagation();
+                                                    return;
+                                                }
+                                                handleZoneClick(e, zone.id);
+                                            }}
+                                            onTouchStart={(e) => {
+                                                if (!isZoneActive) {
+                                                    e.stopPropagation();
+                                                    return;
+                                                }
+                                                handleZoneTouchStart(e, zone.id);
+                                            }}
                                             onPointerEnter={() => {
-                                                if (!isMobile && !isPopupHovered) {
+                                                if (!isMobile && !isPopupHovered && isZoneActive) {
                                                     setHoveredZoneId(zone.id);
                                                 }
                                             }}
@@ -1289,7 +1374,7 @@ export default function VideoPlayer({ videos = [] }) {
                         })}
                     </svg>
 
-                    {!editZones && hoveredZone && hoveredZone.label && (hoverPosition || isPopupHovered) && (
+                    {!editZones && hoveredZone && hoveredZone.label && (hoverPosition || isPopupHovered) && isHouseActive && (
                         <div
                             className="absolute z-40 pointer-events-auto"
                             style={{
