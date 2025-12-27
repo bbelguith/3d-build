@@ -68,9 +68,8 @@ export default function VideoPlayer({ videos = [] }) {
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
     const showZoneToolbar = false;
     
-    // Zone visibility threshold: show zones in the last 10 seconds or last 20% of video (whichever is longer)
-    const ZONE_END_THRESHOLD_SECONDS = 10; // Show zones in last 10 seconds
-    const ZONE_END_THRESHOLD_PERCENT = 0.2; // Or last 20% of video
+    // Zone visibility threshold: show zones only in the last 0.5 seconds of video
+    const ZONE_END_THRESHOLD_SECONDS = 0.5;
 
     const clearBufferingTimeout = () => {
         if (bufferingTimeoutRef.current) {
@@ -585,9 +584,9 @@ export default function VideoPlayer({ videos = [] }) {
         if (editZones) return true; // Always show zones in edit mode
         
         const timeRemaining = videoDuration - videoCurrentTime;
-        const thresholdSeconds = Math.max(ZONE_END_THRESHOLD_SECONDS, videoDuration * ZONE_END_THRESHOLD_PERCENT);
         
-        return timeRemaining <= thresholdSeconds;
+        // Show zones only in the last 0.5 seconds
+        return timeRemaining <= ZONE_END_THRESHOLD_SECONDS;
     }, [videoCurrentTime, videoDuration, editZones]);
 
     useEffect(() => {
