@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import zonesData from "../data/final_zones.json";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
@@ -11,6 +12,23 @@ import {
 import { detectConnectionQuality, getPreloadStrategy } from "../utils/connectionDetector";
 
 export default function VideoPlayer({ videos = [] }) {
+    const navigate = useNavigate();
+    
+    // Plan images - same as used in Plan pages
+    const planImages = useMemo(() => ({
+        // Type "a" (VP houses) - from Plan.jsx
+        a: [
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986525/plan_rdc_villa_isolee_pyote8.png",
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986610/plan_terrasse_villa_isolee_riz5mc.png",
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986523/WhatsApp_Image_2025-12-17_at_15.49.21_krfpum.jpg"
+        ],
+        // Type "b" (VT houses) - from Planb.jsx
+        b: [
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986532/rdc-villabande_pqwwts.png",
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986531/1ER-villabande_zze0o3.png",
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986533/terrase-villabande_dman5u.png"
+        ]
+    }), []);
     
     // --- STATE & REFS ---
     const [current, setCurrent] = useState(0);
@@ -578,6 +596,27 @@ export default function VideoPlayer({ videos = [] }) {
     const showHouseHotspots = true;
     const hoveredZone = currentZones.find((zone) => zone.id === hoveredZoneId);
     
+    // Determine house type from label (VT = type "b", VP = type "a")
+    const getHouseType = (label) => {
+        if (!label) return null;
+        const upperLabel = label.toUpperCase().trim();
+        if (upperLabel.startsWith("VT")) return "b";
+        if (upperLabel.startsWith("VP")) return "a";
+        return null;
+    };
+    
+    // Get plan image and navigation path for hovered zone
+    const houseType = hoveredZone ? getHouseType(hoveredZone.label) : null;
+    const planImage = houseType ? planImages[houseType]?.[0] : null;
+    const planPath = houseType === "a" ? "/plan" : houseType === "b" ? "/planb" : null;
+    
+    const handlePlanClick = (e) => {
+        e.stopPropagation();
+        if (planPath) {
+            navigate(planPath);
+        }
+    };
+    
     // Calculate if video is at the end (for zone visibility)
     const isVideoAtEnd = useMemo(() => {
         if (!videoDuration || videoDuration === 0) return false;
@@ -1017,7 +1056,7 @@ export default function VideoPlayer({ videos = [] }) {
 
                     {!editZones && hoveredZone && hoveredZone.label && hoverPosition && (
                         <div
-                            className="absolute z-40 pointer-events-none"
+                            className="absolute z-40"
                             style={{
                                 left: hoverPosition.x + 16,
                                 top: hoverPosition.y - 8,
@@ -1042,6 +1081,26 @@ export default function VideoPlayer({ videos = [] }) {
                                     {/* Decorative gradient overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-br from-[#fcd34d]/10 via-transparent to-[#f97316]/10 pointer-events-none"></div>
                                     
+                                    {/* Plan Image Section - Clickable */}
+                                    {planImage && (
+                                        <div 
+                                            onClick={handlePlanClick}
+                                            className="relative w-full h-32 bg-slate-800/50 cursor-pointer group overflow-hidden"
+                                        >
+                                            <img 
+                                                src={planImage} 
+                                                alt="Floor Plan"
+                                                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                <span className="bg-[#fcd34d]/90 text-slate-900 text-[10px] font-bold px-3 py-1 rounded-full border border-[#fcd34d] tracking-wider uppercase">
+                                                    View Plan
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
                                     {/* Content container */}
                                     <div className="relative px-5 py-4 min-w-[200px]">
                                         {/* Header section */}
@@ -1057,11 +1116,14 @@ export default function VideoPlayer({ videos = [] }) {
                                             {hoveredZone.label}
                                         </div>
                                         
-                                        {/* Additional info section - ready for customization */}
+                                        {/* Additional info section */}
                                         <div className="mt-3 pt-3 border-t border-white/10">
-                                            {/* Placeholder for additional information */}
                                             <div className="text-xs text-white/70">
-                                                {/* Add your custom content here */}
+                                                {planImage && (
+                                                    <div className="text-[#fcd34d]/80 font-medium">
+                                                        Click plan to view details
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
