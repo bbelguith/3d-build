@@ -614,6 +614,13 @@ export default function VideoPlayer({ videos = [] }) {
     
     const handlePlanClick = (e) => {
         e.stopPropagation();
+        e.preventDefault();
+        // Lock popup before navigating
+        setIsPopupHovered(true);
+        if (popupHideTimeoutRef.current) {
+            clearTimeout(popupHideTimeoutRef.current);
+            popupHideTimeoutRef.current = null;
+        }
         if (planPath) {
             navigate(planPath);
         }
@@ -629,13 +636,12 @@ export default function VideoPlayer({ videos = [] }) {
     };
     
     const handlePopupLeave = () => {
-        setIsPopupHovered(false);
-        // Delay hiding to allow moving to popup
-        popupHideTimeoutRef.current = setTimeout(() => {
-            if (!isPopupHovered) {
-                setHoveredZoneId(null);
-            }
-        }, 300);
+        // Only unlock if user actually leaves (not just moving mouse)
+        const timeout = setTimeout(() => {
+            setIsPopupHovered(false);
+            setHoveredZoneId(null);
+        }, 500);
+        popupHideTimeoutRef.current = timeout;
     };
     
     const handlePopupClick = (e) => {
@@ -645,6 +651,19 @@ export default function VideoPlayer({ videos = [] }) {
         if (popupHideTimeoutRef.current) {
             clearTimeout(popupHideTimeoutRef.current);
             popupHideTimeoutRef.current = null;
+        }
+    };
+    
+    const handleZoneClick = (e, zoneId) => {
+        if (editZones) return;
+        e.stopPropagation();
+        // Lock popup when clicking on the zone
+        if (hoveredZoneId === zoneId) {
+            setIsPopupHovered(true);
+            if (popupHideTimeoutRef.current) {
+                clearTimeout(popupHideTimeoutRef.current);
+                popupHideTimeoutRef.current = null;
+            }
         }
     };
     
@@ -1052,12 +1071,14 @@ export default function VideoPlayer({ videos = [] }) {
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
+                                        onClick={(e) => handleZoneClick(e, zone.id)}
                                         onPointerEnter={() => {
                                             if (!isPopupHovered) {
                                                 setHoveredZoneId(zone.id);
                                             }
                                         }}
                                         onPointerLeave={() => {
+                                            // Don't hide if popup is locked or if moving to popup
                                             if (!isPopupHovered) {
                                                 setHoveredZoneId(null);
                                             }
@@ -1081,12 +1102,14 @@ export default function VideoPlayer({ videos = [] }) {
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
+                                            onClick={(e) => handleZoneClick(e, zone.id)}
                                             onPointerEnter={() => {
                                                 if (!isPopupHovered) {
                                                     setHoveredZoneId(zone.id);
                                                 }
                                             }}
                                             onPointerLeave={() => {
+                                                // Don't hide if popup is locked or if moving to popup
                                                 if (!isPopupHovered) {
                                                     setHoveredZoneId(null);
                                                 }
@@ -1113,7 +1136,7 @@ export default function VideoPlayer({ videos = [] }) {
 
                     {!editZones && hoveredZone && hoveredZone.label && (hoverPosition || isPopupHovered) && (
                         <div
-                            className="absolute z-40"
+                            className="absolute z-40 pointer-events-auto"
                             style={{
                                 left: (hoverPosition?.x || 0) + 16,
                                 top: (hoverPosition?.y || 0) - 8,
