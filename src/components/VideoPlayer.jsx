@@ -131,19 +131,6 @@ export default function VideoPlayer({ videos = [] }) {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
     
-    // Show indicator when video reaches end on mobile
-    useEffect(() => {
-        if (isMobile && currentZones.length > 0 && isVideoAtEnd && !editZones) {
-            const indicatorDismissed = localStorage.getItem('mobileZoneIndicatorDismissed');
-            if (!indicatorDismissed) {
-                setShowMobileIndicator(true);
-            } else {
-                setShowMobileIndicator(false);
-            }
-        } else {
-            setShowMobileIndicator(false);
-        }
-    }, [isMobile, currentZones.length, isVideoAtEnd, editZones, currentVideoKey]);
     
     const handleDismissIndicator = () => {
         setShowMobileIndicator(false);
@@ -752,6 +739,25 @@ export default function VideoPlayer({ videos = [] }) {
         // Show zones only in the last 0.5 seconds
         return timeRemaining <= ZONE_END_THRESHOLD_SECONDS;
     }, [videoCurrentTime, videoDuration, editZones]);
+    
+    // Show indicator when video reaches end on mobile (must be after currentZones and isVideoAtEnd are defined)
+    useEffect(() => {
+        if (!isMobile || editZones) {
+            setShowMobileIndicator(false);
+            return;
+        }
+        
+        if (currentZones.length > 0 && isVideoAtEnd) {
+            const indicatorDismissed = localStorage.getItem('mobileZoneIndicatorDismissed');
+            if (!indicatorDismissed) {
+                setShowMobileIndicator(true);
+            } else {
+                setShowMobileIndicator(false);
+            }
+        } else {
+            setShowMobileIndicator(false);
+        }
+    }, [isMobile, currentZones, isVideoAtEnd, editZones, currentVideoKey]);
 
     useEffect(() => {
         console.log("[VideoPlayer] current video id:", currentVideoId, "key:", currentVideoKey);
