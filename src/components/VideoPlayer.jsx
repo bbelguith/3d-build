@@ -363,9 +363,16 @@ export default function VideoPlayer({ videos = [] }) {
                     setIsInterior(false);
                     playVideo(videos[lastIndex].src, lastIndex, false, false);
                 } else if (index === videos.length - 1) {
+                    // Last video - pause at the end to show zones
                     showEl.pause();
                     if (showEl.duration) {
                         showEl.currentTime = showEl.duration - 0.05;
+                    }
+                } else {
+                    // Not the last video - automatically play next video
+                    const nextIndex = index + 1;
+                    if (nextIndex < videos.length && videos[nextIndex]) {
+                        playVideo(videos[nextIndex].src, nextIndex, false, false);
                     }
                 }
             };
