@@ -34,6 +34,8 @@ export default function VideoPlayer({ videos = [] }) {
     const [hoveredZoneId, setHoveredZoneId] = useState(null);
     const [hoverPosition, setHoverPosition] = useState(null);
     const [allowBackgroundPreload, setAllowBackgroundPreload] = useState(false);
+    const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+    const [videoDuration, setVideoDuration] = useState(0);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
@@ -65,6 +67,10 @@ export default function VideoPlayer({ videos = [] }) {
     });
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
     const showZoneToolbar = false;
+    
+    // Zone visibility threshold: show zones in the last 10 seconds or last 20% of video (whichever is longer)
+    const ZONE_END_THRESHOLD_SECONDS = 10; // Show zones in last 10 seconds
+    const ZONE_END_THRESHOLD_PERCENT = 0.2; // Or last 20% of video
 
     const clearBufferingTimeout = () => {
         if (bufferingTimeoutRef.current) {
@@ -185,6 +191,31 @@ export default function VideoPlayer({ videos = [] }) {
         }, 2000);
         return () => clearTimeout(timeoutId);
     }, [isInitialized]);
+
+    // Track video time for zone visibility
+    useEffect(() => {
+        const activeVideo = activeLayer === 0 ? v0.current : v1.current;
+        if (!activeVideo) return;
+
+        const updateTime = () => {
+            if (activeVideo) {
+                setVideoCurrentTime(activeVideo.currentTime || 0);
+                setVideoDuration(activeVideo.duration || 0);
+            }
+        };
+
+        // Update on timeupdate event
+        activeVideo.addEventListener('timeupdate', updateTime);
+        // Update on loadedmetadata to get duration
+        activeVideo.addEventListener('loadedmetadata', updateTime);
+        // Initial update
+        updateTime();
+
+        return () => {
+            activeVideo.removeEventListener('timeupdate', updateTime);
+            activeVideo.removeEventListener('loadedmetadata', updateTime);
+        };
+    }, [activeLayer, current, isInitialized]);
 
     // Progressive preloading - only load videos when needed or on fast connections
     useEffect(() => {
@@ -547,6 +578,17 @@ export default function VideoPlayer({ videos = [] }) {
     const currentZones = zonesByVideo[currentVideoKey]?.zones || [];
     const showHouseHotspots = true;
     const hoveredZone = currentZones.find((zone) => zone.id === hoveredZoneId);
+    
+    // Calculate if video is at the end (for zone visibility)
+    const isVideoAtEnd = useMemo(() => {
+        if (!videoDuration || videoDuration === 0) return false;
+        if (editZones) return true; // Always show zones in edit mode
+        
+        const timeRemaining = videoDuration - videoCurrentTime;
+        const thresholdSeconds = Math.max(ZONE_END_THRESHOLD_SECONDS, videoDuration * ZONE_END_THRESHOLD_PERCENT);
+        
+        return timeRemaining <= thresholdSeconds;
+    }, [videoCurrentTime, videoDuration, editZones]);
 
     useEffect(() => {
         console.log("[VideoPlayer] current video id:", currentVideoId, "key:", currentVideoKey);
@@ -880,7 +922,7 @@ export default function VideoPlayer({ videos = [] }) {
                 />
             </div>
 
-            {showHouseHotspots && (
+            {showHouseHotspots && (isVideoAtEnd || editZones) && (
                 <div
                     ref={hotspotOverlayRef}
                     className={`absolute inset-0 z-30 ${editZones ? "cursor-crosshair" : ""}`}
@@ -951,7 +993,6 @@ export default function VideoPlayer({ videos = [] }) {
                                                             : "rgba(16,185,129,0.5)"
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
-                                            pointerEvents="stroke"
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
                                             onPointerEnter={() => setHoveredZoneId(zone.id)}
                                             onPointerLeave={() => setHoveredZoneId(null)}
