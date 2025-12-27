@@ -1076,13 +1076,13 @@ export default function VideoPlayer({ videos = [] }) {
                 </div>
             )}
 
-            {/* Swipe Hint Indicator - always visible on mobile at bottom */}
-            {isMobile && (
-                <div className="absolute bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/30 shadow-lg">
-                        <ChevronLeft className="w-4 h-4 text-white" />
+            {/* Swipe Hint Indicator - shown on mobile (hides after first swipe) */}
+            {isMobile && showSwipeHint && (
+                <div className="absolute bottom-24 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/30 animate-pulse shadow-lg">
+                        <ChevronLeft className="w-4 h-4 text-white animate-pulse" />
                         <span className="text-xs font-bold text-white tracking-wider uppercase">Swipe to navigate</span>
-                        <ChevronRight className="w-4 h-4 text-white" />
+                        <ChevronRight className="w-4 h-4 text-white animate-pulse" />
                     </div>
                 </div>
             )}
@@ -1243,16 +1243,15 @@ export default function VideoPlayer({ videos = [] }) {
                     {!editZones && hoveredZone && hoveredZone.label && (hoverPosition || isPopupHovered) && (
                         <div
                             className="absolute z-40 pointer-events-auto"
-                            style={isMobile ? {
-                                left: '50%',
-                                top: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                maxWidth: '90vw',
-                                width: 'auto'
-                            } : {
-                                left: (hoverPosition?.x || 0) + 16,
-                                top: (hoverPosition?.y || 0) - 8,
-                                transform: 'translateY(-100%)'
+                            style={{
+                                left: isMobile 
+                                    ? Math.min((hoverPosition?.x || 0) + 16, window.innerWidth - 250)
+                                    : (hoverPosition?.x || 0) + 16,
+                                top: isMobile
+                                    ? Math.max((hoverPosition?.y || 0) - 8, 10)
+                                    : (hoverPosition?.y || 0) - 8,
+                                transform: isMobile && (hoverPosition?.y || 0) < 200 ? 'translateY(0)' : 'translateY(-100%)',
+                                maxWidth: isMobile ? '90vw' : 'none'
                             }}
                             onMouseEnter={handlePopupEnter}
                             onMouseLeave={handlePopupLeave}
@@ -1267,12 +1266,10 @@ export default function VideoPlayer({ videos = [] }) {
                                 transition={{ duration: 0.2, ease: "easeOut" }}
                                 className="relative"
                             >
-                                {/* Arrow pointer - only show on desktop */}
-                                {!isMobile && (
-                                    <div className="absolute bottom-0 left-6 transform translate-y-full">
-                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-[#1e293b]/95"></div>
-                                    </div>
-                                )}
+                                {/* Arrow pointer */}
+                                <div className="absolute bottom-0 left-6 transform translate-y-full">
+                                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-[#1e293b]/95"></div>
+                                </div>
                                 
                                 {/* Main popup card */}
                                 <div className="relative rounded-2xl border border-[#fcd34d]/30 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl shadow-2xl overflow-hidden">
@@ -1349,7 +1346,7 @@ export default function VideoPlayer({ videos = [] }) {
                         </div>
                     )}
                     
-                    {/* Mobile Indicator - Click to see house details - Top of screen */}
+                    {/* Mobile Indicator - Click to see house details */}
                     {isMobile && showMobileIndicator && !editZones && isVideoAtEnd && currentZones.length > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: -20 }}
