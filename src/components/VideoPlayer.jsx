@@ -52,6 +52,8 @@ export default function VideoPlayer({ videos = [] }) {
     const [hoveredZoneId, setHoveredZoneId] = useState(null);
     const [hoverPosition, setHoverPosition] = useState(null);
     const [allowBackgroundPreload, setAllowBackgroundPreload] = useState(false);
+    const [isPopupHovered, setIsPopupHovered] = useState(false);
+    const popupHideTimeoutRef = useRef(null);
     const [videoCurrentTime, setVideoCurrentTime] = useState(0);
     const [videoDuration, setVideoDuration] = useState(0);
 
@@ -1011,8 +1013,8 @@ export default function VideoPlayer({ videos = [] }) {
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
-                                        onPointerEnter={() => setHoveredZoneId(zone.id)}
-                                        onPointerLeave={() => setHoveredZoneId(null)}
+                                        onPointerEnter={() => handleZoneEnter(zone.id)}
+                                        onPointerLeave={handleZoneLeave}
                                         />
                                     ) : (
                                         <polyline
@@ -1032,8 +1034,8 @@ export default function VideoPlayer({ videos = [] }) {
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
-                                            onPointerEnter={() => setHoveredZoneId(zone.id)}
-                                            onPointerLeave={() => setHoveredZoneId(null)}
+                                            onPointerEnter={() => handleZoneEnter(zone.id)}
+                                            onPointerLeave={handleZoneLeave}
                                         />
                                     )}
                                     {editZones && isSelected &&
@@ -1062,6 +1064,8 @@ export default function VideoPlayer({ videos = [] }) {
                                 top: hoverPosition.y - 8,
                                 transform: 'translateY(-100%)'
                             }}
+                            onMouseEnter={handlePopupEnter}
+                            onMouseLeave={handlePopupLeave}
                         >
                             {/* Popup Container with modern design */}
                             <motion.div
