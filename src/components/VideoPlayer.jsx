@@ -747,7 +747,9 @@ export default function VideoPlayer({ videos = [] }) {
             return;
         }
         
-        if (currentZones.length > 0 && isVideoAtEnd) {
+        // Check if zones are available and video is at end
+        const hasZones = currentZones && currentZones.length > 0;
+        if (hasZones && isVideoAtEnd) {
             const indicatorDismissed = localStorage.getItem('mobileZoneIndicatorDismissed');
             if (!indicatorDismissed) {
                 setShowMobileIndicator(true);
@@ -758,6 +760,7 @@ export default function VideoPlayer({ videos = [] }) {
             setShowMobileIndicator(false);
         }
     }, [isMobile, currentZones, isVideoAtEnd, editZones, currentVideoKey]);
+    
 
     useEffect(() => {
         console.log("[VideoPlayer] current video id:", currentVideoId, "key:", currentVideoKey);
@@ -1346,35 +1349,38 @@ export default function VideoPlayer({ videos = [] }) {
                         </div>
                     )}
                     
-                    {/* Mobile Indicator - Click to see house details */}
-                    {isMobile && showMobileIndicator && !editZones && isVideoAtEnd && currentZones.length > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 pointer-events-auto"
-                        >
-                            <div className="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-[#fcd34d]/30 rounded-2xl shadow-2xl px-4 py-3 max-w-[90vw] mx-auto">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex-1">
-                                        <p className="text-white text-sm font-semibold mb-1">
-                                            Click a house to see more details
-                                        </p>
-                                        <p className="text-white/70 text-xs">
-                                            Tap on any house area to view floor plans
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={handleDismissIndicator}
-                                        className="px-4 py-2 bg-[#fcd34d] text-slate-900 font-bold text-xs rounded-lg hover:bg-[#fbbf24] transition-colors whitespace-nowrap"
-                                    >
-                                        OK
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
                 </div>
+            )}
+            
+            {/* Mobile Indicator - Click to see house details (outside hotspot overlay for proper z-index) */}
+            {isMobile && showMobileIndicator && !editZones && isVideoAtEnd && currentZones && currentZones.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ duration: 0.3 }}
+                    className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[60] pointer-events-auto w-full px-4"
+                    style={{ maxWidth: '100vw' }}
+                >
+                    <div className="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-[#fcd34d]/30 rounded-2xl shadow-2xl px-4 py-3 max-w-[90vw] mx-auto">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                            <div className="flex-1">
+                                <p className="text-white text-sm font-semibold mb-1">
+                                    Click a house to see more details
+                                </p>
+                                <p className="text-white/70 text-xs">
+                                    Tap on any house area to view floor plans
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleDismissIndicator}
+                                className="px-4 py-2 bg-[#fcd34d] text-slate-900 font-bold text-xs rounded-lg hover:bg-[#fbbf24] active:bg-[#f59e0b] transition-colors whitespace-nowrap w-full sm:w-auto"
+                            >
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
             )}
 
             {/* --- BUFFERING INDICATOR --- */}
