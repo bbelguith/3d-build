@@ -1248,13 +1248,31 @@ export default function VideoPlayer({ videos = [] }) {
                             className="absolute z-40 pointer-events-auto"
                             style={{
                                 left: isMobile 
-                                    ? Math.min(Math.max((hoverPosition?.x || 0) + 16, 16), window.innerWidth - 338)
-                                    : Math.min(Math.max((hoverPosition?.x || 0) + 16, 16), window.innerWidth - 338),
+                                    ? (() => {
+                                        const popupWidth = Math.min(350, window.innerWidth - 32);
+                                        const leftPos = (hoverPosition?.x || 0) + 16;
+                                        return Math.min(Math.max(leftPos, 16), window.innerWidth - popupWidth - 16);
+                                    })()
+                                    : (() => {
+                                        const popupWidth = 350;
+                                        const leftPos = (hoverPosition?.x || 0) + 16;
+                                        if (leftPos + popupWidth > window.innerWidth - 16) {
+                                            return window.innerWidth - popupWidth - 16;
+                                        }
+                                        return Math.max(leftPos, 16);
+                                    })(),
                                 top: isMobile
                                     ? Math.max((hoverPosition?.y || 0) - 8, 10)
-                                    : Math.max((hoverPosition?.y || 0) - 8, 10),
+                                    : (() => {
+                                        const topPos = (hoverPosition?.y || 0) - 8;
+                                        const popupHeight = 400;
+                                        if (topPos + popupHeight > window.innerHeight - 16) {
+                                            return window.innerHeight - popupHeight - 16;
+                                        }
+                                        return Math.max(topPos, 10);
+                                    })(),
                                 transform: isMobile && (hoverPosition?.y || 0) < 200 ? 'translateY(0)' : 'translateY(-100%)',
-                                maxWidth: isMobile ? '90vw' : '338px'
+                                maxWidth: isMobile ? 'calc(100vw - 32px)' : '350px'
                             }}
                             onMouseEnter={handlePopupEnter}
                             onMouseLeave={handlePopupLeave}
@@ -1294,7 +1312,7 @@ export default function VideoPlayer({ videos = [] }) {
                                         <div 
                                             onClick={handlePlanClick}
                                             className="relative w-full bg-slate-800/50 cursor-pointer group overflow-hidden flex items-center justify-center"
-                                            style={{ height: '168px' }}
+                                            style={{ height: '190px', minHeight: '190px' }}
                                         >
                                             <img 
                                                 src={planImage} 
