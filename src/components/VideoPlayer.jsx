@@ -1349,10 +1349,10 @@ export default function VideoPlayer({ videos = [] }) {
                     {/* Mobile Indicator - Click to see house details */}
                     {isMobile && showMobileIndicator && !editZones && isVideoAtEnd && currentZones.length > 0 && (
                         <motion.div
-                            initial={{ opacity: 0, y: -20 }}
+                            initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto"
+                            exit={{ opacity: 0, y: 20 }}
+                            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 pointer-events-auto"
                         >
                             <div className="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-[#fcd34d]/30 rounded-2xl shadow-2xl px-4 py-3 max-w-[90vw] mx-auto">
                                 <div className="flex items-center gap-3">
