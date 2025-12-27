@@ -646,8 +646,18 @@ export default function VideoPlayer({ videos = [] }) {
     
     const handlePopupClick = (e) => {
         e.stopPropagation();
-        // Lock popup when clicked
+        // Lock popup when clicked/tapped
         setIsPopupHovered(true);
+        if (popupHideTimeoutRef.current) {
+            clearTimeout(popupHideTimeoutRef.current);
+            popupHideTimeoutRef.current = null;
+        }
+    };
+    
+    const handleClosePopup = (e) => {
+        e.stopPropagation();
+        setIsPopupHovered(false);
+        setHoveredZoneId(null);
         if (popupHideTimeoutRef.current) {
             clearTimeout(popupHideTimeoutRef.current);
             popupHideTimeoutRef.current = null;
@@ -657,13 +667,58 @@ export default function VideoPlayer({ videos = [] }) {
     const handleZoneClick = (e, zoneId) => {
         if (editZones) return;
         e.stopPropagation();
-        // Lock popup when clicking on the zone
-        if (hoveredZoneId === zoneId) {
+        // On mobile, set hovered zone and lock popup immediately
+        if (isMobile) {
+            setHoveredZoneId(zoneId);
             setIsPopupHovered(true);
+            // Get touch position for popup placement
+            const rect = getOverlayRect();
+            if (rect && e.touches && e.touches[0]) {
+                setHoverPosition({
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                });
+            } else if (rect && e.clientX) {
+                setHoverPosition({
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                });
+            }
             if (popupHideTimeoutRef.current) {
                 clearTimeout(popupHideTimeoutRef.current);
                 popupHideTimeoutRef.current = null;
             }
+        } else {
+            // Desktop: Lock popup when clicking on the zone
+            if (hoveredZoneId === zoneId) {
+                setIsPopupHovered(true);
+                if (popupHideTimeoutRef.current) {
+                    clearTimeout(popupHideTimeoutRef.current);
+                    popupHideTimeoutRef.current = null;
+                }
+            }
+        }
+    };
+    
+    const handleZoneTouchStart = (e, zoneId) => {
+        if (editZones || !isMobile) return;
+        e.stopPropagation();
+        // Set hovered zone and show popup
+        setHoveredZoneId(zoneId);
+        setIsPopupHovered(true);
+        
+        // Get touch position for popup placement
+        const rect = getOverlayRect();
+        if (rect && e.touches && e.touches[0]) {
+            setHoverPosition({
+                x: e.touches[0].clientX - rect.left,
+                y: e.touches[0].clientY - rect.top
+            });
+        }
+        
+        if (popupHideTimeoutRef.current) {
+            clearTimeout(popupHideTimeoutRef.current);
+            popupHideTimeoutRef.current = null;
         }
     };
     
@@ -719,6 +774,16 @@ export default function VideoPlayer({ videos = [] }) {
     };
 
     const handleOverlayClick = (event) => {
+        // On mobile, close popup if clicking outside
+        if (isMobile && !editZones && isPopupHovered) {
+            const targetTag = event.target?.tagName?.toLowerCase();
+            if (targetTag !== "polygon" && targetTag !== "polyline" && targetTag !== "circle" && targetTag !== "svg" && targetTag !== "g") {
+                // Clicked outside zone, close popup
+                handleClosePopup(event);
+                return;
+            }
+        }
+        
         if (!editZones || selectedZoneId == null) return;
         const targetTag = event.target?.tagName?.toLowerCase();
         if (targetTag === "polygon" || targetTag === "polyline" || targetTag === "circle") {
@@ -780,12 +845,24 @@ export default function VideoPlayer({ videos = [] }) {
     };
 
     const handleOverlayPointerMove = (event) => {
-        if (!editZones && hoveredZoneId && !isPopupHovered) {
+        if (!editZones && hoveredZoneId && !isPopupHovered && !isMobile) {
             const rect = getOverlayRect();
             if (rect) {
                 setHoverPosition({
                     x: event.clientX - rect.left,
                     y: event.clientY - rect.top
+                });
+            }
+        }
+    };
+    
+    const handleOverlayTouchMove = (event) => {
+        if (!editZones && hoveredZoneId && isMobile && event.touches && event.touches[0]) {
+            const rect = getOverlayRect();
+            if (rect) {
+                setHoverPosition({
+                    x: event.touches[0].clientX - rect.left,
+                    y: event.touches[0].clientY - rect.top
                 });
             }
         }
@@ -1027,6 +1104,7 @@ export default function VideoPlayer({ videos = [] }) {
                     onClick={handleOverlayClick}
                     onPointerMove={handleOverlayPointerMove}
                     onPointerUp={handleOverlayPointerUp}
+                    onTouchMove={handleOverlayTouchMove}
                 >
                     <svg
                         className="absolute inset-0 w-full h-full"
@@ -1046,12 +1124,14 @@ export default function VideoPlayer({ videos = [] }) {
                                     {zone.points.length >= 3 ? (
                                         <polygon
                                             points={pointList}
-                                            pointerEvents={showHoverOnly ? "all" : "visiblePainted"}
+                                            pointerEvents={showHoverOnly || isMobile ? "all" : "visiblePainted"}
                                             fill={
-                                                showHoverOnly
+                                                showHoverOnly || isMobile
                                                     ? isHovered
                                                         ? "rgba(30,64,175,0.35)"
-                                                        : "rgba(16,185,129,0)"
+                                                        : isMobile
+                                                            ? "rgba(16,185,129,0.15)"
+                                                            : "rgba(16,185,129,0)"
                                                     : isSelected
                                                         ? "rgba(139,92,246,0.28)"
                                                         : isHovered
@@ -1072,14 +1152,15 @@ export default function VideoPlayer({ videos = [] }) {
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
                                         onClick={(e) => handleZoneClick(e, zone.id)}
+                                        onTouchStart={(e) => handleZoneTouchStart(e, zone.id)}
                                         onPointerEnter={() => {
-                                            if (!isPopupHovered) {
+                                            if (!isMobile && !isPopupHovered) {
                                                 setHoveredZoneId(zone.id);
                                             }
                                         }}
                                         onPointerLeave={() => {
-                                            // Don't hide if popup is locked or if moving to popup
-                                            if (!isPopupHovered) {
+                                            // Don't hide on mobile or if popup is locked
+                                            if (!isMobile && !isPopupHovered) {
                                                 setHoveredZoneId(null);
                                             }
                                         }}
@@ -1088,12 +1169,14 @@ export default function VideoPlayer({ videos = [] }) {
                                         <polyline
                                             points={pointList}
                                             fill="none"
-                                            pointerEvents={showHoverOnly ? "all" : "visiblePainted"}
+                                            pointerEvents={showHoverOnly || isMobile ? "all" : "visiblePainted"}
                                             stroke={
-                                                showHoverOnly
+                                                showHoverOnly || isMobile
                                                     ? isHovered
                                                         ? "rgba(30,64,175,0.9)"
-                                                        : "rgba(16,185,129,0)"
+                                                        : isMobile
+                                                            ? "rgba(16,185,129,0.6)"
+                                                            : "rgba(16,185,129,0)"
                                                     : isSelected
                                                         ? "rgba(139,92,246,0.95)"
                                                         : isHovered
@@ -1103,14 +1186,15 @@ export default function VideoPlayer({ videos = [] }) {
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
                                             onClick={(e) => handleZoneClick(e, zone.id)}
+                                            onTouchStart={(e) => handleZoneTouchStart(e, zone.id)}
                                             onPointerEnter={() => {
-                                                if (!isPopupHovered) {
+                                                if (!isMobile && !isPopupHovered) {
                                                     setHoveredZoneId(zone.id);
                                                 }
                                             }}
                                             onPointerLeave={() => {
-                                                // Don't hide if popup is locked or if moving to popup
-                                                if (!isPopupHovered) {
+                                                // Don't hide on mobile or if popup is locked
+                                                if (!isMobile && !isPopupHovered) {
                                                     setHoveredZoneId(null);
                                                 }
                                             }}
@@ -1138,13 +1222,19 @@ export default function VideoPlayer({ videos = [] }) {
                         <div
                             className="absolute z-40 pointer-events-auto"
                             style={{
-                                left: (hoverPosition?.x || 0) + 16,
-                                top: (hoverPosition?.y || 0) - 8,
-                                transform: 'translateY(-100%)'
+                                left: isMobile 
+                                    ? Math.min((hoverPosition?.x || 0) + 16, window.innerWidth - 250)
+                                    : (hoverPosition?.x || 0) + 16,
+                                top: isMobile
+                                    ? Math.max((hoverPosition?.y || 0) - 8, 10)
+                                    : (hoverPosition?.y || 0) - 8,
+                                transform: isMobile && (hoverPosition?.y || 0) < 200 ? 'translateY(0)' : 'translateY(-100%)',
+                                maxWidth: isMobile ? '90vw' : 'none'
                             }}
                             onMouseEnter={handlePopupEnter}
                             onMouseLeave={handlePopupLeave}
                             onClick={handlePopupClick}
+                            onTouchStart={handlePopupClick}
                         >
                             {/* Popup Container with modern design */}
                             <motion.div
@@ -1161,6 +1251,16 @@ export default function VideoPlayer({ videos = [] }) {
                                 
                                 {/* Main popup card */}
                                 <div className="relative rounded-2xl border border-[#fcd34d]/30 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+                                    {/* Close button for mobile */}
+                                    {isMobile && (
+                                        <button
+                                            onClick={handleClosePopup}
+                                            className="absolute top-2 right-2 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition text-sm font-bold"
+                                            aria-label="Close"
+                                        >
+                                            ×
+                                        </button>
+                                    )}
                                     {/* Decorative gradient overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-br from-[#fcd34d]/10 via-transparent to-[#f97316]/10 pointer-events-none"></div>
                                     
