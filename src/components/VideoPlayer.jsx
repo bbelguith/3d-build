@@ -1360,7 +1360,6 @@ export default function VideoPlayer({ videos = [] }) {
                                         {/* Plan Image Section - Below title */}
                                         {planImage && (
                                             <div 
-                                                onClick={handlePlanClick}
                                                 className="relative w-full bg-slate-800/50 cursor-pointer group overflow-hidden flex items-center justify-center mb-4 rounded-lg"
                                                 style={{ height: '190px', minHeight: '190px' }}
                                             >
@@ -1371,6 +1370,13 @@ export default function VideoPlayer({ videos = [] }) {
                                                     style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }}
                                                 />
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
+                                                {/* See Plan Button - appears on hover */}
+                                                <button
+                                                    onClick={handlePlanClick}
+                                                    className="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[#fcd34d]/90 text-slate-900 text-[13px] font-bold px-4 py-2 rounded-full border border-[#fcd34d] tracking-wider uppercase hover:bg-[#fcd34d] hover:scale-105 transition-all z-10"
+                                                >
+                                                    See Plan
+                                                </button>
                                             </div>
                                         )}
                                         
@@ -1394,6 +1400,13 @@ export default function VideoPlayer({ videos = [] }) {
                                                     Make a Request
                                                 </button>
                                             )}
+                                            
+                                            {/* Helper text */}
+                                            <div className="text-center pt-2">
+                                                <p className="text-xs text-white/60 italic">
+                                                    Click the house to see details
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                     
