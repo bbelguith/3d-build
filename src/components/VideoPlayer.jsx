@@ -1248,13 +1248,13 @@ export default function VideoPlayer({ videos = [] }) {
                             className="absolute z-40 pointer-events-auto"
                             style={{
                                 left: isMobile 
-                                    ? Math.min((hoverPosition?.x || 0) + 16, window.innerWidth - 250)
-                                    : (hoverPosition?.x || 0) + 16,
+                                    ? Math.min(Math.max((hoverPosition?.x || 0) + 16, 16), window.innerWidth - 338)
+                                    : Math.min(Math.max((hoverPosition?.x || 0) + 16, 16), window.innerWidth - 338),
                                 top: isMobile
                                     ? Math.max((hoverPosition?.y || 0) - 8, 10)
-                                    : (hoverPosition?.y || 0) - 8,
+                                    : Math.max((hoverPosition?.y || 0) - 8, 10),
                                 transform: isMobile && (hoverPosition?.y || 0) < 200 ? 'translateY(0)' : 'translateY(-100%)',
-                                maxWidth: isMobile ? '90vw' : 'none'
+                                maxWidth: isMobile ? '90vw' : '338px'
                             }}
                             onMouseEnter={handlePopupEnter}
                             onMouseLeave={handlePopupLeave}
@@ -1270,8 +1270,8 @@ export default function VideoPlayer({ videos = [] }) {
                                 className="relative"
                             >
                                 {/* Arrow pointer */}
-                                <div className="absolute bottom-0 left-6 transform translate-y-full">
-                                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-[#1e293b]/95"></div>
+                                <div className="absolute bottom-0 left-8 transform translate-y-full">
+                                    <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[10px] border-l-transparent border-r-transparent border-t-[#1e293b]/95"></div>
                                 </div>
                                 
                                 {/* Main popup card */}
@@ -1280,7 +1280,7 @@ export default function VideoPlayer({ videos = [] }) {
                                     {isMobile && (
                                         <button
                                             onClick={handleClosePopup}
-                                            className="absolute top-2 right-2 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition text-sm font-bold"
+                                            className="absolute top-3 right-3 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition text-base font-bold"
                                             aria-label="Close"
                                         >
                                             ×
@@ -1293,16 +1293,18 @@ export default function VideoPlayer({ videos = [] }) {
                                     {planImage && (
                                         <div 
                                             onClick={handlePlanClick}
-                                            className="relative w-full h-32 bg-slate-800/50 cursor-pointer group overflow-hidden"
+                                            className="relative w-full bg-slate-800/50 cursor-pointer group overflow-hidden flex items-center justify-center"
+                                            style={{ height: '168px' }}
                                         >
                                             <img 
                                                 src={planImage} 
                                                 alt="Floor Plan"
-                                                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                                className="max-w-full max-h-full object-contain transition-transform duration-300"
+                                                style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }}
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                <span className="bg-[#fcd34d]/90 text-slate-900 text-[10px] font-bold px-3 py-1 rounded-full border border-[#fcd34d] tracking-wider uppercase">
+                                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                <span className="bg-[#fcd34d]/90 text-slate-900 text-[13px] font-bold px-4 py-1.5 rounded-full border border-[#fcd34d] tracking-wider uppercase">
                                                     View Plan
                                                 </span>
                                             </div>
@@ -1310,23 +1312,23 @@ export default function VideoPlayer({ videos = [] }) {
                                     )}
                                     
                                     {/* Content container */}
-                                    <div className="relative px-5 py-4 min-w-[200px]">
+                                    <div className="relative px-7 py-5 min-w-[260px]">
                                         {/* Header section */}
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-2 h-2 rounded-full bg-[#fcd34d] animate-pulse"></div>
-                                            <div className="text-[10px] uppercase tracking-widest text-[#fcd34d]/80 font-bold">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#fcd34d] animate-pulse"></div>
+                                            <div className="text-[13px] uppercase tracking-widest text-[#fcd34d]/80 font-bold">
                                                 Maison
                                             </div>
                                         </div>
                                         
                                         {/* House label/name */}
-                                        <div className="text-lg font-bold text-white mb-1 tracking-tight">
+                                        <div className="text-xl font-bold text-white mb-2 tracking-tight">
                                             {hoveredZone.label}
                                         </div>
                                         
                                         {/* Additional info section */}
-                                        <div className="mt-3 pt-3 border-t border-white/10">
-                                            <div className="text-xs text-white/70">
+                                        <div className="mt-4 pt-4 border-t border-white/10">
+                                            <div className="text-sm text-white/70">
                                                 {planImage && (
                                                     <div className="text-[#fcd34d]/80 font-medium">
                                                         Click plan to view details
@@ -1337,7 +1339,7 @@ export default function VideoPlayer({ videos = [] }) {
                                     </div>
                                     
                                     {/* Bottom accent line */}
-                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#fcd34d]/50 to-transparent"></div>
+                                    <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#fcd34d]/50 to-transparent"></div>
                                 </div>
                             </motion.div>
                         </div>
