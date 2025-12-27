@@ -1019,14 +1019,57 @@ export default function VideoPlayer({ videos = [] }) {
                         <div
                             className="absolute z-40 pointer-events-none"
                             style={{
-                                left: hoverPosition.x + 12,
-                                top: hoverPosition.y + 12
+                                left: hoverPosition.x + 16,
+                                top: hoverPosition.y - 8,
+                                transform: 'translateY(-100%)'
                             }}
                         >
-                            <div className="rounded-xl border border-white/20 bg-slate-900/90 px-3 py-2 text-[12px] text-white shadow-lg backdrop-blur">
-                                <div className="text-[10px] uppercase tracking-widest text-white/60">Maison</div>
-                                <div className="font-semibold">{hoveredZone.label}</div>
-                            </div>
+                            {/* Popup Container with modern design */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                transition={{ duration: 0.2, ease: "easeOut" }}
+                                className="relative"
+                            >
+                                {/* Arrow pointer */}
+                                <div className="absolute bottom-0 left-6 transform translate-y-full">
+                                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-[#1e293b]/95"></div>
+                                </div>
+                                
+                                {/* Main popup card */}
+                                <div className="relative rounded-2xl border border-[#fcd34d]/30 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+                                    {/* Decorative gradient overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-br from-[#fcd34d]/10 via-transparent to-[#f97316]/10 pointer-events-none"></div>
+                                    
+                                    {/* Content container */}
+                                    <div className="relative px-5 py-4 min-w-[200px]">
+                                        {/* Header section */}
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="w-2 h-2 rounded-full bg-[#fcd34d] animate-pulse"></div>
+                                            <div className="text-[10px] uppercase tracking-widest text-[#fcd34d]/80 font-bold">
+                                                Maison
+                                            </div>
+                                        </div>
+                                        
+                                        {/* House label/name */}
+                                        <div className="text-lg font-bold text-white mb-1 tracking-tight">
+                                            {hoveredZone.label}
+                                        </div>
+                                        
+                                        {/* Additional info section - ready for customization */}
+                                        <div className="mt-3 pt-3 border-t border-white/10">
+                                            {/* Placeholder for additional information */}
+                                            <div className="text-xs text-white/70">
+                                                {/* Add your custom content here */}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Bottom accent line */}
+                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#fcd34d]/50 to-transparent"></div>
+                                </div>
+                            </motion.div>
                         </div>
                     )}
 
