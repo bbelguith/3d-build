@@ -1,77 +1,114 @@
 export const houses = [
-  {
-    id: 1, number: "1R", state: "actif", type: "a"
-  },
-  {
-    id: 2, number: "2R", state: "inactif", type: "a"
-  },
-  {
-    id: 3, number: "3R", state: "actif", type: "a"
-  },
-  {
-    id: 4, number: "4R", state: "actif", type: "a"
-  },
-  {
-    id: 5, number: "5R", state: "inactif", type: "a"
-  },
-  {
-    id: 6, number: "6R", state: "actif", type: "b"
-  },
-  {
-    id: 7, number: "7R", state: "inactif", type: "a"
-  },
-  {
-    id: 8, number: "8R", state: "actif", type: "b"
-  },
-  {
-    id: 9, number: "9R", state: "actif", type: "a"
-  },
-  {
-    id: 10, number: "10R", state: "inactif", type: "b"
-  },
-  {
-    id: 11, number: "11R", state: "actif", type: "a"
-  },
-  {
-    id: 12, number: "12R", state: "inactif", type: "b"
-  },
-  {
-    id: 13, number: "13R", state: "actif", type: "a"
-  },
-  {
-    id: 14, number: "14R", state: "actif", type: "b"
-  },
-  {
-    id: 15, number: "15R", state: "inactif", type: "a"
-  },
-  {
-    id: 16, number: "16R", state: "actif", type: "b"
-  },
-  {
-    id: 17, number: "17R", state: "inactif", type: "a"
-  },
-  {
-    id: 18, number: "18R", state: "actif", type: "b"
-  },
-  {
-    id: 19, number: "19R", state: "actif", type: "a"
-  },
-  {
-    id: 20, number: "20R", state: "inactif", type: "a"
-  },
-  {
-    id: 21, number: "21R", state: "actif", type: "a"
-  },
-  {
-    id: 22, number: "22R", state: "inactif", type: "a"
-  },
-  {
-    id: 23, number: "23R", state: "actif", type: "a"
-  },
-  {
-    id: 24, number: "24R", state: "actif", type: "a"
-  },
-  {
-    id: 25, number: "25R", state: "inactif", type: "a"
-  }
+  // VP houses (type "a") - VP 1 to VP 22
+  { id: 1, number: "VP 1", state: "actif", type: "a" },
+  { id: 2, number: "VP 2", state: "actif", type: "a" },
+  { id: 3, number: "VP 3", state: "actif", type: "a" },
+  { id: 4, number: "VP 4", state: "actif", type: "a" },
+  { id: 5, number: "VP 5", state: "actif", type: "a" },
+  { id: 6, number: "VP 6", state: "actif", type: "a" },
+  { id: 7, number: "VP 7", state: "actif", type: "a" },
+  { id: 8, number: "VP 8", state: "actif", type: "a" },
+  { id: 9, number: "VP 9", state: "actif", type: "a" },
+  { id: 10, number: "VP 10", state: "actif", type: "a" },
+  { id: 11, number: "VP 11", state: "actif", type: "a" },
+  { id: 12, number: "VP 12", state: "actif", type: "a" },
+  { id: 13, number: "VP 13", state: "actif", type: "a" },
+  { id: 14, number: "VP 14", state: "actif", type: "a" },
+  { id: 15, number: "VP 15", state: "actif", type: "a" },
+  { id: 16, number: "VP 16", state: "actif", type: "a" },
+  { id: 17, number: "VP 17", state: "actif", type: "a" },
+  { id: 18, number: "VP 18", state: "actif", type: "a" },
+  { id: 19, number: "VP 19", state: "actif", type: "a" },
+  { id: 20, number: "VP 20", state: "actif", type: "a" },
+  { id: 21, number: "VP 21", state: "actif", type: "a" },
+  { id: 22, number: "VP 22", state: "actif", type: "a" },
+  
+  // VT houses (type "b") - VT 1 to VT 87
+  { id: 23, number: "VT 1", state: "actif", type: "b" },
+  { id: 24, number: "VT 2", state: "actif", type: "b" },
+  { id: 25, number: "VT 3", state: "actif", type: "b" },
+  { id: 26, number: "VT 4", state: "actif", type: "b" },
+  { id: 27, number: "VT 5", state: "actif", type: "b" },
+  { id: 28, number: "VT 6", state: "actif", type: "b" },
+  { id: 29, number: "VT 7", state: "actif", type: "b" },
+  { id: 30, number: "VT 8", state: "actif", type: "b" },
+  { id: 31, number: "VT 9", state: "actif", type: "b" },
+  { id: 32, number: "VT 10", state: "actif", type: "b" },
+  { id: 33, number: "VT 11", state: "actif", type: "b" },
+  { id: 34, number: "VT 12", state: "actif", type: "b" },
+  { id: 35, number: "VT 13", state: "actif", type: "b" },
+  { id: 36, number: "VT 14", state: "actif", type: "b" },
+  { id: 37, number: "VT 15", state: "actif", type: "b" },
+  { id: 38, number: "VT 16", state: "actif", type: "b" },
+  { id: 39, number: "VT 17", state: "actif", type: "b" },
+  { id: 40, number: "VT 18", state: "actif", type: "b" },
+  { id: 41, number: "VT 19", state: "actif", type: "b" },
+  { id: 42, number: "VT 20", state: "actif", type: "b" },
+  { id: 43, number: "VT 21", state: "actif", type: "b" },
+  { id: 44, number: "VT 22", state: "actif", type: "b" },
+  { id: 45, number: "VT 23", state: "actif", type: "b" },
+  { id: 46, number: "VT 24", state: "actif", type: "b" },
+  { id: 47, number: "VT 25", state: "actif", type: "b" },
+  { id: 48, number: "VT 26", state: "actif", type: "b" },
+  { id: 49, number: "VT 27", state: "actif", type: "b" },
+  { id: 50, number: "VT 28", state: "actif", type: "b" },
+  { id: 51, number: "VT 29", state: "actif", type: "b" },
+  { id: 52, number: "VT 30", state: "actif", type: "b" },
+  { id: 53, number: "VT 31", state: "actif", type: "b" },
+  { id: 54, number: "VT 32", state: "actif", type: "b" },
+  { id: 55, number: "VT 33", state: "actif", type: "b" },
+  { id: 56, number: "VT 34", state: "actif", type: "b" },
+  { id: 57, number: "VT 35", state: "actif", type: "b" },
+  { id: 58, number: "VT 36", state: "actif", type: "b" },
+  { id: 59, number: "VT 37", state: "actif", type: "b" },
+  { id: 60, number: "VT 38", state: "actif", type: "b" },
+  { id: 61, number: "VT 39", state: "actif", type: "b" },
+  { id: 62, number: "VT 40", state: "actif", type: "b" },
+  { id: 63, number: "VT 41", state: "actif", type: "b" },
+  { id: 64, number: "VT 42", state: "actif", type: "b" },
+  { id: 65, number: "VT 43", state: "actif", type: "b" },
+  { id: 66, number: "VT 44", state: "actif", type: "b" },
+  { id: 67, number: "VT 45", state: "actif", type: "b" },
+  { id: 68, number: "VT 46", state: "actif", type: "b" },
+  { id: 69, number: "VT 47", state: "actif", type: "b" },
+  { id: 70, number: "VT 48", state: "actif", type: "b" },
+  { id: 71, number: "VT 49", state: "actif", type: "b" },
+  { id: 72, number: "VT 50", state: "actif", type: "b" },
+  { id: 73, number: "VT 51", state: "actif", type: "b" },
+  { id: 74, number: "VT 52", state: "actif", type: "b" },
+  { id: 75, number: "VT 53", state: "actif", type: "b" },
+  { id: 76, number: "VT 54", state: "actif", type: "b" },
+  { id: 77, number: "VT 55", state: "actif", type: "b" },
+  { id: 78, number: "VT 56", state: "actif", type: "b" },
+  { id: 79, number: "VT 57", state: "actif", type: "b" },
+  { id: 80, number: "VT 58", state: "actif", type: "b" },
+  { id: 81, number: "VT 59", state: "actif", type: "b" },
+  { id: 82, number: "VT 60", state: "actif", type: "b" },
+  { id: 83, number: "VT 61", state: "actif", type: "b" },
+  { id: 84, number: "VT 62", state: "actif", type: "b" },
+  { id: 85, number: "VT 63", state: "actif", type: "b" },
+  { id: 86, number: "VT 64", state: "actif", type: "b" },
+  { id: 87, number: "VT 65", state: "actif", type: "b" },
+  { id: 88, number: "VT 66", state: "actif", type: "b" },
+  { id: 89, number: "VT 67", state: "actif", type: "b" },
+  { id: 90, number: "VT 68", state: "actif", type: "b" },
+  { id: 91, number: "VT 69", state: "actif", type: "b" },
+  { id: 92, number: "VT 70", state: "actif", type: "b" },
+  { id: 93, number: "VT 71", state: "actif", type: "b" },
+  { id: 94, number: "VT 72", state: "actif", type: "b" },
+  { id: 95, number: "VT 73", state: "actif", type: "b" },
+  { id: 96, number: "VT 74", state: "actif", type: "b" },
+  { id: 97, number: "VT 75", state: "actif", type: "b" },
+  { id: 98, number: "VT 76", state: "actif", type: "b" },
+  { id: 99, number: "VT 77", state: "actif", type: "b" },
+  { id: 100, number: "VT 78", state: "actif", type: "b" },
+  { id: 101, number: "VT 79", state: "actif", type: "b" },
+  { id: 102, number: "VT 80", state: "actif", type: "b" },
+  { id: 103, number: "VT 81", state: "actif", type: "b" },
+  { id: 104, number: "VT 82", state: "actif", type: "b" },
+  { id: 105, number: "VT 83", state: "actif", type: "b" },
+  { id: 106, number: "VT 84", state: "actif", type: "b" },
+  { id: 107, number: "VT 85", state: "actif", type: "b" },
+  { id: 108, number: "VT 86", state: "actif", type: "b" },
+  { id: 109, number: "VT 87", state: "actif", type: "b" }
 ];

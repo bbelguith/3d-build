@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import zonesData from "../data/final_zones.json";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
@@ -11,6 +13,23 @@ import {
 import { detectConnectionQuality, getPreloadStrategy } from "../utils/connectionDetector";
 
 export default function VideoPlayer({ videos = [] }) {
+    const navigate = useNavigate();
+    
+    // Plan images - same as used in Plan pages
+    const planImages = useMemo(() => ({
+        // Type "a" (VP houses) - from Plan.jsx
+        a: [
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986525/plan_rdc_villa_isolee_pyote8.png",
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986610/plan_terrasse_villa_isolee_riz5mc.png",
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986523/WhatsApp_Image_2025-12-17_at_15.49.21_krfpum.jpg"
+        ],
+        // Type "b" (VT houses) - from Planb.jsx
+        b: [
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986532/rdc-villabande_pqwwts.png",
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986531/1ER-villabande_zze0o3.png",
+            "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986533/terrase-villabande_dman5u.png"
+        ]
+    }), []);
     
     // --- STATE & REFS ---
     const [current, setCurrent] = useState(0);
@@ -34,6 +53,12 @@ export default function VideoPlayer({ videos = [] }) {
     const [hoveredZoneId, setHoveredZoneId] = useState(null);
     const [hoverPosition, setHoverPosition] = useState(null);
     const [allowBackgroundPreload, setAllowBackgroundPreload] = useState(false);
+    const [isPopupHovered, setIsPopupHovered] = useState(false);
+    const popupHideTimeoutRef = useRef(null);
+    const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+    const [videoDuration, setVideoDuration] = useState(0);
+    const [showMobileIndicator, setShowMobileIndicator] = useState(false);
+    const [houses, setHouses] = useState([]);
 
     const v0 = useRef(null);
     const v1 = useRef(null);
@@ -65,6 +90,9 @@ export default function VideoPlayer({ videos = [] }) {
     });
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
     const showZoneToolbar = false;
+    
+    // Zone visibility threshold: show zones only in the last 0.5 seconds of video
+    const ZONE_END_THRESHOLD_SECONDS = 0.5;
 
     const clearBufferingTimeout = () => {
         if (bufferingTimeoutRef.current) {
@@ -104,6 +132,26 @@ export default function VideoPlayer({ videos = [] }) {
 
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+    
+    // Fetch houses data
+    useEffect(() => {
+        const apiBase = import.meta.env.VITE_API_BASE || "";
+        const fetchHouses = async () => {
+            try {
+                const response = await axios.get(`${apiBase}/api/houses`);
+                setHouses(response.data);
+            } catch (error) {
+                console.error("Error fetching houses:", error);
+            }
+        };
+        fetchHouses();
+    }, []);
+    
+    
+    const handleDismissIndicator = () => {
+        setShowMobileIndicator(false);
+        localStorage.setItem('mobileZoneIndicatorDismissed', 'true');
+    };
 
     // Helper function to preload a video
     const preloadVideo = (videoSrc, index) => {
@@ -185,6 +233,31 @@ export default function VideoPlayer({ videos = [] }) {
         }, 2000);
         return () => clearTimeout(timeoutId);
     }, [isInitialized]);
+
+    // Track video time for zone visibility
+    useEffect(() => {
+        const activeVideo = activeLayer === 0 ? v0.current : v1.current;
+        if (!activeVideo) return;
+
+        const updateTime = () => {
+            if (activeVideo) {
+                setVideoCurrentTime(activeVideo.currentTime || 0);
+                setVideoDuration(activeVideo.duration || 0);
+            }
+        };
+
+        // Update on timeupdate event
+        activeVideo.addEventListener('timeupdate', updateTime);
+        // Update on loadedmetadata to get duration
+        activeVideo.addEventListener('loadedmetadata', updateTime);
+        // Initial update
+        updateTime();
+
+        return () => {
+            activeVideo.removeEventListener('timeupdate', updateTime);
+            activeVideo.removeEventListener('loadedmetadata', updateTime);
+        };
+    }, [activeLayer, current, isInitialized]);
 
     // Progressive preloading - only load videos when needed or on fast connections
     useEffect(() => {
@@ -547,6 +620,240 @@ export default function VideoPlayer({ videos = [] }) {
     const currentZones = zonesByVideo[currentVideoKey]?.zones || [];
     const showHouseHotspots = true;
     const hoveredZone = currentZones.find((zone) => zone.id === hoveredZoneId);
+    
+    // Determine house type from label (VT = type "b", VP = type "a")
+    const getHouseType = (label) => {
+        if (!label) return null;
+        const upperLabel = label.toUpperCase().trim();
+        if (upperLabel.startsWith("VT")) return "b";
+        if (upperLabel.startsWith("VP")) return "a";
+        return null;
+    };
+    
+    // Get plan image and navigation path for hovered zone
+    const houseType = hoveredZone ? getHouseType(hoveredZone.label) : null;
+    const planImage = houseType ? planImages[houseType]?.[0] : null;
+    const planPath = houseType === "a" ? "/plan" : houseType === "b" ? "/planb" : null;
+    
+    // Get house ID from zone label (e.g., "VP 1" -> find house with number "VP 1")
+    const getHouseIdFromLabel = (label) => {
+        if (!label) return null;
+        // Import houses data - we'll need to fetch this or pass it as prop
+        // For now, parse the label to extract house number and match with houses
+        // This is a simplified approach - in production, you might want to fetch from API
+        const match = label.match(/(VP|VT)\s*(\d+)/i);
+        if (!match) return null;
+        const prefix = match[1].toUpperCase();
+        const number = parseInt(match[2]);
+        // VP houses have id 1-22, VT houses have id 23-109
+        if (prefix === "VP") {
+            return number >= 1 && number <= 22 ? number : null;
+        } else if (prefix === "VT") {
+            return number >= 1 && number <= 87 ? (22 + number) : null;
+        }
+        return null;
+    };
+    
+    const houseId = hoveredZone ? getHouseIdFromLabel(hoveredZone.label) : null;
+    
+    // Get house state (actif/inactif)
+    const houseState = useMemo(() => {
+        if (!houseId || !houses.length) return null;
+        const house = houses.find(h => h.id === houseId);
+        return house ? house.state : null;
+    }, [houseId, houses]);
+    
+    const isHouseActive = houseState === "actif";
+    
+    // Handle interior video play
+    const handleInteriorVideo = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        // Close popup
+        setIsPopupHovered(false);
+        setHoveredZoneId(null);
+        // Play interior video - using the first video as interior
+        // Note: If you have a specific interior video, replace videos[0] with that video
+        if (videos.length > 0 && videos[0]) {
+            playVideo(videos[0].src, 0, false, true);
+        }
+    };
+    
+    // Handle inquiry button
+    const handleInquiry = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (houseId) {
+            setIsPopupHovered(false);
+            setHoveredZoneId(null);
+            navigate(`/house/${houseId}`);
+        }
+    };
+    
+    const handlePlanClick = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        // Lock popup before navigating
+        setIsPopupHovered(true);
+        if (popupHideTimeoutRef.current) {
+            clearTimeout(popupHideTimeoutRef.current);
+            popupHideTimeoutRef.current = null;
+        }
+        if (planPath) {
+            navigate(planPath);
+        }
+    };
+    
+    // Handle popup hover/click to keep it visible
+    const handlePopupEnter = () => {
+        setIsPopupHovered(true);
+        if (popupHideTimeoutRef.current) {
+            clearTimeout(popupHideTimeoutRef.current);
+            popupHideTimeoutRef.current = null;
+        }
+    };
+    
+    const handlePopupLeave = () => {
+        // Only unlock if user actually leaves (not just moving mouse)
+        const timeout = setTimeout(() => {
+            setIsPopupHovered(false);
+            setHoveredZoneId(null);
+        }, 500);
+        popupHideTimeoutRef.current = timeout;
+    };
+    
+    const handlePopupClick = (e) => {
+        e.stopPropagation();
+        // Lock popup when clicked/tapped
+        setIsPopupHovered(true);
+        if (popupHideTimeoutRef.current) {
+            clearTimeout(popupHideTimeoutRef.current);
+            popupHideTimeoutRef.current = null;
+        }
+    };
+    
+    const handleClosePopup = (e) => {
+        e.stopPropagation();
+        setIsPopupHovered(false);
+        setHoveredZoneId(null);
+        if (popupHideTimeoutRef.current) {
+            clearTimeout(popupHideTimeoutRef.current);
+            popupHideTimeoutRef.current = null;
+        }
+    };
+    
+    const handleZoneClick = (e, zoneId) => {
+        if (editZones) return;
+        e.stopPropagation();
+        
+        // Check if zone is active
+        const clickedZone = currentZones.find(z => z.id === zoneId);
+        if (clickedZone) {
+            const clickedHouseId = getHouseIdFromLabel(clickedZone.label);
+            const clickedHouse = houses.find(h => h.id === clickedHouseId);
+            if (clickedHouse && clickedHouse.state !== "actif") {
+                return; // Don't show popup for inactive houses
+            }
+        }
+        
+        // On mobile, set hovered zone and lock popup immediately
+        if (isMobile) {
+            setHoveredZoneId(zoneId);
+            setIsPopupHovered(true);
+            // Get touch position for popup placement
+            const rect = getOverlayRect();
+            if (rect && e.touches && e.touches[0]) {
+                setHoverPosition({
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                });
+            } else if (rect && e.clientX) {
+                setHoverPosition({
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                });
+            }
+            if (popupHideTimeoutRef.current) {
+                clearTimeout(popupHideTimeoutRef.current);
+                popupHideTimeoutRef.current = null;
+            }
+        } else {
+            // Desktop: Lock popup when clicking on the zone
+            if (hoveredZoneId === zoneId) {
+                setIsPopupHovered(true);
+                if (popupHideTimeoutRef.current) {
+                    clearTimeout(popupHideTimeoutRef.current);
+                    popupHideTimeoutRef.current = null;
+                }
+            }
+        }
+    };
+    
+    const handleZoneTouchStart = (e, zoneId) => {
+        if (editZones || !isMobile) return;
+        e.stopPropagation();
+        
+        // Check if zone is active
+        const touchedZone = currentZones.find(z => z.id === zoneId);
+        if (touchedZone) {
+            const touchedHouseId = getHouseIdFromLabel(touchedZone.label);
+            const touchedHouse = houses.find(h => h.id === touchedHouseId);
+            if (touchedHouse && touchedHouse.state !== "actif") {
+                return; // Don't show popup for inactive houses
+            }
+        }
+        
+        // Set hovered zone and show popup
+        setHoveredZoneId(zoneId);
+        setIsPopupHovered(true);
+        
+        // Get touch position for popup placement
+        const rect = getOverlayRect();
+        if (rect && e.touches && e.touches[0]) {
+            setHoverPosition({
+                x: e.touches[0].clientX - rect.left,
+                y: e.touches[0].clientY - rect.top
+            });
+        }
+        
+        if (popupHideTimeoutRef.current) {
+            clearTimeout(popupHideTimeoutRef.current);
+            popupHideTimeoutRef.current = null;
+        }
+    };
+    
+    // Calculate if video is at the end (for zone visibility)
+    const isVideoAtEnd = useMemo(() => {
+        if (!videoDuration || videoDuration === 0) return false;
+        if (editZones) return true; // Always show zones in edit mode
+        
+        const timeRemaining = videoDuration - videoCurrentTime;
+        
+        // Show zones only in the last 0.5 seconds
+        return timeRemaining <= ZONE_END_THRESHOLD_SECONDS;
+    }, [videoCurrentTime, videoDuration, editZones]);
+    
+    // Show indicator when video reaches end on mobile (must be after currentZones and isVideoAtEnd are defined)
+    useEffect(() => {
+        if (!isMobile || editZones) {
+            setShowMobileIndicator(false);
+            return;
+        }
+        
+        // Check if zones are available and video is at end
+        const hasZones = currentZones && currentZones.length > 0;
+        if (hasZones && isVideoAtEnd) {
+            const indicatorDismissed = localStorage.getItem('mobileZoneIndicatorDismissed');
+            if (!indicatorDismissed) {
+                setShowMobileIndicator(true);
+            } else {
+                setShowMobileIndicator(false);
+            }
+        } else {
+            setShowMobileIndicator(false);
+        }
+    }, [isMobile, currentZones, isVideoAtEnd, editZones, currentVideoKey]);
+    
 
     useEffect(() => {
         console.log("[VideoPlayer] current video id:", currentVideoId, "key:", currentVideoKey);
@@ -560,8 +867,18 @@ export default function VideoPlayer({ videos = [] }) {
     useEffect(() => {
         if (!hoveredZoneId || editZones) {
             setHoverPosition(null);
+            setIsPopupHovered(false);
         }
     }, [hoveredZoneId, editZones]);
+    
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (popupHideTimeoutRef.current) {
+                clearTimeout(popupHideTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         document.body.classList.toggle("edit-zones", editZones);
@@ -579,6 +896,16 @@ export default function VideoPlayer({ videos = [] }) {
     };
 
     const handleOverlayClick = (event) => {
+        // On mobile, close popup if clicking outside
+        if (isMobile && !editZones && isPopupHovered) {
+            const targetTag = event.target?.tagName?.toLowerCase();
+            if (targetTag !== "polygon" && targetTag !== "polyline" && targetTag !== "circle" && targetTag !== "svg" && targetTag !== "g") {
+                // Clicked outside zone, close popup
+                handleClosePopup(event);
+                return;
+            }
+        }
+        
         if (!editZones || selectedZoneId == null) return;
         const targetTag = event.target?.tagName?.toLowerCase();
         if (targetTag === "polygon" || targetTag === "polyline" || targetTag === "circle") {
@@ -640,12 +967,24 @@ export default function VideoPlayer({ videos = [] }) {
     };
 
     const handleOverlayPointerMove = (event) => {
-        if (!editZones && hoveredZoneId) {
+        if (!editZones && hoveredZoneId && !isPopupHovered && !isMobile) {
             const rect = getOverlayRect();
             if (rect) {
                 setHoverPosition({
                     x: event.clientX - rect.left,
                     y: event.clientY - rect.top
+                });
+            }
+        }
+    };
+    
+    const handleOverlayTouchMove = (event) => {
+        if (!editZones && hoveredZoneId && isMobile && event.touches && event.touches[0]) {
+            const rect = getOverlayRect();
+            if (rect) {
+                setHoverPosition({
+                    x: event.touches[0].clientX - rect.left,
+                    y: event.touches[0].clientY - rect.top
                 });
             }
         }
@@ -880,13 +1219,14 @@ export default function VideoPlayer({ videos = [] }) {
                 />
             </div>
 
-            {showHouseHotspots && (
+            {showHouseHotspots && (isVideoAtEnd || editZones) && (
                 <div
                     ref={hotspotOverlayRef}
                     className={`absolute inset-0 z-30 ${editZones ? "cursor-crosshair" : ""}`}
                     onClick={handleOverlayClick}
                     onPointerMove={handleOverlayPointerMove}
                     onPointerUp={handleOverlayPointerUp}
+                    onTouchMove={handleOverlayTouchMove}
                 >
                     <svg
                         className="absolute inset-0 w-full h-full"
@@ -901,60 +1241,119 @@ export default function VideoPlayer({ videos = [] }) {
                             if (zone.visible === false) {
                                 return null;
                             }
+                            
+                            // Get house state for this zone
+                            const zoneHouseId = getHouseIdFromLabel(zone.label);
+                            const zoneHouse = houses.find(h => h.id === zoneHouseId);
+                            const isZoneActive = zoneHouse ? zoneHouse.state === "actif" : true; // Default to active if not found
+                            
                             return (
                                 <g key={zone.id}>
                                     {zone.points.length >= 3 ? (
                                         <polygon
                                             points={pointList}
-                                            pointerEvents={showHoverOnly ? "all" : "visiblePainted"}
+                                            pointerEvents={showHoverOnly || isMobile ? "all" : "visiblePainted"}
+                                            style={{ cursor: !isZoneActive ? "not-allowed" : "pointer" }}
                                             fill={
-                                                showHoverOnly
-                                                    ? isHovered
-                                                        ? "rgba(30,64,175,0.35)"
-                                                        : "rgba(16,185,129,0)"
-                                                    : isSelected
-                                                        ? "rgba(139,92,246,0.28)"
-                                                        : isHovered
+                                                !isZoneActive && isHovered
+                                                    ? "rgba(220,38,38,0.35)" // Red for inactive
+                                                    : showHoverOnly || isMobile
+                                                        ? isHovered
                                                             ? "rgba(30,64,175,0.35)"
-                                                            : "rgba(16,185,129,0.12)"
+                                                            : "rgba(16,185,129,0)"
+                                                        : isSelected
+                                                            ? "rgba(139,92,246,0.28)"
+                                                            : isHovered
+                                                                ? "rgba(30,64,175,0.35)"
+                                                                : "rgba(16,185,129,0.12)"
                                             }
                                             stroke={
-                                                showHoverOnly
-                                                    ? isHovered
-                                                        ? "rgba(30,64,175,0.9)"
-                                                        : "rgba(16,185,129,0)"
-                                                    : isSelected
-                                                        ? "rgba(139,92,246,0.95)"
-                                                        : isHovered
+                                                !isZoneActive && isHovered
+                                                    ? "rgba(220,38,38,0.9)" // Red for inactive
+                                                    : showHoverOnly || isMobile
+                                                        ? isHovered
                                                             ? "rgba(30,64,175,0.9)"
-                                                            : "rgba(16,185,129,0.5)"
+                                                            : "rgba(16,185,129,0)"
+                                                        : isSelected
+                                                            ? "rgba(139,92,246,0.95)"
+                                                            : isHovered
+                                                                ? "rgba(30,64,175,0.9)"
+                                                                : "rgba(16,185,129,0.5)"
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
-                                        onPointerEnter={() => setHoveredZoneId(zone.id)}
-                                        onPointerLeave={() => setHoveredZoneId(null)}
+                                        onClick={(e) => {
+                                            if (!isZoneActive) {
+                                                e.stopPropagation();
+                                                return;
+                                            }
+                                            handleZoneClick(e, zone.id);
+                                        }}
+                                        onTouchStart={(e) => {
+                                            if (!isZoneActive) {
+                                                e.stopPropagation();
+                                                return;
+                                            }
+                                            handleZoneTouchStart(e, zone.id);
+                                        }}
+                                        onPointerEnter={() => {
+                                            if (!isMobile && !isPopupHovered) {
+                                                setHoveredZoneId(zone.id);
+                                            }
+                                        }}
+                                        onPointerLeave={() => {
+                                            // Don't hide on mobile or if popup is locked
+                                            if (!isMobile && !isPopupHovered) {
+                                                setHoveredZoneId(null);
+                                            }
+                                        }}
                                         />
                                     ) : (
                                         <polyline
                                             points={pointList}
                                             fill="none"
-                                            pointerEvents={showHoverOnly ? "all" : "visiblePainted"}
+                                            pointerEvents={showHoverOnly || isMobile ? "all" : "visiblePainted"}
+                                            style={{ cursor: !isZoneActive ? "not-allowed" : "pointer" }}
                                             stroke={
-                                                showHoverOnly
-                                                    ? isHovered
-                                                        ? "rgba(30,64,175,0.9)"
-                                                        : "rgba(16,185,129,0)"
-                                                    : isSelected
-                                                        ? "rgba(139,92,246,0.95)"
-                                                        : isHovered
+                                                !isZoneActive && isHovered
+                                                    ? "rgba(220,38,38,0.9)" // Red for inactive
+                                                    : showHoverOnly || isMobile
+                                                        ? isHovered
                                                             ? "rgba(30,64,175,0.9)"
-                                                            : "rgba(16,185,129,0.5)"
+                                                            : "rgba(16,185,129,0)"
+                                                        : isSelected
+                                                            ? "rgba(139,92,246,0.95)"
+                                                            : isHovered
+                                                                ? "rgba(30,64,175,0.9)"
+                                                                : "rgba(16,185,129,0.5)"
                                             }
                                             strokeWidth={isSelected || isHovered ? 4 : 2}
-                                            pointerEvents="stroke"
                                             onPointerDown={(event) => handleZonePointerDown(event, zone)}
-                                            onPointerEnter={() => setHoveredZoneId(zone.id)}
-                                            onPointerLeave={() => setHoveredZoneId(null)}
+                                            onClick={(e) => {
+                                                if (!isZoneActive) {
+                                                    e.stopPropagation();
+                                                    return;
+                                                }
+                                                handleZoneClick(e, zone.id);
+                                            }}
+                                            onTouchStart={(e) => {
+                                                if (!isZoneActive) {
+                                                    e.stopPropagation();
+                                                    return;
+                                                }
+                                                handleZoneTouchStart(e, zone.id);
+                                            }}
+                                            onPointerEnter={() => {
+                                                if (!isMobile && !isPopupHovered && isZoneActive) {
+                                                    setHoveredZoneId(zone.id);
+                                                }
+                                            }}
+                                            onPointerLeave={() => {
+                                                // Don't hide on mobile or if popup is locked
+                                                if (!isMobile && !isPopupHovered) {
+                                                    setHoveredZoneId(null);
+                                                }
+                                            }}
                                         />
                                     )}
                                     {editZones && isSelected &&
@@ -975,18 +1374,131 @@ export default function VideoPlayer({ videos = [] }) {
                         })}
                     </svg>
 
-                    {!editZones && hoveredZone && hoveredZone.label && hoverPosition && (
+                    {!editZones && hoveredZone && hoveredZone.label && (hoverPosition || isPopupHovered) && isHouseActive && (
                         <div
-                            className="absolute z-40 pointer-events-none"
+                            className="absolute z-40 pointer-events-auto"
                             style={{
-                                left: hoverPosition.x + 12,
-                                top: hoverPosition.y + 12
+                                left: (() => {
+                                    const rect = getOverlayRect();
+                                    if (!rect || !hoverPosition) return 16;
+                                    const popupWidth = isMobile ? Math.min(350, rect.width - 32) : 350;
+                                    const mouseX = hoverPosition.x;
+                                    let leftPos = mouseX + 16;
+                                    if (leftPos + popupWidth > rect.width - 16) {
+                                        leftPos = mouseX - popupWidth - 16;
+                                    }
+                                    return Math.max(16, Math.min(leftPos, rect.width - popupWidth - 16));
+                                })(),
+                                top: (() => {
+                                    const rect = getOverlayRect();
+                                    if (!rect || !hoverPosition) return 16;
+                                    const popupHeight = 400;
+                                    const mouseY = hoverPosition.y;
+                                    let topPos = mouseY + 16;
+                                    if (topPos + popupHeight > rect.height - 16) {
+                                        topPos = mouseY - popupHeight - 16;
+                                    }
+                                    return Math.max(16, Math.min(topPos, rect.height - popupHeight - 16));
+                                })(),
+                                maxWidth: isMobile ? 'calc(100vw - 32px)' : '350px'
                             }}
+                            onMouseEnter={handlePopupEnter}
+                            onMouseLeave={handlePopupLeave}
+                            onClick={handlePopupClick}
+                            onTouchStart={handlePopupClick}
                         >
-                            <div className="rounded-xl border border-white/20 bg-slate-900/90 px-3 py-2 text-[12px] text-white shadow-lg backdrop-blur">
-                                <div className="text-[10px] uppercase tracking-widest text-white/60">Maison</div>
-                                <div className="font-semibold">{hoveredZone.label}</div>
-                            </div>
+                            {/* Popup Container with modern design */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                transition={{ duration: 0.2, ease: "easeOut" }}
+                                className="relative"
+                            >
+                                {/* Arrow pointer - positioned at top pointing up */}
+                                <div className="absolute top-0 left-8 transform -translate-y-full">
+                                    <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-b-[10px] border-l-transparent border-r-transparent border-b-[#1e293b]/95"></div>
+                                </div>
+                                
+                                {/* Main popup card */}
+                                <div className="relative rounded-2xl border border-[#fcd34d]/30 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+                                    {/* Close button for mobile */}
+                                    {isMobile && (
+                                        <button
+                                            onClick={handleClosePopup}
+                                            className="absolute top-3 right-3 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition text-base font-bold"
+                                            aria-label="Close"
+                                        >
+                                            ×
+                                        </button>
+                                    )}
+                                    {/* Decorative gradient overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-br from-[#fcd34d]/10 via-transparent to-[#f97316]/10 pointer-events-none"></div>
+                                    
+                                    {/* Content container */}
+                                    <div className="relative px-7 py-5 min-w-[260px]">
+                                        {/* House Title - at the top */}
+                                        <div className="text-xl font-bold text-white mb-4 tracking-tight">
+                                            {hoveredZone.label}
+                                        </div>
+                                        
+                                        {/* Plan Image Section - Below title */}
+                                        {planImage && (
+                                            <div 
+                                                className="relative w-full bg-slate-800/50 cursor-pointer group overflow-hidden flex items-center justify-center mb-4 rounded-lg"
+                                                style={{ height: '190px', minHeight: '190px' }}
+                                            >
+                                                <img 
+                                                    src={planImage} 
+                                                    alt="Floor Plan"
+                                                    className="max-w-full max-h-full object-contain transition-transform duration-300"
+                                                    style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }}
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
+                                                {/* See Plan Button - appears on hover */}
+                                                <button
+                                                    onClick={handlePlanClick}
+                                                    className="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[#fcd34d]/90 text-slate-900 text-[13px] font-bold px-4 py-2 rounded-full border border-[#fcd34d] tracking-wider uppercase hover:bg-[#fcd34d] hover:scale-105 transition-all z-10"
+                                                >
+                                                    See Plan
+                                                </button>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Buttons Section */}
+                                        <div className="space-y-3">
+                                            {/* See Interior Button */}
+                                            <button
+                                                onClick={handleInteriorVideo}
+                                                className="w-full px-4 py-3 bg-gradient-to-r from-[#fcd34d] to-[#f97316] text-slate-900 font-bold text-sm rounded-lg hover:from-[#fbbf24] hover:to-[#fb923c] transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                                            >
+                                                <Play className="w-4 h-4" fill="currentColor" />
+                                                See Interior
+                                            </button>
+                                            
+                                            {/* Make a Request Button */}
+                                            {houseId && (
+                                                <button
+                                                    onClick={handleInquiry}
+                                                    className="w-full px-4 py-3 bg-slate-800 border-2 border-[#fcd34d]/50 text-[#fcd34d] font-bold text-sm rounded-lg hover:bg-slate-700 hover:border-[#fcd34d] transition-all duration-200 flex items-center justify-center gap-2"
+                                                >
+                                                    Make a Request
+                                                </button>
+                                            )}
+                                            
+                                            {/* Helper text */}
+                                            <div className="text-center pt-2">
+                                                <p className="text-xs text-white/60 italic">
+                                                    Click the house to see details
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Bottom accent line */}
+                                    <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#fcd34d]/50 to-transparent"></div>
+                                </div>
+                            </motion.div>
                         </div>
                     )}
 
@@ -995,7 +1507,39 @@ export default function VideoPlayer({ videos = [] }) {
                             Zones editor visible below
                         </div>
                     )}
+                    
                 </div>
+            )}
+            
+            {/* Mobile Indicator - Click to see house details (outside hotspot overlay for proper z-index) */}
+            {isMobile && showMobileIndicator && !editZones && isVideoAtEnd && currentZones && currentZones.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ duration: 0.3 }}
+                    className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[60] pointer-events-auto w-full px-4"
+                    style={{ maxWidth: '100vw' }}
+                >
+                    <div className="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-[#fcd34d]/30 rounded-2xl shadow-2xl px-4 py-3 max-w-[90vw] mx-auto">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                            <div className="flex-1">
+                                <p className="text-white text-sm font-semibold mb-1">
+                                    Click a house to see more details
+                                </p>
+                                <p className="text-white/70 text-xs">
+                                    Tap on any house area to view floor plans
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleDismissIndicator}
+                                className="px-4 py-2 bg-[#fcd34d] text-slate-900 font-bold text-xs rounded-lg hover:bg-[#fbbf24] active:bg-[#f59e0b] transition-colors whitespace-nowrap w-full sm:w-auto"
+                            >
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
             )}
 
             {/* --- BUFFERING INDICATOR --- */}
