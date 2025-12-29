@@ -17,7 +17,6 @@ import Navbar from "./components/Navbar";
 import Location from "./components/Location";
 import Technology from "./components/Technology";
 import Contact from "./components/Contact";
-import Projects from "./components/Projects";
 import Footer from "./components/Footer";
 import VideoPlayer from "./components/VideoPlayer";
 import Loader from "./components/Loader";
@@ -35,11 +34,11 @@ import Dashboard from "./pages/Dashboard";
 import HouseCommentForm from "./pages/HouseCommentForm";
 import NotFound from "./pages/NotFound";
 import { ChatProvider } from "./context/ChatContext";
-import { 
-  detectConnectionQuality, 
-  getConnectionInfo, 
+import {
+  detectConnectionQuality,
+  getConnectionInfo,
   getPreloadStrategy,
-  onConnectionChange 
+  onConnectionChange
 } from "./utils/connectionDetector";
 
 function AppContent() {
@@ -111,17 +110,17 @@ function AppContent() {
       new Promise((resolve) => {
         setCurrentVideoLoading(`Video ${index + 1} of ${totalToLoad}`);
         setIsBuffering(true);
-        
+
         const vid = document.createElement("video");
         vid.src = video.src;
         vid.preload = strategy.preloadType;
         vid.muted = true; // Mute for faster loading
         vid.playsInline = true; // iOS requirement
         vid.setAttribute("playsinline", "true"); // iOS fallback
-        
+
         // For slow connections, only wait for metadata
         const loadEvent = strategy.preloadType === 'metadata' ? 'loadedmetadata' : 'canplaythrough';
-        
+
         const handleLoad = () => {
           loadedCount++;
           const newProgress = Math.round((loadedCount / totalToLoad) * 100);
@@ -135,7 +134,7 @@ function AppContent() {
           setIsBuffering(false);
           resolve(); // Continue even if one video fails
         };
-        
+
         vid.load();
 
         // Timeout for slow connections
@@ -153,7 +152,7 @@ function AppContent() {
       setCurrentVideoLoading(null);
       setIsBuffering(false);
       setTimeout(() => setIsReady(true), 300);
-      
+
       // Background loading based on strategy
       if (strategy.backgroundLoad && videos.length > strategy.initialVideos) {
         setTimeout(() => {
@@ -175,8 +174,8 @@ function AppContent() {
 
   if (!isReady && !hideLayout) {
     return (
-      <Loader 
-        progress={progress} 
+      <Loader
+        progress={progress}
         currentVideo={currentVideoLoading}
         connectionInfo={connectionInfo}
         isBuffering={isBuffering}
@@ -219,76 +218,75 @@ function AppContent() {
         {isZoneEditorActive ? (
           <VideoPlayer videos={videos} />
         ) : (
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            {/* HOME PAGE */}
-            <Route
-              path="/"
-              element={
-                <PageTransition>
-                  <VideoPlayer videos={videos} />
-                  <Location />
-                  <Technology />
-                  <Contact />
-                  <Projects />
-                </PageTransition>
-              }
-            />
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              {/* HOME PAGE */}
+              <Route
+                path="/"
+                element={
+                  <PageTransition>
+                    <VideoPlayer videos={videos} />
+                    <Location />
+                    <Technology />
+                    <Contact />
+                  </PageTransition>
+                }
+              />
 
-            {/* PLAN PAGE A */}
-            <Route
-              path="/plan"
-              element={
-                <PageTransition>
-                  <Plan />
-                </PageTransition>
-              }
-            />
+              {/* PLAN PAGE A */}
+              <Route
+                path="/plan"
+                element={
+                  <PageTransition>
+                    <Plan />
+                  </PageTransition>
+                }
+              />
 
-            {/* PLAN PAGE B */}
-            <Route
-              path="/planb"
-              element={
-                <PageTransition>
-                  <Planb />
-                </PageTransition>
-              }
-            />
+              {/* PLAN PAGE B */}
+              <Route
+                path="/planb"
+                element={
+                  <PageTransition>
+                    <Planb />
+                  </PageTransition>
+                }
+              />
 
-            {/* ADMIN ROUTES */}
-            <Route path="/admin" element={<AdminPage />} />
-            <Route
-              path="/dashboard"
-              element={
-                location.state?.email ? (
-                  <Dashboard email={location.state.email} />
-                ) : (
-                  <Navigate to="/admin" replace />
-                )
-              }
-            />
+              {/* ADMIN ROUTES */}
+              <Route path="/admin" element={<AdminPage />} />
+              <Route
+                path="/dashboard"
+                element={
+                  location.state?.email ? (
+                    <Dashboard email={location.state.email} />
+                  ) : (
+                    <Navigate to="/admin" replace />
+                  )
+                }
+              />
 
-            {/* HOUSE DETAIL */}
-            <Route
-              path="/house/:id"
-              element={
-                <PageTransition>
-                  <HouseCommentForm />
-                </PageTransition>
-              }
-            />
+              {/* HOUSE DETAIL */}
+              <Route
+                path="/house/:id"
+                element={
+                  <PageTransition>
+                    <HouseCommentForm />
+                  </PageTransition>
+                }
+              />
 
-            {/* 404 PAGE */}
-            <Route
-              path="*"
-              element={
-                <PageTransition>
-                  <NotFound />
-                </PageTransition>
-              }
-            />
-          </Routes>
-        </AnimatePresence>
+              {/* 404 PAGE */}
+              <Route
+                path="*"
+                element={
+                  <PageTransition>
+                    <NotFound />
+                  </PageTransition>
+                }
+              />
+            </Routes>
+          </AnimatePresence>
         )}
       </main>
 

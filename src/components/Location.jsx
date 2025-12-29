@@ -1,37 +1,38 @@
 import React from "react";
-import { MapPin, Activity, Car, Leaf, Flag, ArrowUpRight } from "lucide-react";
+import { MapPin, ShoppingBag, Plane, Stethoscope, Waves, ArrowUpRight } from "lucide-react";
 import ScrollReveal, { StaggerContainer } from "./ScrollReveal";
 import { BuildingShapes } from "./Architectural3D";
 
 export default function Location() {
+    // Real-world data based on your specific location (South Marrakesh / Rte d'Amizmiz)
     const locationItems = [
         {
-            category: "Transport",
-            title: "Wintering Road",
-            icon: <Activity strokeWidth={1.5} className="w-5 h-5" />,
-            distance: "3 min drive",
-            details: "Main Access Point"
+            category: "Leisure & Resort",
+            title: "Eden Andalou Aquapark",
+            icon: <Waves strokeWidth={1.5} className="w-5 h-5" />,
+            distance: "2 min drive",
+            details: "Luxury Spa & Water Park"
         },
         {
             category: "Connectivity",
-            title: "City Center",
-            icon: <Car strokeWidth={1.5} className="w-5 h-5" />,
+            title: "Marrakech Menara Airport",
+            icon: <Plane strokeWidth={1.5} className="w-5 h-5" />,
             distance: "15 min drive",
-            details: "Direct Highway Link"
+            details: "International Gateway"
         },
         {
-            category: "Lifestyle",
-            title: "Sport Drive & Park",
-            icon: <Leaf strokeWidth={1.5} className="w-5 h-5" />,
-            distance: "5 min walk",
-            details: "Green Belt Access"
+            category: "Shopping",
+            title: "Al Mazar Mall",
+            icon: <ShoppingBag strokeWidth={1.5} className="w-5 h-5" />,
+            distance: "12 min drive",
+            details: "Carrefour, Virgin & Retail"
         },
         {
-            category: "Services",
-            title: "Medical District",
-            icon: <Flag strokeWidth={1.5} className="w-5 h-5" />,
-            distance: "2 km radius",
-            details: "Hospitals & Clinics"
+            category: "Education",
+            title: "School Group Assabila",
+            icon: <Stethoscope strokeWidth={1.5} className="w-5 h-5" />,
+            distance: "8 min drive",
+            details: "Primary & Secondary Education"
         },
     ];
 
@@ -72,15 +73,15 @@ export default function Location() {
                                 02 — Neighborhood
                             </span>
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 tracking-tight leading-tight">
-                                Strategic <span className="font-bold">Location</span>
+                                Prime <span className="font-bold">Location</span>
                             </h2>
                         </div>
                     </ScrollReveal>
                     <ScrollReveal direction="left" delay={0.2}>
                         <p className="max-w-md text-gray-500 text-xs md:text-sm leading-relaxed text-justify">
-                            Situated at the convergence of nature and urban convenience.
-                            Enjoy seamless connectivity while remaining secluded in a private,
-                            serene enclave.
+                            A serene sanctuary located on the extension of Route d'Amizmiz.
+                            Enjoy the tranquility of the countryside with immediate access to
+                            Marrakech's most prestigious leisure resorts and the city center.
                         </p>
                     </ScrollReveal>
                 </div>
@@ -132,7 +133,7 @@ export default function Location() {
                             <div className="mt-8">
                                 <button className="flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-gray-900 hover:text-bronze transition-colors group">
                                     <MapPin className="w-4 h-4 text-bronze" />
-                                    View on Google Maps
+                                    Open in Google Maps
                                     <div className="h-px w-8 bg-gray-300 group-hover:w-12 group-hover:bg-bronze transition-all duration-300"></div>
                                 </button>
                             </div>
@@ -143,19 +144,20 @@ export default function Location() {
                     <ScrollReveal direction="left" delay={0.2} className="lg:col-span-7">
                         <div className="map-wrapper relative w-full h-[300px] md:h-[400px] lg:h-[500px] xl:h-[600px] bg-gray-100 rounded-xl md:rounded-2xl overflow-hidden shadow-2xl shadow-gray-200/50 border border-white ring-1 ring-gray-200 group">
 
-                            {/* Map Overlay Text (Visible before hover) */}
-                            <div className="absolute top-6 left-6 z-10 pointer-events-none">
+                            {/* Map Overlay Text - Kept at Top Right */}
+                            <div className="absolute top-6 right-6 z-10 pointer-events-none">
                                 <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-lg border border-white/50 shadow-sm">
                                     <span className="text-xs font-bold tracking-widest text-gray-900 uppercase flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                        Live Satellite View
+                                        Residential Zone
                                     </span>
                                 </div>
                             </div>
 
                             <iframe
-                                title="Google Map"
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12776.488349076045!2d10.1815!3d36.8065!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12fd3440dc780287%3A0x6239105470d9a657!2sTunis%2C%20Tunisia!5e0!3m2!1sen!2sus!4v1625680000000!5m2!1sen!2sus"
+                                title="Google Map Location"
+                                // UPDATED: Used a simpler, more reliable embed format to guarantee the pin appears at coordinates 31.5442128,-8.0172362
+                                src="https://maps.google.com/maps?q=31.5442128,-8.0172362&z=16&output=embed"
                                 width="100%"
                                 height="100%"
                                 allowFullScreen=""

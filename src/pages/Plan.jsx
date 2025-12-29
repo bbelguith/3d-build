@@ -3,16 +3,32 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-// --- SKELETON LOADER COMPONENT ---
-const SkeletonPulse = ({ className }) => (
-    <div className={`bg-gray-200 animate-pulse rounded-lg ${className}`} />
+// --- ICONS ---
+const PdfIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-5 h-5 mb-1">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375h-2.625A3.375 3.375 0 004.125 5.625v12.75c0 1.864 1.511 3.375 3.375 3.375h12.75c1.864 0 3.375-1.511 3.375-3.375z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 13.5h.008v.008H9v-.008zm4.5 0h.008v.008h-.008v-.008zm2.25-4.5h.008v.008h-.008v-.008z" />
+    </svg>
+);
+const CompareIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-5 h-5 mb-1">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0l-4.875-4.875m4.875 4.875l4.875-4.875M3 12h18" />
+    </svg>
+);
+const ThreeDIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-5 h-5 mb-1">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+    </svg>
+);
+const PhoneIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+        <path fillRule="evenodd" d="M1.5 4.5a3 3 0 013-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 01-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 006.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 011.955-.694l4.423 1.105c.834.209 1.42.96 1.42 1.82V19.5a3 3 0 01-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5z" clipRule="evenodd" />
+    </svg>
 );
 
 export default function Plan() {
     const navigate = useNavigate();
     const location = useLocation();
-
-    // Create a Ref for the section we want to scroll to
     const selectionRef = useRef(null);
 
     // 1. STATE
@@ -20,15 +36,19 @@ export default function Plan() {
     const [roomImages, setRoomImages] = useState([]);
     const [galleryImages, setGalleryImages] = useState([]);
     const [floorPlanImages, setFloorPlanImages] = useState([]);
+    const [twinPlanIdx, setTwinPlanIdx] = useState(0);
+    const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0 });
+    const [twinPreloaded, setTwinPreloaded] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const [hoveredHouseId, setHoveredHouseId] = useState(null);
+    // View States
     const [roomIndex, setRoomIndex] = useState(0);
     const [galleryIndex, setGalleryIndex] = useState(0);
     const [floorIndex, setFloorIndex] = useState(0);
-    const [primePlanIdx, setPrimePlanIdx] = useState(0);
-    const [lightbox, setLightbox] = useState({ open: false, images: [], index: 0 });
-    const [primePreloaded, setPrimePreloaded] = useState(false);
+
+    // Filter State
+    const [searchTerm, setSearchTerm] = useState("");
+    const [houseTypeFilter, setHouseTypeFilter] = useState("ALL"); // 'ALL', 'VP', 'VT'
 
     // 2. FETCH DATA
     useEffect(() => {
@@ -42,7 +62,13 @@ export default function Plan() {
                     axios.get(`${apiBase}/api/floor-images`),
                 ]);
 
-                setHouses(housesRes.data);
+                // Mock data enrichment for testing filtering if types are simple A/B
+                const enhancedHouses = housesRes.data.map((h, i) => ({
+                    ...h,
+                    type: h.type || (i % 2 === 0 ? "Type A (VP)" : "Type B (VT)"),
+                }));
+
+                setHouses(enhancedHouses);
                 setRoomImages(rImgRes.data);
                 setGalleryImages(gImgRes.data);
                 setFloorPlanImages(fImgRes.data);
@@ -52,35 +78,18 @@ export default function Plan() {
                 setLoading(false);
             }
         };
-
         fetchAllData();
     }, []);
 
-    // Handle Scroll & Toast on Arrival
+    // Scroll & Toast
     useEffect(() => {
         if (location.state?.scrollToSelection && !loading) {
             setTimeout(() => {
-                if (selectionRef.current) {
-                    selectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+                selectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 500);
-
             setTimeout(() => {
                 toast.info("📅 Please select a house to schedule your appointment!", {
-                    position: "bottom-center",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    theme: "dark",
-                    style: {
-                        borderRadius: "1rem",
-                        fontFamily: "serif",
-                        border: "1px solid rgba(255,255,255,0.2)",
-                        background: "#1f2937",
-                        color: "#fff"
-                    }
+                    position: "bottom-center", autoClose: 5000, theme: "dark", hideProgressBar: true
                 });
                 window.history.replaceState({}, document.title);
             }, 1000);
@@ -88,374 +97,352 @@ export default function Plan() {
     }, [location, loading]);
 
     // 3. LOGIC
-    const activeHouses = useMemo(() => {
-        return houses;
-    }, [houses]);
 
+    // --- FILTER LOGIC (VP / VT Check) ---
+    const visibleHouses = useMemo(() => {
+        const lowerSearch = searchTerm.toLowerCase();
+        return houses.filter(h => {
+            // 1. Must be active
+            if (h.state !== "actif") return false;
+
+            const typeStr = (h.type || "").toUpperCase();
+
+            // 2. VP / VT Check
+            if (houseTypeFilter === "VP") {
+                if (!typeStr.includes("VP")) return false;
+            }
+            if (houseTypeFilter === "VT") {
+                if (!typeStr.includes("VT")) return false;
+            }
+
+            // 3. Search Number
+            return h.number.toString().includes(lowerSearch);
+        });
+    }, [houses, searchTerm, houseTypeFilter]);
+
+    // Current House Logic
+    const activeHousesList = useMemo(() => houses.filter(h => h.state === 'actif'), [houses]);
     const [currentIdx, setCurrentIdx] = useState(0);
 
-    useEffect(() => {
-        if (activeHouses.length > 0) {
-            const idx = activeHouses.findIndex((h) => h.state === "actif");
-            setCurrentIdx(Math.max(0, idx));
-        }
-    }, [activeHouses]);
-
-    // Keyboard navigation
-    useEffect(() => {
-        const onKey = (e) => {
-            if (activeHouses.length === 0) return;
-            if (e.key === "ArrowRight") nextHouse();
-            if (e.key === "ArrowLeft") prevHouse();
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, [currentIdx, activeHouses.length]);
-
-    const prevHouse = () => setCurrentIdx((i) => (i - 1 + activeHouses.length) % activeHouses.length);
-    const nextHouse = () => setCurrentIdx((i) => (i + 1) % activeHouses.length);
-
-    const currentHouse = activeHouses[currentIdx];
-    const currentActiveId = hoveredHouseId ?? (currentHouse ? currentHouse.id : null);
+    // Ensure we don't crash if filtered list changes
+    // Using filtered list for selection index if available, else fallback
+    const currentHouse = activeHousesList[currentIdx] || activeHousesList[0];
 
     const currentRoomImages = roomImages.map((img) => img.src);
     const currentGalleryImages = galleryImages.map((img) => img.src);
     const currentFloorImages = floorPlanImages.map((img) => img.src);
-    const primePlanImages = useMemo(() => ([
+
+    const twinPlanImages = useMemo(() => ([
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986525/plan_rdc_villa_isolee_pyote8.png",
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986610/plan_terrasse_villa_isolee_riz5mc.png",
         "https://res.cloudinary.com/dueoeevmz/image/upload/v1765986523/WhatsApp_Image_2025-12-17_at_15.49.21_krfpum.jpg"
     ]), []);
 
-    // Preload heavy plan images to reduce first paint lag
+    // Labels for the pill buttons
+    const twinPlanLabels = ["Ground Floor", "1st Floor", "Under Ground"];
+
+    // Preload
     useEffect(() => {
         let cancelled = false;
         const preload = async () => {
-            const loaders = primePlanImages.map(
-                (src) =>
-                    new Promise((res) => {
-                        const img = new Image();
-                        img.onload = () => res(true);
-                        img.onerror = () => res(false);
-                        img.src = src;
-                    })
-            );
+            const loaders = twinPlanImages.map(src => new Promise(res => {
+                const img = new Image();
+                img.onload = () => res(true);
+                img.onerror = () => res(false);
+                img.src = src;
+            }));
             await Promise.all(loaders);
-            if (!cancelled) setPrimePreloaded(true);
+            if (!cancelled) setTwinPreloaded(true);
         };
         preload();
-        return () => {
-            cancelled = true;
-        };
-    }, [primePlanImages]);
+        return () => { cancelled = true; };
+    }, [twinPlanImages]);
 
     const openLightbox = (images, index = 0) => setLightbox({ open: true, images, index });
     const closeLightbox = () => setLightbox({ open: false, images: [], index: 0 });
-    const nextLightbox = () => setLightbox((p) => ({ ...p, index: (p.index + 1) % p.images.length }));
-    const prevLightbox = () => setLightbox((p) => ({ ...p, index: (p.index - 1 + p.images.length) % p.images.length }));
 
-    const handlePrimePlanClick = () => {
-        openLightbox(primePlanImages, primePlanIdx);
+    const handleBackdropClick = (e) => {
+        if (e.target === e.currentTarget) closeLightbox();
     };
 
     const handleHouseClick = (houseId) => {
-        const house = houses.find((h) => h.id === houseId);
-        if (house && house.state === "actif") navigate(`/house/${houseId}`);
+        navigate(`/house/${houseId}`);
     };
 
-    // --- RENDER HELPERS ---
+    // --- COMPONENTS ---
 
     const Title = ({ children }) => (
-        <div className="text-center max-w-5xl mx-auto px-4 mb-12 relative flex flex-col items-center">
-            <h2 className="text-4xl md:text-5xl font-serif font-bold uppercase leading-tight tracking-[0.15em] text-gray-900 drop-shadow-sm">
+        <div className="flex items-center justify-center gap-6 mb-16 px-4">
+            <div className="h-[1px] bg-gray-300 w-16 md:w-32 lg:w-48 opacity-50" />
+            <h2 className="text-3xl md:text-5xl font-sans font-light uppercase tracking-[0.2em] text-gray-800">
                 {children}
             </h2>
-            <span className="block h-1 w-24 bg-gradient-to-r from-transparent via-emerald-600 to-transparent rounded-full mt-6 opacity-80" />
+            <div className="h-[1px] bg-gray-300 w-16 md:w-32 lg:w-48 opacity-50" />
         </div>
     );
 
-    // --- SECTION COMPONENT ---
-    const Section = ({ title, images, index, setIndex }) => {
-        const [isHovered, setIsHovered] = useState(false);
+    const CarouselSection = ({ title, images, index, setIndex }) => (
+        <section className="py-24 bg-white border-b border-gray-100">
+            <Title>{title}</Title>
+            <div className="w-full max-w-[1800px] mx-auto px-4 md:px-8">
+                <div className="relative w-full h-[70vh] rounded-[3rem] overflow-hidden group shadow-xl">
+                    <img src={images[index]} className="w-full h-full object-cover cursor-zoom-in" onClick={() => openLightbox(images, index)} />
 
-        useEffect(() => {
-            if (!images || images.length === 0 || isHovered) return;
-            const interval = setInterval(() => {
-                setIndex((p) => (p + 1) % images.length);
-            }, 5000);
-            return () => clearInterval(interval);
-        }, [images, isHovered, setIndex]);
-
-        if (!images || images.length === 0) return null;
-
-        return (
-            <section className="py-24 bg-white border-b border-gray-100">
-                <Title>{title}</Title>
-                <div className="max-w-[1600px] mx-auto px-4 sm:px-8">
-                    <div
-                        className="relative w-full h-[60vh] md:h-[80vh] rounded-[3rem] overflow-hidden shadow-2xl group border border-gray-100"
-                        onMouseEnter={() => setIsHovered(true)}
-                        onMouseLeave={() => setIsHovered(false)}
-                    >
-                        <div
-                            key={index}
-                            className="absolute inset-0 bg-center bg-cover transition-transform duration-[10s] ease-linear scale-100 group-hover:scale-110 cursor-zoom-in"
-                            style={{ backgroundImage: `url(${images[index]})` }}
-                            onClick={() => setPopupSrc(images[index])}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
-
-                        <button
-                            onClick={() => setIndex((p) => (p - 1 + images.length) % images.length)}
-                            className="absolute left-8 top-1/2 -translate-y-1/2 w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-black transition-all duration-500 opacity-0 group-hover:opacity-100 -translate-x-8 group-hover:translate-x-0 z-20 shadow-lg"
-                        >
-                            <span className="text-2xl pb-1">&larr;</span>
+                    <div className="absolute inset-x-10 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none">
+                        <button onClick={() => setIndex((p) => (p - 1 + images.length) % images.length)}
+                            className="pointer-events-auto w-16 h-16 rounded-full bg-white/10 backdrop-blur-md text-white flex items-center justify-center hover:bg-white hover:text-black transition-all border border-white/20">
+                            <span className="text-3xl pb-2">←</span>
                         </button>
-                        <button
-                            onClick={() => setIndex((p) => (p + 1) % images.length)}
-                            className="absolute right-8 top-1/2 -translate-y-1/2 w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-black transition-all duration-500 opacity-0 group-hover:opacity-100 translate-x-8 group-hover:translate-x-0 z-20 shadow-lg"
-                        >
-                            <span className="text-2xl pb-1">&rarr;</span>
+                        <button onClick={() => setIndex((p) => (p + 1) % images.length)}
+                            className="pointer-events-auto w-16 h-16 rounded-full bg-white/10 backdrop-blur-md text-white flex items-center justify-center hover:bg-white hover:text-black transition-all border border-white/20">
+                            <span className="text-3xl pb-2">→</span>
                         </button>
-                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-20">
-                            {images.map((_, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => setIndex(idx)}
-                                    className={`h-1.5 rounded-full transition-all duration-300 shadow-sm ${idx === index ? "w-10 bg-white" : "w-2 bg-white/40 hover:bg-white/80"}`}
-                                />
-                            ))}
-                        </div>
-                        <div className="absolute top-8 right-8 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <span className="bg-black/30 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full border border-white/10 tracking-widest uppercase">
-                                View Fullscreen
-                            </span>
-                        </div>
+                    </div>
+
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/40 backdrop-blur-xl px-8 py-3 rounded-full border border-white/10">
+                        {images.map((_, idx) => (
+                            <button key={idx} onClick={() => setIndex(idx)}
+                                className={`h-1.5 rounded-full transition-all duration-500 ${idx === index ? "w-10 bg-white shadow-[0_0_10px_white]" : "w-1.5 bg-white/30 hover:bg-white/60"}`} />
+                        ))}
                     </div>
                 </div>
-            </section>
-        );
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 p-8 space-y-12">
-                <div className="max-w-6xl mx-auto space-y-8">
-                    <SkeletonPulse className="h-12 w-64 mx-auto" />
-                    <SkeletonPulse className="w-full h-[60vh] rounded-3xl" />
-                </div>
             </div>
-        );
-    }
+        </section>
+    );
+
+    if (loading) return <div className="h-screen flex items-center justify-center font-sans font-light text-2xl tracking-[0.3em] text-gray-400 uppercase">Loading Plan...</div>;
 
     return (
-        <div className="h-full text-gray-800 bg-[#fdfdfd] pb-32">
+        <div className="bg-[#fcfcfc] min-h-screen text-gray-900 font-sans">
             <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0 mix-blend-multiply"
                 style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
             />
 
-            {/* --- PROPERTY PLANNING SECTION --- */}
-            <section className="relative z-10 py-12 md:py-16 lg:py-24 border-b border-gray-200 bg-gradient-to-b from-white via-gray-50 to-white">
-                <div className="flex flex-col md:flex-row justify-between items-center max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 mb-8 md:mb-12 gap-4 md:gap-6">
-                    <div className="text-center w-full flex flex-col items-center">
-                        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold uppercase tracking-widest text-gray-900 text-center drop-shadow-sm">
-                            Property Planning
-                        </h1>
-                        <span className="block h-1 w-20 md:w-24 bg-emerald-600 rounded-full mt-4 md:mt-6 mx-auto opacity-80" />
-                    </div>
+            {/* --- PROPERTY PLANNING SECTION (Refined for PlanB Content) --- */}
+            <section className="pt-20 pb-24 border-b border-gray-100 relative z-10">
+
+                {/* Header Style Match */}
+                <div className="flex items-center justify-center gap-4 mb-20 px-6">
+                    <div className="h-[1px] bg-gray-300 flex-1 max-w-[350px] opacity-60" />
+                    <h1 className="text-4xl lg:text-6xl font-sans font-extralight uppercase tracking-[0.15em] text-gray-800">
+                        Property Planning
+                    </h1>
+                    <div className="h-[1px] bg-gray-300 flex-1 max-w-[350px] opacity-60" />
                 </div>
 
-                <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8">
-                    <div className="flex flex-col lg:flex-row gap-6 md:gap-8 items-stretch relative">
+                <div className="max-w-[1800px] mx-auto px-6 lg:px-16">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
 
-                        {/* Left Card - Sticky */}
-                        <div className="lg:w-[280px] xl:w-[320px] sticky top-20 md:top-32 h-fit z-10">
-                            <div className="bg-white/80 border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 lg:p-10 flex flex-col justify-between backdrop-blur-xl transition-all hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1">
-                                <div>
-                                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold mb-2 md:mb-3 text-gray-900">
-                                        Unit {currentHouse?.number || "..."}
-                                    </h2>
-                                    <p className={`text-xs font-extrabold uppercase tracking-widest mb-8 inline-block px-3 py-1 rounded-full ${currentHouse?.state === 'actif' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                        {currentHouse?.state === 'actif' ? "Available Now" : "Sold"}
-                                    </p>
-                                    <div className="space-y-4 md:space-y-6 text-xs md:text-sm text-gray-600">
-                                        <div className="flex justify-between border-b border-dashed border-gray-200 pb-2 md:pb-3">
-                                            <span className="font-medium tracking-wide">Type</span>
-                                            <span className="font-serif text-gray-900 uppercase text-base md:text-lg">{currentHouse?.type || "A"}</span>
-                                        </div>
-                                        <div className="flex justify-between border-b border-dashed border-gray-200 pb-2 md:pb-3">
-                                            <span className="font-medium tracking-wide">Price</span>
-                                            <span className="font-serif text-emerald-700 font-bold text-lg md:text-xl">
-                                                {currentHouse?.price ? `$${(currentHouse.price / 1000000).toFixed(2)}M` : "Contact"}
-                                            </span>
-                                        </div>
-                                    </div>
+                        {/* LEFT COLUMN: Metadata */}
+                        <div className="lg:col-span-3 flex flex-col gap-10">
+                            <div className="flex flex-col gap-4">
+                                <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                                    <span className="bg-gray-100 px-3 py-1.5 rounded">House: 1</span>
+                                    <span className="bg-gray-100 px-3 py-1.5 rounded">Floor: 22</span>
+                                    <span className="bg-gray-100 px-3 py-1.5 rounded">Number: {currentHouse?.number}</span>
                                 </div>
-                                <div className="mt-6 md:mt-10 grid grid-cols-2 gap-2 md:gap-3">
-                                    {['PDF Brochure', '3D View', 'Compare', 'Contact Us'].map((btn, i) => (
-                                        <button key={btn} className={`
-                                            px-2 py-3 md:py-4 rounded-lg md:rounded-xl text-[10px] md:text-[11px] font-bold tracking-wider border transition-all duration-300 uppercase shadow-sm
-                                            ${i === 3
-                                                ? 'col-span-2 bg-emerald-900 text-white border-emerald-900 hover:bg-emerald-800 hover:shadow-lg'
-                                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900 hover:text-gray-900 hover:bg-gray-50'
-                                            }
-                                        `}>
-                                            {btn}
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                                        Type: {currentHouse?.type || "Standard"}
+                                    </span>
+                                    <span className="bg-[#8CBF8C] text-white px-3 py-1 rounded text-[9px] font-bold uppercase tracking-widest">Available</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h2 className="text-7xl font-light tracking-tighter text-gray-900 flex items-center gap-4">
+                                    1R <span className="text-gray-300 font-thin text-5xl">/</span> 546.27<span className="text-3xl text-gray-500">sqft</span>
+                                </h2>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-3">$ per sqft 1,868</p>
+                            </div>
+
+                            <div className="text-6xl font-sans font-normal text-gray-900 tracking-tight">
+                                $ 1 020 400
+                            </div>
+
+                            <div className="flex justify-between items-center max-w-xs mt-4">
+                                <button className="flex flex-col items-center gap-2 group text-gray-400 hover:text-black transition-colors">
+                                    <PdfIcon /> <span className="text-[9px] font-bold uppercase tracking-widest">PDF</span>
+                                </button>
+                                <div className="w-[1px] h-8 bg-gray-200" />
+                                <button className="flex flex-col items-center gap-2 group text-gray-400 hover:text-black transition-colors">
+                                    <CompareIcon /> <span className="text-[9px] font-bold uppercase tracking-widest">Compare</span>
+                                </button>
+                                <div className="w-[1px] h-8 bg-gray-200" />
+                                <button className="flex flex-col items-center gap-2 group text-gray-400 hover:text-black transition-colors">
+                                    <ThreeDIcon /> <span className="text-[9px] font-bold uppercase tracking-widest">On 3D</span>
+                                </button>
+                            </div>
+
+                            <button className="w-full bg-[#151515] text-white py-5 rounded-full text-xs font-bold uppercase tracking-[0.25em] hover:bg-gray-800 transition-all flex items-center justify-center gap-3 mt-6 shadow-xl">
+                                <PhoneIcon /> Call Back
+                            </button>
+                        </div>
+
+                        {/* CENTER COLUMN: The Twin Plan Image & Buttons */}
+                        <div className="lg:col-span-6 flex flex-col items-center justify-center">
+                            {/* NEW CARD WRAPPER */}
+                            <div className="bg-white p-8 lg:p-12 rounded-[3rem] shadow-xl border border-gray-100 w-full flex flex-col items-center relative z-20">
+                                <div
+                                    className="relative w-full flex justify-center cursor-zoom-in group"
+                                    onClick={() => openLightbox(twinPlanImages, twinPlanIdx)}
+                                >
+                                    <img
+                                        src={twinPlanImages[twinPlanIdx]}
+                                        // Kept rotate-90, removed hover scale for cleaner card look
+                                        className={`h-[400px] w-auto object-contain transition-transform duration-700 rotate-90 drop-shadow-sm ${!twinPreloaded ? 'opacity-0' : 'opacity-100'}`}
+                                        alt="Floor Plan"
+                                    />
+                                </div>
+
+                                {/* High visibility buttons - Adjusted container style to fit inside card */}
+                                <div className="mt-8 flex gap-4 bg-gray-50 p-2 rounded-full border border-gray-100">
+                                    {twinPlanImages.map((_, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => setTwinPlanIdx(i)}
+                                            className={`
+                                            px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-300
+                                            ${twinPlanIdx === i
+                                                    ? 'bg-[#151515] text-white shadow-lg transform scale-105'
+                                                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-black hover:shadow-sm'
+                                                }
+                                        `}
+                                        >
+                                            {twinPlanLabels[i] || `Level ${i + 1}`}
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Center Card - Normal Scroll */}
-                        <div
-                            className="flex-1 min-h-[400px] md:min-h-[500px] lg:min-h-[600px] rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.1)] border border-white/50 bg-white relative group cursor-pointer transition-all hover:shadow-[0_30px_60px_rgb(0,0,0,0.15)] flex flex-col z-10"
-                            onClick={handlePrimePlanClick}
-                        >
-                            <div
-                                className={`absolute inset-0 bg-center bg-contain bg-no-repeat transition-transform duration-700 group-hover:scale-105 p-6 md:p-8 lg:p-12 -rotate-90 origin-center ${!primePreloaded ? "opacity-0" : "opacity-100"}`}
-                                style={{ backgroundImage: `url(${primePlanImages[primePlanIdx]})` }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />
-                            <div className="mt-auto relative z-10 p-6 md:p-8 lg:p-10 text-white w-full">
-                                <span className="inline-block px-3 md:px-4 py-1 md:py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[9px] md:text-[10px] font-bold tracking-[0.2em] mb-3 md:mb-4 border border-white/20 uppercase hover:bg-white/30 transition-colors">
-                                    Interactive View
-                                </span>
-                                <p className="text-2xl md:text-3xl lg:text-4xl font-serif font-medium mb-2">Floor Plan Overview</p>
-                                <p className="text-white/80 text-xs md:text-sm font-light tracking-wide">Click to expand details</p>
-                                <div className="flex items-center gap-2 mt-4">
-                                    {primePlanImages.map((_, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={(e) => { e.stopPropagation(); setPrimePlanIdx(idx); }}
-                                            className={`h-2.5 rounded-full transition-all duration-300 shadow-sm ${idx === primePlanIdx ? "w-8 bg-white" : "w-3 bg-white/40 hover:bg-white/80"}`}
-                                        />
-                                    ))}
+                        {/* RIGHT COLUMN: Details */}
+                        <div className="lg:col-span-3 flex flex-col items-end text-right pl-0 lg:pl-12 gap-16 h-full justify-start mt-10 lg:mt-0">
+                            <div className="w-full">
+                                <h3 className="text-2xl font-sans font-light uppercase tracking-widest mb-8 text-gray-800">1st Floor</h3>
+                                <div className="space-y-4 w-full">
+                                    <div className="flex justify-between items-center w-full group">
+                                        <span className="text-gray-400 text-xs uppercase tracking-wider">Total area:</span>
+                                        <span className="font-mono text-sm text-gray-600 border-b border-gray-100 pb-1 w-32 text-right">546.27 sqft</span>
+                                    </div>
+                                    <div className="flex justify-between items-center w-full group">
+                                        <span className="text-gray-400 text-xs uppercase tracking-wider">Living area:</span>
+                                        <span className="font-mono text-sm text-gray-600 border-b border-gray-100 pb-1 w-32 text-right">491.51 sqft</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Right Card - Sticky */}
-                        <div className="lg:w-[280px] xl:w-[320px] sticky top-20 md:top-32 h-fit z-10">
-                            <div className="bg-white/80 border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 lg:p-10 backdrop-blur-xl flex flex-col justify-center transition-all hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1">
-                                <h3 className="text-lg md:text-xl font-serif font-bold mb-6 md:mb-8 text-gray-900 border-b border-gray-100 pb-3 md:pb-4">Key Features</h3>
-                                <ul className="space-y-4 md:space-y-6">
-                                    {[
-                                        { icon: "✨", text: "High Ceilings (3.5m)" },
-                                        { icon: "💡", text: "Smart Home System" },
-                                        { icon: "🪵", text: "Premium Oak Flooring" },
-                                        { icon: "🌇", text: "Panoramic City Views" },
-                                        { icon: "❄️", text: "Central AC & Heating" },
-                                    ].map((item, i) => (
-                                        <li key={i} className="flex items-center gap-3 md:gap-5 text-xs md:text-sm text-gray-600 group/item cursor-default">
-                                            <div className="flex items-center gap-3 md:gap-5">
-                                                <span className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-gray-50 flex items-center justify-center text-lg md:text-xl shadow-sm border border-gray-100 group-hover/item:scale-110 group-hover/item:bg-emerald-50 transition-all duration-300">
-                                                    {item.icon}
-                                                </span>
-                                                <span className="font-medium group-hover/item:text-gray-900 transition-colors">{item.text}</span>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+                            <button className="px-10 border border-[#151515] text-[#151515] py-4 rounded-full text-[10px] uppercase font-bold tracking-[0.25em] hover:bg-[#151515] hover:text-white transition-all flex items-center gap-3">
+                                <PhoneIcon /> Call Back
+                            </button>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <Section title="Room Tour" images={currentRoomImages} index={roomIndex} setIndex={setRoomIndex} />
-            <Section title="Floor Plan" images={currentFloorImages} index={floorIndex} setIndex={setFloorIndex} />
-            <Section title="Gallery" images={currentGalleryImages} index={galleryIndex} setIndex={setGalleryIndex} />
+            {/* --- CAROUSELS --- */}
+            <CarouselSection title="Interior Concept" images={currentRoomImages} index={roomIndex} setIndex={setRoomIndex} />
+            <CarouselSection title="Floor Plan" images={currentFloorImages} index={floorIndex} setIndex={setFloorIndex} />
+            <CarouselSection title="Architecture Gallery" images={currentGalleryImages} index={galleryIndex} setIndex={setGalleryIndex} />
 
-            {/* --- CHOOSE YOUR HOUSE --- */}
-            <section ref={selectionRef} className="relative z-10 w-full flex flex-col items-center justify-start gap-8 md:gap-12 pt-16 md:pt-20 lg:pt-24 bg-white pb-16 md:pb-24 lg:pb-32">
-                <Title>Select Residence</Title>
+            {/* --- SELECT RESIDENCE (Darker Text & Filtered) --- */}
+            <section ref={selectionRef} className="py-32 bg-gray-50 border-t border-gray-200">
+                <div className="max-w-[1600px] mx-auto px-6">
+                    <Title>Select Residence</Title>
 
-                <div className="w-full max-w-[1600px] px-4 sm:px-6 md:px-8 z-20">
-                    <div className="bg-gray-50/50 p-4 md:p-6 lg:p-8 rounded-[2rem] md:rounded-[3rem] border border-gray-100 shadow-inner">
-                        <div className="flex flex-wrap justify-center gap-3 md:gap-4">
-                            {activeHouses.map((house, i) => {
-                                const isActive = house.id === currentActiveId;
-                                const isSold = house.state !== "actif";
+                    {/* Controls */}
+                    <div className="flex flex-col md:flex-row gap-8 justify-center items-center mb-16">
+                        <div className="relative w-full max-w-sm group">
+                            <input
+                                type="text"
+                                placeholder="Search House Number..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-white border-none rounded-full py-5 pl-8 pr-12 shadow-sm focus:ring-1 focus:ring-black outline-none font-bold text-center text-lg transition-all text-black"
+                            />
+                            <div className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black">🔍</div>
+                        </div>
 
-                                return (
+                        <div className="bg-white p-1.5 rounded-full shadow-sm flex gap-1">
+                            {['ALL', 'VP', 'VT'].map(type => (
+                                <button
+                                    key={type}
+                                    onClick={() => setHouseTypeFilter(type)}
+                                    className={`px-8 py-4 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${houseTypeFilter === type ? 'bg-[#151515] text-white shadow-lg' : 'text-gray-500 hover:text-black hover:bg-gray-50'}`}
+                                >
+                                    {type}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Grid */}
+                    <div className="bg-white p-12 rounded-[3rem] shadow-xl border border-gray-100 min-h-[400px]">
+                        <div className="flex justify-between items-center mb-8 px-4 border-b border-gray-100 pb-4">
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Available Residences</span>
+                            <span className="text-xs font-bold text-black uppercase tracking-widest">{visibleHouses.length} Found</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                            {visibleHouses.length > 0 ? (
+                                visibleHouses.map((house) => (
                                     <button
                                         key={house.id}
-                                        onClick={() => { setCurrentIdx(i); handleHouseClick(house.id); }}
-                                        onMouseEnter={() => {
-                                            if (isSold) return;
-                                            setHoveredHouseId(house.id);
-                                            setCurrentIdx(i);
-                                        }}
-                                        onMouseLeave={() => setHoveredHouseId(null)}
+                                        onClick={() => handleHouseClick(house.id)}
+                                        onMouseEnter={() => setCurrentIdx(houses.indexOf(house))}
                                         className={`
-                                            relative px-6 py-4 rounded-2xl font-bold transition-all duration-300 text-sm tracking-wide shadow-sm overflow-hidden group border
-                                            ${isSold
-                                                ? "bg-white text-gray-300 border-gray-100 cursor-not-allowed"
-                                                : isActive
-                                                    ? "bg-gray-900 text-white shadow-2xl scale-110 border-gray-900 z-10 ring-4 ring-emerald-200/70 shadow-[0_0_0_3px_rgba(16,185,129,0.35),0_0_28px_rgba(16,185,129,0.35)]"
-                                                    : "bg-white text-gray-500 border-gray-200 hover:border-emerald-500 hover:text-emerald-600 hover:-translate-y-1 hover:shadow-md hover:bg-emerald-50/40 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.25),0_0_22px_rgba(16,185,129,0.35)]"
+                                            h-24 rounded-2xl font-bold transition-all border flex flex-col items-center justify-center gap-1 group
+                                            ${house.id === currentHouse?.id
+                                                ? "bg-[#151515] text-white border-[#151515] shadow-2xl scale-105 z-10"
+                                                : "bg-white text-black border-gray-200 hover:border-[#151515] hover:bg-gray-50"
                                             }
                                         `}
                                     >
-                                        <div className="relative z-10 flex flex-col items-center gap-1">
-                                            <span className={isSold ? "line-through decoration-red-200 decoration-2" : "text-base"}>
-                                                {house.number}
-                                            </span>
-                                            {isSold && (
-                                                <span className="text-[9px] text-red-300 uppercase font-extrabold tracking-widest">Sold</span>
-                                            )}
-                                        </div>
+                                        {/* TEXT MADE DARKER AND BOLDER */}
+                                        <span className={`text-2xl font-bold ${house.id === currentHouse?.id ? "text-white" : "text-black"}`}>
+                                            {house.number}
+                                        </span>
+                                        <span className={`text-[9px] uppercase font-extrabold tracking-widest ${house.id === currentHouse?.id ? "text-white/60" : "text-gray-900"}`}>
+                                            {(house.type || "").includes("A") ? "VP" : "VT"}
+                                        </span>
                                     </button>
-                                );
-                            })}
+                                ))
+                            ) : (
+                                <div className="col-span-full py-24 text-center text-gray-300 flex flex-col items-center justify-center">
+                                    <span className="text-5xl mb-4 opacity-30">∅</span>
+                                    <span className="uppercase font-bold text-xs tracking-[0.2em]">No residences found</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </section>
 
-            <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: scale(1.02); } to { opacity: 1; transform: scale(1); } }
-        @keyframes subtleZoom { from { transform: scale(1); } to { transform: scale(1.05); } }
-      `}</style>
 
+            {/* LIGHTBOX */}
             {lightbox.open && (
-                <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center px-4">
-                    <button
-                        onClick={closeLightbox}
-                        className="absolute top-6 right-6 text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-2 text-xs font-bold tracking-wide"
-                    >
-                        Close
-                    </button>
-                    <div className="relative max-w-5xl w-full flex items-center justify-center gap-4">
-                        <button
-                            onClick={prevLightbox}
-                            className="w-12 h-12 rounded-full bg-white/15 text-white border border-white/20 hover:bg-white/30 flex items-center justify-center text-xl"
-                        >
-                            ‹
-                        </button>
-                        <div className="relative w-full max-h-[80vh] flex items-center justify-center">
-                            <img
-                                src={lightbox.images[lightbox.index]}
-                                alt="Plan"
-                                className="max-h-[80vh] max-w-full object-contain rounded-2xl shadow-2xl transition-transform duration-500"
-                            />
-                        </div>
-                        <button
-                            onClick={nextLightbox}
-                            className="w-12 h-12 rounded-full bg-white/15 text-white border border-white/20 hover:bg-white/30 flex items-center justify-center text-xl"
-                        >
-                            ›
-                        </button>
-                    </div>
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
-                        {lightbox.images.map((_, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => setLightbox((p) => ({ ...p, index: idx }))}
-                                className={`h-2.5 rounded-full transition-all duration-300 ${idx === lightbox.index ? "w-8 bg-white" : "w-3 bg-white/40 hover:bg-white/70"}`}
-                            />
-                        ))}
+                <div
+                    className="fixed inset-0 z-[2000] bg-black/98 flex items-center justify-center p-8 backdrop-blur-xl cursor-pointer"
+                    onClick={handleBackdropClick}
+                >
+                    <button onClick={closeLightbox} className="absolute top-8 right-8 text-white/50 hover:text-white text-5xl transition-colors leading-none z-50">&times;</button>
+
+                    <button className="absolute left-8 top-1/2 -translate-y-1/2 text-white/20 hover:text-white text-6xl transition-colors z-50 p-4"
+                        onClick={(e) => { e.stopPropagation(); setLightbox(prev => ({ ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length })) }}>‹</button>
+
+                    <img
+                        src={lightbox.images[lightbox.index]}
+                        // UPDATED: Added rotate-90 here for the modal view
+                        className="max-h-full max-w-full object-contain rounded-lg shadow-2xl cursor-default rotate-90"
+                        alt="Zoom"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+
+                    <button className="absolute right-8 top-1/2 -translate-y-1/2 text-white/20 hover:text-white text-6xl transition-colors z-50 p-4"
+                        onClick={(e) => { e.stopPropagation(); setLightbox(prev => ({ ...prev, index: (prev.index + 1) % prev.images.length })) }}>›</button>
+
+                    <div className="absolute bottom-8 text-white/50 font-mono text-xs tracking-widest pointer-events-none">
+                        {lightbox.index + 1} / {lightbox.images.length}
                     </div>
                 </div>
             )}
