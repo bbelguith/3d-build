@@ -14,17 +14,56 @@ dotenv.config();
 const app = express();
 
 // CORS configuration - supports multiple origins (comma-separated in CORS_ORIGIN)
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const corsOriginEnv = process.env.CORS_ORIGIN || (isDevelopment ? "http://localhost:5173" : "");
+const allowedOrigins = corsOriginEnv
   .split(",")
   .map(o => o.trim())
-  .filter(Boolean);
+  .filter(Boolean)
+  // Normalize origins: remove trailing slashes for comparison
+  .map(o => o.endsWith('/') ? o.slice(0, -1) : o);
+
+// Log allowed origins for debugging
+console.log("🌐 CORS Configuration:");
+console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`   CORS_ORIGIN env: ${process.env.CORS_ORIGIN || '(not set)'}`);
+console.log(`   Allowed Origins: ${allowedOrigins.length > 0 ? allowedOrigins.join(", ") : "ALL (development mode)"}`);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow non-browser (no origin) or any listed origin
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error("Not allowed by CORS"));
-  }
+    // In development, allow all origins if CORS_ORIGIN is not set
+    if (isDevelopment && allowedOrigins.length === 0) {
+      console.log(`✅ CORS: Allowing origin (dev mode): ${origin || 'no origin'}`);
+      return callback(null, true);
+    }
+    
+    // Allow non-browser requests (no origin header) - e.g., Postman, curl, mobile apps
+    if (!origin) {
+      console.log("✅ CORS: Allowing request with no origin (non-browser)");
+      return callback(null, true);
+    }
+    
+    // Normalize origin for comparison (remove trailing slash)
+    const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+    
+    // Check if origin is in allowed list (exact match or normalized match)
+    if (allowedOrigins.includes(origin) || allowedOrigins.includes(normalizedOrigin)) {
+      console.log(`✅ CORS: Allowing origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Log rejected origin for debugging
+    console.warn(`❌ CORS: Rejected origin: ${origin}`);
+    console.warn(`   Normalized: ${normalizedOrigin}`);
+    console.warn(`   Allowed origins: ${allowedOrigins.join(", ")}`);
+    console.warn(`   CORS_ORIGIN env value: ${process.env.CORS_ORIGIN || '(not set)'}`);
+    
+    return callback(new Error(`Not allowed by CORS. Origin: ${origin} not in allowed list: ${allowedOrigins.join(", ")}`));
+  },
+  credentials: true, // Allow cookies/auth headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
 app.use(express.json());
 
